@@ -1,0 +1,12 @@
+{
+  "categories": {
+    "correctness": "error",
+    "perf": "warn",
+    "suspicious": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "plugins": ["react", "typescript"]
+}
