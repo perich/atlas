@@ -65,7 +65,7 @@ Required surfaces:
 
 - At least one OffscreenCanvas component rendered by a worker, fed by a server-owned firehose of
   balance sheet movements.
-- A dense realtime Balance Sheet Tape: a trade-history-like stream of credits and debits against
+- A dense scrolling Balance Sheet Tape: a trade-history-like stream of credits and debits against
   high-level bank balance sheet buckets, with customer, rail, asset, amount, status, and risk
   metadata.
 - Rail and system health components for ACH, wire, instant payments, card, internal ledger, and
@@ -376,13 +376,15 @@ update a recent-movement ring buffer, and post compact snapshots to React at rou
 
 ## Rendering Model
 
-The Balance Sheet Tape should be a bounded visual representation of the movement stream, not a DOM
-rendering of every movement.
+The Balance Sheet Tape should be a bounded dense scrolling list, not a market-depth ladder and not
+a DOM rendering of every movement.
 
 Required behavior:
 
 - OffscreenCanvas renderer receives decoded movement batches and aggregate bucket totals.
-- The visible tape row pool is bounded.
+- The visible tape row pool is bounded and recycles rows as new movements arrive.
+- Newest movements stream into the tape in one direction with stable columns for time, side, amount,
+  bucket, asset, customer, rail, and status.
 - Under load, visual sampling is allowed.
 - Data loss and visual sampling must be reported separately.
 - Bucket totals, side totals, and throughput indicators remain accurate when row sampling activates.

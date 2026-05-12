@@ -28,9 +28,9 @@ liquidity, or system activity.
 _Avoid_: Message, row
 
 **Balance Sheet Tape**:
-A realtime visual tape of credit and debit movements affecting high-level bank balance sheet
+A dense scrolling visual tape of credit and debit movements affecting high-level bank balance sheet
 buckets.
-_Avoid_: Trade history
+_Avoid_: Trade history, order book, market-depth ladder
 
 **Balance Sheet Movement**:
 A simplified debit or credit record used by the `/ops` firehose to show activity against the bank's
