@@ -302,7 +302,7 @@ Target repo shape:
 ```txt
 apps/
   web/                 React/Vite app
-  stream-server/       Node TypeScript WebSocket server for local and demo deploy
+  stream-server/       One Node TypeScript server for local and demo deploy
 packages/
   protocol/            shared frame definitions, encoders, decoders, message types
   bank-sim/            deterministic scenario engine and synthetic data generation
@@ -323,9 +323,20 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 - aggregate metric computation for the React dashboard panels
 - replay buffer
 - `/stream` WebSocket endpoint
+- `/api/audit` paged audit entry endpoint
+- `/api/audit/facets` audit filter facet endpoint
+- `/api/audit/:id` audit entry detail endpoint
 - `/healthz` health endpoint
 - optional static serving of the built web app for single-service deploys
 - client control handling for scenario, target rate, pause/resume, and backpressure
+
+The first build should use one Node process, not separate services. Keep internal modules separate
+for clarity:
+
+- `ops-stream` for WebSocket firehose, scenarios, and aggregate snapshots.
+- `audit-query` for paged audit entries, filtering, sorting, facets, and row detail.
+- `scenario-engine` for deterministic synthetic Customers, Accounts, Balance Sheet Movements, Audit
+  Entries, and related fixtures.
 
 ### Browser Responsibilities
 
@@ -454,12 +465,13 @@ Persistence:
 
 ## Deployment and Hosting
 
-Recommended first deploy: one long-running Node service that serves both the built SPA and the
-WebSocket stream from the same origin.
+Recommended first deploy: one long-running Node service that serves the built SPA, `/stream`
+WebSocket endpoint, and `/api/audit` endpoints from the same origin.
 
 ```txt
 https://bankops-demo.example.com/          static SPA
 https://bankops-demo.example.com/stream    WebSocket upgrade
+https://bankops-demo.example.com/api/audit paged audit entries
 https://bankops-demo.example.com/healthz   health check
 ```
 
@@ -468,6 +480,8 @@ Why:
 - A real WebSocket server is central to the Route 1 story.
 - Same-origin deploy avoids CORS, mixed-content, and split-preview complexity.
 - A long-running service maps directly to the local architecture.
+- One Node process is enough for the portfolio build; splitting services would add platform
+  complexity without strengthening the product demo.
 - It is easy to explain in a portfolio README and walkthrough.
 
 Recommended first host class:
@@ -505,7 +519,8 @@ Near-term repo boilerplate:
 
 - `pnpm-workspace.yaml`
 - `apps/web` move for existing Vite app
-- `apps/stream-server` with TypeScript, `tsx` dev runner, WebSocket dependency, and health route
+- `apps/stream-server` with TypeScript, `tsx` dev runner, WebSocket dependency, audit API routes,
+  and health route
 - `packages/protocol` with shared encoder/decoder tests
 - `packages/bank-sim` with deterministic seed tests
 - `packages/table-model` with row generation, saved-view definitions, and query fixtures
