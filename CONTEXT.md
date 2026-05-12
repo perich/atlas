@@ -22,9 +22,9 @@ An external or internal movement network such as ACH, wire, instant payments, ca
 or stablecoin settlement.
 _Avoid_: Network, channel
 
-**Bank Event**:
-A sequenced state transition emitted by the simulator for payment, settlement, ledger, risk, or
-liquidity activity.
+**Bank Core Event**:
+A sequenced realtime activity record emitted by the simulator for payment, rail, ledger, risk,
+liquidity, or system activity.
 _Avoid_: Message, row
 
 **Settlement**:
@@ -56,15 +56,21 @@ _Avoid_: Freeze, shutdown
 A reusable ledger investigation state containing filters, columns, sorting, and drilldown context.
 _Avoid_: Report
 
+**Table Row**:
+A server-queryable record rendered in the `/ledger` table.
+_Avoid_: Bank Core Event unless the table explicitly uses event rows
+
 ## Relationships
 
 - A **Customer** owns one or more **Accounts**.
-- A **Payment Rail** emits or receives **Bank Events**.
-- A **Bank Event** may produce one or more **Journals**.
+- A **Payment Rail** emits or receives **Bank Core Events**.
+- A **Bank Core Event** may produce one or more **Journals**.
 - A **Journal** must satisfy double-entry ledger **Invariants**.
 - **Reconciliation** matches rail finality to internal **Journal** finality.
 - An **Incident** should deep-link to one or more **Saved Views**.
-- A **Cutoff** changes how subsequent **Bank Events** are classified and executed.
+- A **Cutoff** changes how subsequent **Bank Core Events** are classified and executed.
+- A **Table Row** may represent a **Bank Core Event**, **Journal**, exception, audit entry, or
+  snapshot, depending on the chosen `/ledger` row subject.
 
 ## Example Dialogue
 
@@ -75,7 +81,9 @@ _Avoid_: Report
 ## Flagged Ambiguities
 
 - "Account" should not mean **Customer**. Customers own Accounts; Accounts hold balances.
-- "Transaction" is overloaded. Use **Bank Event** for stream state transitions and **Journal** for
-  double-entry ledger records.
+- "Transaction" is overloaded. Use **Bank Core Event** for realtime stream activity and **Journal**
+  for double-entry ledger records.
 - "Settlement" and **Reconciliation** are distinct. Settlement is rail finality; Reconciliation is
   matching rail finality to internal ledger finality.
+- `/ledger` is a route name, not yet a resolved row subject. The rows may become audit entries,
+  payment events, journals, exceptions, or snapshots.

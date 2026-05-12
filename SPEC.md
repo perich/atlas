@@ -8,22 +8,26 @@ surface without reducing the domain to generic fintech dashboard chrome.
 
 ## Core Thesis
 
-Build a three-route product prototype over one coherent synthetic bank operations model:
+Build a three-route product prototype over one coherent bank-operations theme. The routes should
+feel related, but they do not need to share one strict canonical event history.
 
 1. `/ops` shows live rail, liquidity, reconciliation, and invariant state under a real server-owned
-   event firehose.
-2. `/ledger` lets an Operator investigate hundreds of thousands of ledger and rail events with
-   virtualized, URL-addressable saved views.
+   event firehose, with at least one blisteringly fast worker-backed Canvas visualization.
+2. `/ledger` showcases an exceptional server-backed virtualized table over hundreds of thousands of
+   rows, with search, filtering, sorting, and draggable columns.
 3. `/analyst` demonstrates constrained CodeMode-style analysis that generates typed, validated UI
    from read-only bank data tools.
 
-The strongest demo flow is:
+Candidate cross-route flow, if it stays valuable after the surfaces exist:
 
 ```txt
-/ops stablecoin reconciliation Incident
-  -> /ledger?view=unreconciled-stablecoin&batch=88412
+/ops highlights an unusual bank-core condition
+  -> /ledger opens a matching filtered table view
   -> /analyst explains impact and renders a generated mini-dashboard
 ```
+
+This flow should not force the implementation into one shared source of truth prematurely. It is a
+product integration target, not a constraint on every data path.
 
 ## Goals
 
@@ -51,47 +55,70 @@ ledger, liquidity, or reconciliation conditions.
 
 ## Product Routes
 
-### `/ops`: Operations Control Plane
+### `/ops`: God Mode Operations View
 
-Purpose: show the current operating state of the bank and make incidents investigable.
+Purpose: create a beautiful, high-performance "god mode" view of a modern bank core. This route is
+allowed to be more atmospheric and demonstrative than strictly workflow-driven, as long as it still
+looks relevant to bank operations.
 
 Required surfaces:
 
-- Rail health matrix for ACH, wire, instant payments, card, internal ledger, and stablecoin rails.
-- Live settlement flow visualization backed by server-owned Bank Events.
-- Deposit concentration and liquidity monitor grouped by customer industry.
-- Ledger invariant monitor with at least one intentionally triggered anomaly.
-- Cutoff simulation control that changes event classification and outgoing execution behavior.
-- Performance HUD that makes the architecture measurable.
-- Incident cards that deep-link into `/ledger`.
+- At least one OffscreenCanvas component rendered by a worker, fed by a server-owned firehose of
+  bank-core events.
+- A dense realtime visualization of bank-core activity: payment movement, rail traffic, ledger
+  posting pulses, stablecoin settlement observations, or system events.
+- Rail and system health components for ACH, wire, instant payments, card, internal ledger, and
+  stablecoin rails.
+- Realtime charts or sparklines for throughput, latency, queue depth, failure rate, liquidity, and
+  event volume.
+- Performance HUD that makes the architecture measurable: event rate, decode latency, FPS, worker
+  queue depth, dropped visual-only particles, and React snapshot cadence.
+- Optional alert or anomaly components if they strengthen the product feel.
 
 Required controls:
 
-- Scenario selector: normal operations, stablecoin reconciliation incident, liquidity stress,
-  cutoff simulation.
+- Scenario selector: normal operations, stablecoin activity spike, liquidity stress, rail
+  degradation, cutoff simulation.
 - Stream rate selector: 500/s, 2k/s, 10k/s, synthetic stress.
 - Pause/resume, reconnect, and reset seed.
 - Backpressure mode indicator.
 
-### `/ledger`: Ledger Investigation
+### `/ledger`: High-Scale Table Surface
 
-Purpose: let an Operator move from an Incident into a fast, focused investigation.
+Purpose: demonstrate a genuinely excellent table over bank-shaped data. The table may be a ledger,
+audit log, payment event archive, bank-core activity log, or another operator dataset. It does not
+need to be constantly updated by the `/ops` firehose.
 
 Required surfaces:
 
-- 100k+ synthetic rows in the first complete version; target 250k+ once worker-side filtering lands.
+- 100k+ synthetic rows in the first complete version; target 250k+ after server-side paging and
+  query behavior are polished.
 - TanStack Virtual table.
 - Sorting, column resize, column visibility, and column pinning.
-- Saved views with URL-persisted filters.
+- Drag-and-drop column reordering.
+- Server-backed pagination or windowed fetching so the browser does not need to hold every row in
+  memory at once.
+- Client-side pruning or cache-window management as the user scrolls.
+- Search, filters, and sorting that feel instant and remain URL-addressable.
+- Saved views with URL-persisted filters once the row subject is settled.
 - Faceted filters for rail, customer industry, status, anomaly type, risk tier, amount, and time
   range.
-- Row details drawer showing state transitions and related Journal entries.
+- Row details drawer with domain-specific detail once the row subject is settled.
 - Command palette for saved views and common investigations.
 - Render trace panel showing visible range, rows mounted, filter latency, and main-thread blocking.
 
-Required saved views:
+Candidate row subjects:
 
-- Unreconciled stablecoin settlements.
+- Bank-core audit log.
+- Payment event archive.
+- Ledger journal archive.
+- Reconciliation exception queue.
+- Customer balance and exposure snapshots.
+- Stablecoin settlement observations.
+
+Candidate saved views:
+
+- Stablecoin activity over threshold.
 - ACH returns over threshold.
 - Wire queue above p95 latency.
 - Ledger imbalance candidates.
@@ -133,11 +160,12 @@ type GeneratedDashboard = {
 
 ## Domain Model
 
-Canonical terms live in `CONTEXT.md`. The implementation should preserve these distinctions:
+Canonical terms live in `CONTEXT.md`. The implementation should preserve these distinctions where
+they apply, but no route is required to expose every term:
 
 - A Customer owns Accounts.
-- A Payment Rail emits or receives Bank Events.
-- Bank Events are sequenced state transitions.
+- A Payment Rail emits or receives Bank Core Events.
+- Bank Core Events are sequenced realtime activity records used by the firehose.
 - Journals are balanced double-entry ledger records.
 - Settlement is rail finality.
 - Reconciliation matches rail finality to internal Journal finality.
@@ -146,7 +174,9 @@ Canonical terms live in `CONTEXT.md`. The implementation should preserve these d
 
 ## Event Model
 
-The simulator should emit deterministic, stateful flows rather than unrelated random points.
+The `/ops` simulator should emit deterministic, bank-shaped activity rather than unrelated random
+points. Events should be semantically plausible, but the firehose is primarily a realtime rendering
+and systems demo.
 
 ```ts
 type Rail = "ach" | "wire" | "instant" | "card" | "internal_ledger" | "stablecoin";
@@ -164,7 +194,7 @@ type EventKind =
   | "liquidity_threshold_breached"
   | "invariant_failed";
 
-type BankEvent = {
+type BankCoreEvent = {
   seq: bigint;
   serverTs: number;
   kind: EventKind;
@@ -181,7 +211,7 @@ type BankEvent = {
 };
 ```
 
-Stateful examples:
+Example activity sequences:
 
 ```txt
 payment_observed -> payment_confirmed -> ledger_posted -> reconciled
@@ -203,7 +233,7 @@ apps/
 packages/
   protocol/            shared frame definitions, encoders, decoders, message types
   bank-sim/            deterministic scenario engine and synthetic data generation
-  ledger-model/        row generation, saved-view definitions, invariant fixtures
+  table-model/         row generation, saved-view definitions, query fixtures
   ui/                  only if shared UI primitives become large enough to justify it
 ```
 
@@ -214,7 +244,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 
 `apps/stream-server` owns:
 
-- deterministic seeded Bank Event generation
+- deterministic seeded Bank Core Event generation
 - global sequence numbers
 - scenario state
 - aggregate metric computation
@@ -232,7 +262,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 - `ingress.worker.ts` for WebSocket connection, binary decode, ring buffer, and telemetry
 - `settlement-flow.worker.ts` for OffscreenCanvas rendering
 - coalesced external store snapshots consumed by React
-- virtualized ledger table
+- virtualized high-scale table
 - local workspace sync via IndexedDB and BroadcastChannel
 - constrained analyst UI and deterministic fallback analysis programs
 
@@ -241,7 +271,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 Transport:
 
 - WebSocket for the hot path.
-- Binary event batches for Bank Events.
+- Binary event batches for Bank Core Events.
 - JSON control and aggregate messages for low-frequency state.
 - One logical stream with channel identifiers.
 
@@ -285,8 +315,8 @@ riskTier       u8
 flags          u16
 ```
 
-React must not subscribe to every Bank Event. The ingress worker should decode batches, update a
-recent-event ring buffer, and post compact snapshots to React at roughly 4-10 Hz.
+React must not subscribe to every Bank Core Event. The ingress worker should decode batches, update
+a recent-event ring buffer, and post compact snapshots to React at roughly 4-10 Hz.
 
 ## Rendering Model
 
@@ -320,8 +350,8 @@ Synthetic data classes:
 - Customers grouped by AI, defense, robotics, hardware, crypto, fintech, and venture funds.
 - Accounts for customer deposits, bank settlement, rail clearing, liquidity reserve, and exception
   queues.
-- Bank Events for live stream.
-- Ledger rows for investigation.
+- Bank Core Events for live stream.
+- High-scale table rows for `/ledger`.
 - Journal entries for double-entry finality.
 - Incidents and invariant failures.
 - Saved views and operator annotations.
@@ -332,7 +362,7 @@ Persistence:
 - Stream server keeps a bounded in-memory replay buffer.
 - Web app stores workspace state in IndexedDB.
 - BroadcastChannel syncs workspace state across tabs.
-- Generated ledger data should be deterministic by seed so tests and demos are reproducible.
+- Generated table data should be deterministic by seed so tests and demos are reproducible.
 
 ## Deployment and Hosting
 
@@ -390,6 +420,7 @@ Near-term repo boilerplate:
 - `apps/stream-server` with TypeScript, `tsx` dev runner, WebSocket dependency, and health route
 - `packages/protocol` with shared encoder/decoder tests
 - `packages/bank-sim` with deterministic seed tests
+- `packages/table-model` with row generation, saved-view definitions, and query fixtures
 - root scripts for `dev`, `dev:web`, `dev:server`, `build`, `typecheck`, `lint`, and tests
 - `.env.example` with `VITE_STREAM_URL` and stream rate defaults
 - Playwright config updated for the workspace app
@@ -410,7 +441,9 @@ Testing:
 - Property tests for simulator invariants where cheap.
 - Unit tests for saved-view URL serialization.
 - Component tests for route-level smoke states.
-- Playwright flow for `/ops` alert -> `/ledger` deep link.
+- Playwright flow for `/ledger` search, filter, sort, and column reorder.
+- Optional Playwright flow for `/ops` condition -> `/ledger` deep link if that integration remains
+  useful.
 - Playwright flow for `/analyst` deterministic generated dashboard.
 
 Performance:
@@ -438,8 +471,8 @@ Accessibility:
 6. `/ops` route shell with static rail/liquidity/invariant panels.
 7. Browser ingress worker and external snapshot store.
 8. OffscreenCanvas settlement flow.
-9. `/ops` incident deep link into `/ledger`.
-10. Virtualized ledger table and saved views.
+9. Virtualized `/ledger` table and saved views.
+10. Optional `/ops` condition deep link into `/ledger`.
 11. Analyst deterministic CodeMode fallback.
 12. Optional live model path.
 13. Deployment, README polish, screenshots, and walkthrough.
@@ -454,3 +487,4 @@ Accessibility:
   deterministic local interpreter for the first version.
 - Whether the final public demo runs one shared global simulation or one seeded simulation per
   browser session.
+- What the `/ledger` rows actually represent.
