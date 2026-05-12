@@ -14,8 +14,8 @@ The implementation target is tracked in [SPEC.md](./SPEC.md). Domain language is
 
 ## Product Shape
 
-- `/ops` — real-time bank operations dashboard with rail health, liquidity, settlement flow,
-  invariant monitoring, and cutoff simulation.
+- `/ops` — real-time bank operations dashboard with rail health, liquidity, a worker-rendered
+  Balance Sheet Tape, and cutoff simulation.
 - `/audit` — high-scale bank-core audit log with virtualized rows, saved views,
   URL-persisted filters, and alert drilldowns.
 - `/analyst` — constrained CodeMode analyst that turns operational questions into validated,
@@ -39,7 +39,7 @@ stream-server
   -> WebSocket binary event batches
   -> browser ingress worker
   -> bounded ring buffer and aggregate snapshots
-  -> OffscreenCanvas renderer for dense settlement flow
+  -> OffscreenCanvas renderer for dense Balance Sheet Tape
   -> React shell for controls, cards, alerts, and drilldowns
 ```
 
@@ -49,13 +49,13 @@ React render loop.
 
 ### SettlementStream Targets
 
-- Server-owned deterministic event stream.
+- Server-owned deterministic Balance Sheet Movement stream.
 - Binary event batches over WebSocket for the hot path.
 - JSON control and aggregate messages for low-frequency state.
 - Client-side worker owns the socket, decode path, recent-event ring buffer, and perf telemetry.
-- OffscreenCanvas renderer owns particle animation and edge intensity.
-- Performance HUD shows event rate, client sequence lag, FPS, decode latency, dropped visual-only
-  particles, and React snapshot cadence.
+- OffscreenCanvas renderer owns the high-rate tape visualization.
+- Performance HUD shows event rate, client sequence lag, FPS, decode latency, visual sampling, and
+  React snapshot cadence.
 
 ## Bank-Domain Model
 
