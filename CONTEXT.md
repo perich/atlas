@@ -57,7 +57,8 @@ A reusable audit investigation state containing filters, columns, sorting, and d
 _Avoid_: Report
 
 **Audit Entry**:
-A server-queryable operational record rendered in the `/audit` table.
+A server-queryable operational envelope rendered in the `/audit` table, with common investigation
+fields and type-specific detail.
 _Avoid_: Transaction, ledger row
 
 ## Relationships
@@ -71,6 +72,8 @@ _Avoid_: Transaction, ledger row
 - A **Cutoff** changes how subsequent **Bank Core Events** are classified and executed.
 - An **Audit Entry** may reference a **Bank Core Event**, **Journal**, **Customer**, **Account**, or
   **Payment Rail**.
+- An **Audit Entry** has exactly one subject type, such as payment, journal, customer, account,
+  rail, settlement, exception, configuration, cutoff, or operator action.
 
 ## Example Dialogue
 
