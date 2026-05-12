@@ -37,6 +37,11 @@ A simplified debit or credit record used by the `/ops` firehose to show activity
 global balance sheet.
 _Avoid_: Journal, unless the record is a balanced double-entry Journal
 
+**Balance Sheet Perspective**:
+The bank balance sheet bucket point of view used to label Balance Sheet Movements as credits or
+debits.
+_Avoid_: Customer perspective
+
 **Settlement**:
 The point at which movement over a Payment Rail is considered final for that rail.
 _Avoid_: Payment, transfer
@@ -78,6 +83,7 @@ _Avoid_: Transaction, ledger row
 - A **Balance Sheet Tape** renders many **Balance Sheet Movements**.
 - A **Balance Sheet Movement** may reference a **Customer**, **Account**, **Payment Rail**, or
   **Journal**.
+- A **Balance Sheet Movement** is labeled from the **Balance Sheet Perspective**.
 - A **Bank Core Event** may produce one or more **Journals**.
 - A **Journal** must satisfy double-entry ledger **Invariants**.
 - **Reconciliation** matches rail finality to internal **Journal** finality.
@@ -105,3 +111,5 @@ _Avoid_: Transaction, ledger row
   journal table.
 - The `/ops` **Balance Sheet Tape** is inspired by trading UI tapes, but it is not a trade history:
   its rows are debit and credit movements, not asset trades.
+- **Balance Sheet Perspective** means a credit increases the referenced balance sheet bucket and a
+  debit decreases it; it does not describe whether the Customer feels richer or poorer.
