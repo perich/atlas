@@ -11,8 +11,8 @@ surface without reducing the domain to generic fintech dashboard chrome.
 Build a three-route product prototype over one coherent bank-operations theme. The routes should
 feel related, but they do not need to share one strict canonical event history.
 
-1. `/ops` shows live rail, liquidity, reconciliation, and invariant state under a real server-owned
-   event firehose, with at least one blisteringly fast worker-backed Canvas visualization.
+1. `/ops` centers on a blisteringly fast worker-backed Canvas Balance Sheet Tape, supported by live
+   rail, liquidity, reconciliation, and system health context.
 2. `/audit` showcases an exceptional server-backed virtualized table over hundreds of thousands of
    Bank Core Audit Log rows, with search, filtering, sorting, and draggable columns.
 3. `/analyst` demonstrates constrained CodeMode-style analysis that generates typed, validated UI
@@ -65,9 +65,9 @@ Required surfaces:
 
 - At least one OffscreenCanvas component rendered by a worker, fed by a server-owned firehose of
   balance sheet movements.
-- A dense scrolling Balance Sheet Tape: a trade-history-like stream of credits and debits against
-  high-level bank balance sheet buckets, with customer, rail, asset, amount, status, and risk
-  metadata.
+- A dense scrolling Balance Sheet Tape as the primary hero component: a trade-history-like stream
+  of credits and debits against high-level bank balance sheet buckets, with customer, rail, asset,
+  amount, status, and risk metadata.
 - Rail and system health components for ACH, wire, instant payments, card, internal ledger, and
   stablecoin rails.
 - Realtime charts or sparklines for throughput, latency, queue depth, failure rate, liquidity, and
@@ -83,6 +83,14 @@ Required controls:
 - Stream rate selector: 500/s, 2k/s, 10k/s, synthetic stress.
 - Pause/resume, reconnect, and reset seed.
 - Backpressure mode indicator.
+
+Target layout:
+
+- Top band: rail health, event rate, total credits, total debits, liquidity reserve, and exception
+  queue depth.
+- Main center: large full-width OffscreenCanvas Balance Sheet Tape.
+- Right rail: scenario controls, stream controls, and performance HUD.
+- Bottom band: compact sparklines for throughput, latency, failure rate, and bucket totals.
 
 ### `/audit`: Bank Core Audit Log
 

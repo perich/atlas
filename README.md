@@ -14,8 +14,8 @@ The implementation target is tracked in [SPEC.md](./SPEC.md). Domain language is
 
 ## Product Shape
 
-- `/ops` — real-time bank operations dashboard with rail health, liquidity, a worker-rendered
-  Balance Sheet Tape, and cutoff simulation.
+- `/ops` — real-time bank operations dashboard centered on a worker-rendered Balance Sheet Tape,
+  with rail health, liquidity, and cutoff simulation context.
 - `/audit` — high-scale bank-core audit log with virtualized rows, saved views,
   URL-persisted filters, and alert drilldowns.
 - `/analyst` — constrained CodeMode analyst that turns operational questions into validated,
