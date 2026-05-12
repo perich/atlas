@@ -1,0 +1,459 @@
+# BankOps Mission Control Spec
+
+Status: draft, implementation-guiding.
+
+BankOps Mission Control is a staff-level frontend/product engineering portfolio project. It should
+demonstrate that complex bank operations can be turned into a fast, legible, safe internal product
+surface without reducing the domain to generic fintech dashboard chrome.
+
+## Core Thesis
+
+Build a three-route product prototype over one coherent synthetic bank operations model:
+
+1. `/ops` shows live rail, liquidity, reconciliation, and invariant state under a real server-owned
+   event firehose.
+2. `/ledger` lets an Operator investigate hundreds of thousands of ledger and rail events with
+   virtualized, URL-addressable saved views.
+3. `/analyst` demonstrates constrained CodeMode-style analysis that generates typed, validated UI
+   from read-only bank data tools.
+
+The strongest demo flow is:
+
+```txt
+/ops stablecoin reconciliation Incident
+  -> /ledger?view=unreconciled-stablecoin&batch=88412
+  -> /analyst explains impact and renders a generated mini-dashboard
+```
+
+## Goals
+
+- Show high-volume realtime UI without coupling event rate to React render rate.
+- Model bank-domain semantics: rails, settlement, journals, reconciliation, liquidity, cutoff
+  behavior, and invariants.
+- Demonstrate production-fluent frontend architecture: workers, snapshots, virtualization, typed
+  protocols, perf telemetry, deep links, accessibility, and deterministic tests.
+- Make AI-assisted operations feel safe enough for a regulated-product imagination: constrained
+  tools, auditable traces, deterministic fallback, and Zod-validated UI schemas.
+- Keep the build small enough to finish and polish within a focused week.
+
+## Non-Goals
+
+- No auth, onboarding, KYC, customer-facing banking UI, real money movement, real blockchain calls,
+  real compliance advice, or real customer data.
+- No full backend platform or database service unless it directly supports the demo.
+- No arbitrary LLM-generated React in the browser.
+- No public Erebor branding or use of non-public recruiter claims in the repo.
+
+## Users
+
+**Primary user**: an internal bank Operator responsible for understanding and acting on rail,
+ledger, liquidity, or reconciliation conditions.
+
+**Secondary user**: the engineering reviewer evaluating whether the project reflects strong product
+judgment, financial-domain fluency, and modern frontend systems work.
+
+## Product Routes
+
+### `/ops`: Operations Control Plane
+
+Purpose: show the current operating state of the bank and make incidents investigable.
+
+Required surfaces:
+
+- Rail health matrix for ACH, wire, instant payments, card, internal ledger, and stablecoin rails.
+- Live settlement flow visualization backed by server-owned Bank Events.
+- Deposit concentration and liquidity monitor grouped by customer industry.
+- Ledger invariant monitor with at least one intentionally triggered anomaly.
+- Cutoff simulation control that changes event classification and outgoing execution behavior.
+- Performance HUD that makes the architecture measurable.
+- Incident cards that deep-link into `/ledger`.
+
+Required controls:
+
+- Scenario selector: normal operations, stablecoin reconciliation incident, liquidity stress,
+  cutoff simulation.
+- Stream rate selector: 500/s, 2k/s, 10k/s, synthetic stress.
+- Pause/resume, reconnect, and reset seed.
+- Backpressure mode indicator.
+
+### `/ledger`: Ledger Investigation
+
+Purpose: let an Operator move from an Incident into a fast, focused investigation.
+
+Required surfaces:
+
+- 100k+ synthetic rows in the first complete version; target 250k+ once worker-side filtering lands.
+- TanStack Virtual table.
+- Sorting, column resize, column visibility, and column pinning.
+- Saved views with URL-persisted filters.
+- Faceted filters for rail, customer industry, status, anomaly type, risk tier, amount, and time
+  range.
+- Row details drawer showing state transitions and related Journal entries.
+- Command palette for saved views and common investigations.
+- Render trace panel showing visible range, rows mounted, filter latency, and main-thread blocking.
+
+Required saved views:
+
+- Unreconciled stablecoin settlements.
+- ACH returns over threshold.
+- Wire queue above p95 latency.
+- Ledger imbalance candidates.
+- Customer exposure over threshold.
+- Events after cutoff timestamp.
+- Idempotency collisions.
+
+### `/analyst`: CodeMode Analyst
+
+Purpose: connect AI devx experience to an internal banking operations workflow.
+
+Required surfaces:
+
+- Prompt input with canned operational prompts.
+- Generated analysis plan.
+- Generated TypeScript program or deterministic fallback program.
+- Tool-call trace.
+- Validated UI schema.
+- Rendered generated dashboard.
+- Deep links back to `/ledger`.
+
+The model must not render arbitrary React. It may produce a declarative dashboard schema only after
+calling typed, read-only tools.
+
+Example generated UI schema:
+
+```ts
+type GeneratedDashboard = {
+  title: string;
+  summary: string;
+  blocks: Array<
+    | { type: "metric"; title: string; value: string; delta?: string }
+    | { type: "table"; title: string; queryResultId: string }
+    | { type: "barChart"; title: string; data: Array<{ label: string; value: number }> }
+    | { type: "ledgerLink"; label: string; href: string }
+  >;
+};
+```
+
+## Domain Model
+
+Canonical terms live in `CONTEXT.md`. The implementation should preserve these distinctions:
+
+- A Customer owns Accounts.
+- A Payment Rail emits or receives Bank Events.
+- Bank Events are sequenced state transitions.
+- Journals are balanced double-entry ledger records.
+- Settlement is rail finality.
+- Reconciliation matches rail finality to internal Journal finality.
+- Incidents are investigable conditions, not just visual warnings.
+- Cutoff is a precise timestamp that changes post-cutoff classification and execution behavior.
+
+## Event Model
+
+The simulator should emit deterministic, stateful flows rather than unrelated random points.
+
+```ts
+type Rail = "ach" | "wire" | "instant" | "card" | "internal_ledger" | "stablecoin";
+type Asset = "USD" | "USDC" | "USDT" | "PYUSD" | "EURC";
+
+type EventKind =
+  | "deposit_created"
+  | "outflow_requested"
+  | "payment_observed"
+  | "payment_confirmed"
+  | "ledger_posted"
+  | "reconciled"
+  | "failed"
+  | "reversed"
+  | "liquidity_threshold_breached"
+  | "invariant_failed";
+
+type BankEvent = {
+  seq: bigint;
+  serverTs: number;
+  kind: EventKind;
+  rail: Rail;
+  asset: Asset;
+  sourceNodeId: number;
+  targetNodeId: number;
+  customerId: number;
+  batchId: number;
+  amountMinor: bigint;
+  latencyMs: number;
+  riskTier: 0 | 1 | 2 | 3;
+  flags: number;
+};
+```
+
+Stateful examples:
+
+```txt
+payment_observed -> payment_confirmed -> ledger_posted -> reconciled
+payment_observed -> failed
+payment_confirmed -> ledger_posted -> invariant_failed
+payment_confirmed -> reversed -> ledger_posted -> reconciled
+```
+
+## System Architecture
+
+The product needs server-side logic. That code should live in this repo.
+
+Target repo shape:
+
+```txt
+apps/
+  web/                 React/Vite app
+  stream-server/       Node TypeScript WebSocket server for local and demo deploy
+packages/
+  protocol/            shared frame definitions, encoders, decoders, message types
+  bank-sim/            deterministic scenario engine and synthetic data generation
+  ledger-model/        row generation, saved-view definitions, invariant fixtures
+  ui/                  only if shared UI primitives become large enough to justify it
+```
+
+The current scaffold is still single-app. The first implementation refactor should move the
+existing Vite app to `apps/web` and introduce pnpm workspaces before adding server logic.
+
+### Server Responsibilities
+
+`apps/stream-server` owns:
+
+- deterministic seeded Bank Event generation
+- global sequence numbers
+- scenario state
+- aggregate metric computation
+- replay buffer
+- `/stream` WebSocket endpoint
+- `/healthz` health endpoint
+- optional static serving of the built web app for single-service deploys
+- client control handling for scenario, target rate, pause/resume, and backpressure
+
+### Browser Responsibilities
+
+`apps/web` owns:
+
+- route shell and product UI
+- `ingress.worker.ts` for WebSocket connection, binary decode, ring buffer, and telemetry
+- `settlement-flow.worker.ts` for OffscreenCanvas rendering
+- coalesced external store snapshots consumed by React
+- virtualized ledger table
+- local workspace sync via IndexedDB and BroadcastChannel
+- constrained analyst UI and deterministic fallback analysis programs
+
+## SettlementStream Protocol
+
+Transport:
+
+- WebSocket for the hot path.
+- Binary event batches for Bank Events.
+- JSON control and aggregate messages for low-frequency state.
+- One logical stream with channel identifiers.
+
+Channels:
+
+```txt
+1 raw event batches
+2 aggregate metric snapshots
+3 incidents and invariant failures
+4 client control and backpressure
+5 snapshot and replay response
+```
+
+Frame shape:
+
+```txt
+Frame header
+-----------
+magic          u32
+version        u16
+channel        u16
+fromSeq        u64
+toSeq          u64
+serverTsMs     f64
+eventCount     u32
+
+Event record
+------------
+seqDelta       u32
+dtMs           u16
+kind           u8
+rail           u8
+asset          u8
+sourceNodeId   u32
+targetNodeId   u32
+customerId     u32
+batchId        u32
+amountMinor    i64
+latencyMs      u16
+riskTier       u8
+flags          u16
+```
+
+React must not subscribe to every Bank Event. The ingress worker should decode batches, update a
+recent-event ring buffer, and post compact snapshots to React at roughly 4-10 Hz.
+
+## Rendering Model
+
+The settlement flow visualization should be a bounded visual representation of the event stream,
+not a DOM rendering of every event.
+
+Required behavior:
+
+- OffscreenCanvas renderer receives node/edge topology and event intensity updates.
+- Particle pool is bounded.
+- Under load, visual sampling is allowed.
+- Data loss and visual sampling must be reported separately.
+- Edge glow/intensity remains accurate enough when particle sampling activates.
+
+Performance HUD must show:
+
+- server event rate
+- decoded event rate
+- visual particle rate
+- sample rate
+- dropped visual-only particles
+- client sequence lag
+- decode p95
+- render FPS
+- React snapshot cadence
+
+## Data and Persistence
+
+Synthetic data classes:
+
+- Customers grouped by AI, defense, robotics, hardware, crypto, fintech, and venture funds.
+- Accounts for customer deposits, bank settlement, rail clearing, liquidity reserve, and exception
+  queues.
+- Bank Events for live stream.
+- Ledger rows for investigation.
+- Journal entries for double-entry finality.
+- Incidents and invariant failures.
+- Saved views and operator annotations.
+
+Persistence:
+
+- No server database required for the first build.
+- Stream server keeps a bounded in-memory replay buffer.
+- Web app stores workspace state in IndexedDB.
+- BroadcastChannel syncs workspace state across tabs.
+- Generated ledger data should be deterministic by seed so tests and demos are reproducible.
+
+## Deployment and Hosting
+
+Recommended first deploy: one long-running Node service that serves both the built SPA and the
+WebSocket stream from the same origin.
+
+```txt
+https://bankops-demo.example.com/          static SPA
+https://bankops-demo.example.com/stream    WebSocket upgrade
+https://bankops-demo.example.com/healthz   health check
+```
+
+Why:
+
+- A real WebSocket server is central to the Route 1 story.
+- Same-origin deploy avoids CORS, mixed-content, and split-preview complexity.
+- A long-running service maps directly to the local architecture.
+- It is easy to explain in a portfolio README and walkthrough.
+
+Recommended first host class:
+
+- Fly.io, Render, Railway, or any container-friendly Node host.
+- Fly.io is a good default candidate for the first public demo because it deploys source with
+  `fly deploy` into Fly Machines.
+
+Alternative split deploy:
+
+- Static web on Vercel or Cloudflare Pages.
+- Stream server on Fly.io, Render, Railway, or Cloudflare Durable Objects.
+- `VITE_STREAM_URL` points the browser at the stream origin.
+
+Do not make Vercel Functions the primary WebSocket server. Vercel's current realtime guidance
+points WebSocket-style integrations toward external realtime providers rather than using Vercel
+Functions as the long-lived WebSocket endpoint.
+
+Cloudflare Durable Objects are a strong production-hardening alternative because they are designed
+to coordinate stateful WebSocket connections, but they require a Worker/Durable Object runtime
+shape rather than a normal Node server. Keep that as a documented future migration, not the first
+implementation path.
+
+Sources checked May 12, 2026:
+
+- Vercel WebSocket Functions guidance:
+  https://vercel.com/kb/guide/do-vercel-serverless-functions-support-websocket-connections
+- Cloudflare Durable Objects WebSockets:
+  https://developers.cloudflare.com/durable-objects/best-practices/websockets/
+- Fly deploy docs: https://fly.io/docs/launch/deploy/
+
+## Boilerplate to Add
+
+Near-term repo boilerplate:
+
+- `pnpm-workspace.yaml`
+- `apps/web` move for existing Vite app
+- `apps/stream-server` with TypeScript, `tsx` dev runner, WebSocket dependency, and health route
+- `packages/protocol` with shared encoder/decoder tests
+- `packages/bank-sim` with deterministic seed tests
+- root scripts for `dev`, `dev:web`, `dev:server`, `build`, `typecheck`, `lint`, and tests
+- `.env.example` with `VITE_STREAM_URL` and stream rate defaults
+- Playwright config updated for the workspace app
+
+Later boilerplate:
+
+- Dockerfile for single-service deployment
+- `fly.toml` after choosing Fly.io
+- worker test helpers for protocol decode and OffscreenCanvas fallback
+- performance benchmark script
+- GitHub Actions only after local checks are stable
+
+## Quality Bar
+
+Testing:
+
+- Unit tests for protocol encode/decode round trips.
+- Property tests for simulator invariants where cheap.
+- Unit tests for saved-view URL serialization.
+- Component tests for route-level smoke states.
+- Playwright flow for `/ops` alert -> `/ledger` deep link.
+- Playwright flow for `/analyst` deterministic generated dashboard.
+
+Performance:
+
+- Publish only measured numbers.
+- Target 2k events/sec early; 10k events/sec polished; higher rates labeled synthetic stress.
+- Keep React updates coalesced to roughly 4-10 Hz for live dashboard state.
+- Keep table visible mounted rows under 100 in normal viewport.
+- Avoid main-thread long tasks over 100 ms during steady-state stream.
+
+Accessibility:
+
+- Keyboard-accessible route navigation, table focus, command palette, dialogs, and controls.
+- No information conveyed by color alone.
+- Respect reduced motion by lowering particle intensity and animation cadence.
+- Text must fit on mobile and desktop without overlap.
+
+## Implementation Milestones
+
+1. Spec and repo decisions.
+2. Workspace restructure.
+3. Protocol package with binary frame encode/decode tests.
+4. Deterministic bank simulator package.
+5. Stream server with health route, `/stream`, scenarios, and aggregate snapshots.
+6. `/ops` route shell with static rail/liquidity/invariant panels.
+7. Browser ingress worker and external snapshot store.
+8. OffscreenCanvas settlement flow.
+9. `/ops` incident deep link into `/ledger`.
+10. Virtualized ledger table and saved views.
+11. Analyst deterministic CodeMode fallback.
+12. Optional live model path.
+13. Deployment, README polish, screenshots, and walkthrough.
+
+## Open Decisions
+
+- Exact first hosting provider: recommended default is Fly.io, but defer `fly.toml` until after the
+  Node server exists.
+- Whether DuckDB-WASM is necessary for the first public cut or should wait until the table route is
+  already strong.
+- Whether the analyst sandbox executes generated TypeScript in a server-side isolated context or a
+  deterministic local interpreter for the first version.
+- Whether the final public demo runs one shared global simulation or one seeded simulation per
+  browser session.
