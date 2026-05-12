@@ -53,12 +53,12 @@ marked for review.
 _Avoid_: Freeze, shutdown
 
 **Saved View**:
-A reusable ledger investigation state containing filters, columns, sorting, and drilldown context.
+A reusable audit investigation state containing filters, columns, sorting, and drilldown context.
 _Avoid_: Report
 
-**Table Row**:
-A server-queryable record rendered in the `/ledger` table.
-_Avoid_: Bank Core Event unless the table explicitly uses event rows
+**Audit Entry**:
+A server-queryable operational record rendered in the `/audit` table.
+_Avoid_: Transaction, ledger row
 
 ## Relationships
 
@@ -69,8 +69,8 @@ _Avoid_: Bank Core Event unless the table explicitly uses event rows
 - **Reconciliation** matches rail finality to internal **Journal** finality.
 - An **Incident** should deep-link to one or more **Saved Views**.
 - A **Cutoff** changes how subsequent **Bank Core Events** are classified and executed.
-- A **Table Row** may represent a **Bank Core Event**, **Journal**, exception, audit entry, or
-  snapshot, depending on the chosen `/ledger` row subject.
+- An **Audit Entry** may reference a **Bank Core Event**, **Journal**, **Customer**, **Account**, or
+  **Payment Rail**.
 
 ## Example Dialogue
 
@@ -85,5 +85,5 @@ _Avoid_: Bank Core Event unless the table explicitly uses event rows
   for double-entry ledger records.
 - "Settlement" and **Reconciliation** are distinct. Settlement is rail finality; Reconciliation is
   matching rail finality to internal ledger finality.
-- `/ledger` is a route name, not yet a resolved row subject. The rows may become audit entries,
-  payment events, journals, exceptions, or snapshots.
+- `/audit` renders **Audit Entries** from the Bank Core Audit Log. It is broader than a pure ledger
+  journal table.
