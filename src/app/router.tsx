@@ -23,7 +23,7 @@ const aboutRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([indexRoute, aboutRoute]);
 
-export const router = createRouter({
+const router = createRouter({
   defaultPreload: "intent",
   routeTree,
 });

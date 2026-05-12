@@ -1,4 +1,5 @@
 {
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
   "categories": {
     "correctness": "error",
     "perf": "warn",
@@ -8,5 +9,41 @@
     "browser": true,
     "es2022": true
   },
-  "plugins": ["react", "typescript"]
+  "jsPlugins": [
+    {
+      "name": "react-hooks-js",
+      "specifier": "eslint-plugin-react-hooks"
+    },
+    "eslint-plugin-react-you-might-not-need-an-effect"
+  ],
+  "plugins": ["react", "typescript"],
+  "rules": {
+    "react/exhaustive-deps": "off",
+    "react-hooks-js/config": "error",
+    "react-hooks-js/error-boundaries": "error",
+    "react-hooks-js/exhaustive-deps": "error",
+    "react-hooks-js/gating": "error",
+    "react-hooks-js/globals": "error",
+    "react-hooks-js/immutability": "error",
+    "react-hooks-js/incompatible-library": "warn",
+    "react-hooks-js/preserve-manual-memoization": "error",
+    "react-hooks-js/purity": "error",
+    "react-hooks-js/refs": "error",
+    "react-hooks-js/rules-of-hooks": "error",
+    "react-hooks-js/set-state-in-effect": "error",
+    "react-hooks-js/set-state-in-render": "error",
+    "react-hooks-js/static-components": "error",
+    "react-hooks-js/unsupported-syntax": "warn",
+    "react-hooks-js/use-memo": "error",
+    "react-hooks-js/void-use-memo": "error",
+    "react-you-might-not-need-an-effect/no-adjust-state-on-prop-change": "warn",
+    "react-you-might-not-need-an-effect/no-chain-state-updates": "warn",
+    "react-you-might-not-need-an-effect/no-derived-state": "warn",
+    "react-you-might-not-need-an-effect/no-event-handler": "warn",
+    "react-you-might-not-need-an-effect/no-initialize-state": "warn",
+    "react-you-might-not-need-an-effect/no-pass-data-to-parent": "warn",
+    "react-you-might-not-need-an-effect/no-pass-live-state-to-parent": "warn",
+    "react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change": "warn",
+    "typescript/no-floating-promises": "error"
+  }
 }

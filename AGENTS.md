@@ -1,0 +1,1 @@
+- pause frequently to make atomic git commits as you work; use conventional commit standards
