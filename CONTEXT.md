@@ -71,6 +71,10 @@ _Avoid_: Freeze, shutdown
 A reusable audit investigation state containing filters, columns, sorting, and drilldown context.
 _Avoid_: Report
 
+**Facet**:
+A count breakdown for one audit filter dimension under the current query context.
+_Avoid_: Row, result
+
 **Audit Entry**:
 A server-queryable operational envelope rendered in the `/audit` table, with common investigation
 fields and type-specific detail.
@@ -95,6 +99,7 @@ _Avoid_: Transaction, ledger row
   **Payment Rail**.
 - An **Audit Entry** has exactly one subject type, such as payment, journal, customer, account,
   rail, settlement, exception, configuration, cutoff, or operator action.
+- A **Facet** counts matching **Audit Entries** without returning those entries.
 
 ## Example Dialogue
 
