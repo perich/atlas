@@ -106,8 +106,7 @@ Required surfaces:
 - TanStack Virtual table.
 - Sorting, column resize, column visibility, and column pinning.
 - Drag-and-drop column reordering.
-- Server-backed pagination or windowed fetching so the browser does not need to hold every row in
-  memory at once.
+- Server-backed cursor windowing so the browser does not need to hold every row in memory at once.
 - Client-side pruning or cache-window management as the user scrolls.
 - Search, filters, and sorting that feel instant and remain URL-addressable.
 - Saved views with URL-persisted filters.
@@ -119,13 +118,27 @@ Required surfaces:
 
 Audit query semantics:
 
-- `/api/audit` owns search, filtering, sorting, and paging/windowing.
+- `/api/audit` owns search, filtering, sorting, and cursor-based windowing.
 - `/api/audit/facets` returns count breakdowns for filter dimensions under the current query
   context, without returning rows.
 - `/api/audit/:id` returns type-specific detail for the row details drawer.
 - The browser owns virtualized rendering, column state, URL state, and a bounded row cache around the
   visible range.
 - The browser should not fetch the full audit dataset just to filter or sort it.
+- The API should not expose page-number or offset pagination as the primary table model.
+
+Audit cursors are opaque strings to the browser. Internally, a cursor can encode the active sort
+position plus a stable tie-breaker row id:
+
+```ts
+type AuditCursorPayload = {
+  sort: Array<{ field: keyof AuditEntry; dir: "asc" | "desc" }>;
+  last: {
+    sortValues: Array<string | number | boolean | null>;
+    id: string;
+  };
+};
+```
 
 ```ts
 type AuditQuery = {
@@ -144,13 +157,15 @@ type AuditQuery = {
     tsTo?: number;
   };
   sort?: Array<{ field: keyof AuditEntry; dir: "asc" | "desc" }>;
-  cursor?: string;
+  after?: string;
+  before?: string;
   limit: number;
 };
 
 type AuditPage = {
   rows: AuditEntry[];
   nextCursor?: string;
+  prevCursor?: string;
   totalMatched: number;
   queryMs: number;
 };
@@ -370,7 +385,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 - aggregate metric computation for the React dashboard panels
 - replay buffer
 - `/stream` WebSocket endpoint
-- `/api/audit` paged audit entry endpoint
+- `/api/audit` cursor-windowed audit entry endpoint
 - `/api/audit/facets` audit filter facet endpoint
 - `/api/audit/:id` audit entry detail endpoint
 - `/healthz` health endpoint
@@ -381,7 +396,7 @@ The first build should use one Node process, not separate services. Keep interna
 for clarity:
 
 - `ops-stream` for WebSocket firehose, scenarios, and aggregate snapshots.
-- `audit-query` for paged audit entries, filtering, sorting, facets, and row detail.
+- `audit-query` for cursor-windowed audit entries, filtering, sorting, facets, and row detail.
 - `scenario-engine` for deterministic synthetic Customers, Accounts, Balance Sheet Movements, Audit
   Entries, and related fixtures.
 
@@ -518,7 +533,7 @@ WebSocket endpoint, and `/api/audit` endpoints from the same origin.
 ```txt
 https://bankops-demo.example.com/          static SPA
 https://bankops-demo.example.com/stream    WebSocket upgrade
-https://bankops-demo.example.com/api/audit paged audit entries
+https://bankops-demo.example.com/api/audit cursor-windowed audit entries
 https://bankops-demo.example.com/healthz   health check
 ```
 
