@@ -40,7 +40,7 @@ stream-server
   -> browser ingress worker
   -> bounded ring buffer and aggregate snapshots
   -> OffscreenCanvas renderer for dense Balance Sheet Tape
-  -> React shell for controls, cards, alerts, and drilldowns
+  -> React shell for controls, metrics, sparklines, alerts, and drilldowns
 ```
 
 React should receive coalesced snapshots for product UI state at roughly 4-10 Hz. The firehose path
@@ -51,7 +51,8 @@ React render loop.
 
 - Server-owned deterministic Balance Sheet Movement stream.
 - Binary event batches over WebSocket for the hot path.
-- JSON control and aggregate messages for low-frequency state.
+- JSON aggregate snapshots at roughly 4 Hz for the React dashboard panels.
+- JSON control messages for scenario, stream rate, pause/resume, reconnect, and backpressure.
 - Client-side worker owns the socket, decode path, recent-event ring buffer, and perf telemetry.
 - OffscreenCanvas renderer owns the high-rate tape visualization.
 - Performance HUD shows event rate, client sequence lag, FPS, decode latency, rendered rows/sec,
