@@ -102,7 +102,7 @@ changes, or operator actions. It does not need to be constantly updated by the `
 Required surfaces:
 
 - 100k+ synthetic rows in the first complete version; target 250k+ after server-side filtering,
-  sorting, cursor windowing, and facets are polished.
+  sorting, cursor windowing, and sparse facets are polished.
 - TanStack Virtual table.
 - Sorting, column resize, column visibility, and column pinning.
 - Drag-and-drop column reordering.
@@ -110,8 +110,7 @@ Required surfaces:
 - Client-side pruning or cache-window management as the user scrolls.
 - Filters and sorting that feel instant and remain URL-addressable.
 - Saved views with URL-persisted filters.
-- Faceted filters for rail, customer industry, status, anomaly type, risk tier, amount, and time
-  range.
+- Sparse faceted filters for time range, severity, rail, and status.
 - Row details drawer with domain-specific audit-entry detail.
 - Command palette for saved views and common investigations.
 - Render trace panel showing visible range, rows mounted, filter latency, and main-thread blocking.
@@ -143,17 +142,11 @@ type AuditCursorPayload = {
 ```ts
 type AuditQuery = {
   filters?: {
-    rail?: Rail[];
-    severity?: AuditEntry["severity"][];
-    status?: AuditEntry["status"][];
-    kind?: AuditEntryKind[];
-    subjectType?: AuditSubjectType[];
-    riskTier?: Array<0 | 1 | 2 | 3>;
-    asset?: Asset[];
-    amountMinMinor?: bigint;
-    amountMaxMinor?: bigint;
     tsFrom?: number;
     tsTo?: number;
+    severity?: AuditEntry["severity"][];
+    rail?: Rail[];
+    status?: AuditEntry["status"][];
   };
   sort?: Array<{ field: keyof AuditEntry; dir: "asc" | "desc" }>;
   after?: string;
@@ -170,13 +163,9 @@ type AuditPage = {
 };
 
 type AuditFacets = {
-  rail: Record<string, number>;
   severity: Record<string, number>;
+  rail: Record<string, number>;
   status: Record<string, number>;
-  kind: Record<string, number>;
-  subjectType: Record<string, number>;
-  riskTier: Record<string, number>;
-  asset: Record<string, number>;
 };
 ```
 
