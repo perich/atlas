@@ -318,7 +318,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 - deterministic seeded Balance Sheet Movement generation
 - global sequence numbers
 - scenario state
-- aggregate metric computation
+- aggregate metric computation for the React dashboard panels
 - replay buffer
 - `/stream` WebSocket endpoint
 - `/healthz` health endpoint
@@ -331,7 +331,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 
 - route shell and product UI
 - `ingress.worker.ts` for WebSocket connection, binary decode, ring buffer, and telemetry
-- `settlement-flow.worker.ts` for OffscreenCanvas rendering
+- `balance-sheet-tape.worker.ts` for OffscreenCanvas rendering
 - coalesced external store snapshots consumed by React
 - virtualized high-scale table
 - local workspace sync via IndexedDB and BroadcastChannel
@@ -343,8 +343,15 @@ Transport:
 
 - WebSocket for the hot path.
 - Binary event batches for Balance Sheet Movements.
-- JSON control and aggregate messages for low-frequency state.
+- JSON aggregate snapshots at roughly 4 Hz for React dashboard panels.
+- JSON control messages for scenario, stream rate, pause/resume, reconnect, and backpressure.
 - One logical stream with channel identifiers.
+
+The hot and warm paths serve different consumers:
+
+- Hot path: binary movement batches feed the ingress worker and OffscreenCanvas tape renderer.
+- Warm path: aggregate snapshots feed React-owned metrics, rail health, controls, alerts, and
+  sparklines.
 
 Channels:
 
