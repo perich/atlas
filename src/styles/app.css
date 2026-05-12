@@ -1,20 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  --color-atlas-bg: #080d14;
-  --color-atlas-surface: #111827;
-  --color-atlas-text: #d8e2ef;
-  --color-atlas-muted: #8fa2b7;
+  --color-atlas-bg: #090a0b;
+  --color-atlas-panel: #111315;
+  --color-atlas-sidebar: #0c0d0f;
+  --color-atlas-surface: #171a1d;
+  --color-atlas-text: #e4e7ea;
+  --color-atlas-muted: #89929c;
+  --shadow-atlas-glow: 0 0 0 1px rgba(180, 195, 205, 0.18);
+  --shadow-atlas-warning: 0 0 0 1px rgba(202, 138, 4, 0.22);
 }
 
 html {
-  background: #080d14;
+  background: #090a0b;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  color-scheme: dark;
+  background: #090a0b;
   font-family:
     Inter,
     ui-sans-serif,
@@ -23,4 +29,16 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(148, 163, 184, 0.28);
 }
