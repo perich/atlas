@@ -75,7 +75,7 @@ Required surfaces:
 - Realtime charts or sparklines for throughput, latency, queue depth, failure rate, liquidity, and
   event volume.
 - Performance HUD that makes the architecture measurable: event rate, decode latency, FPS, worker
-  queue depth, dropped visual-only rows, and React snapshot cadence.
+  queue depth, rendered rows/sec, worker frame cost, and React snapshot cadence.
 - Optional alert or anomaly components if they strengthen the product feel.
 
 Required controls:
@@ -395,17 +395,19 @@ Required behavior:
 - The visible tape row pool is bounded and recycles rows as new movements arrive.
 - Newest movements stream into the tape in one direction with stable columns for time, side, amount,
   bucket, asset, customer, rail, and status.
-- Under load, visual sampling is allowed.
-- Data loss and visual sampling must be reported separately.
-- Bucket totals, side totals, and throughput indicators remain accurate when row sampling activates.
+- Supported stream-rate modes render raw individual movements, not summarized or sampled rows.
+- If the renderer cannot keep up, the system should expose backlog and frame-cost pressure rather
+  than silently sampling the tape.
+- Bucket totals, side totals, and throughput indicators should remain accurate because they are
+  derived from decoded movement batches, not React render state.
 
 Performance HUD must show:
 
 - server event rate
 - decoded event rate
 - rendered tape row rate
-- sample rate
-- dropped visual-only rows
+- worker backlog depth
+- worker frame p95
 - client sequence lag
 - decode p95
 - render FPS
