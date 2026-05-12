@@ -35,7 +35,7 @@ export function AppShell() {
         <header className="sticky top-0 z-10 border-b border-white/[0.075] bg-bankops-bg/95 px-4 py-3 backdrop-blur-xl lg:px-6">
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm font-medium text-white">BankOps Mission Control</p>
-            <p className="text-xs text-bankops-muted">Realtime rails · Ledger · Analyst</p>
+            <p className="text-xs text-bankops-muted">Realtime rails · Audit · Analyst</p>
           </div>
         </header>
 

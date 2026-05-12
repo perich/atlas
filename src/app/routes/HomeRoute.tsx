@@ -30,7 +30,7 @@ export function HomeRoute() {
 
       <Panel title="Current focus">
         <div className="grid gap-3 text-sm text-bankops-muted md:grid-cols-2">
-          <p>Move from the starter shell into `/ops`, `/ledger`, and `/analyst` product routes.</p>
+          <p>Move from the starter shell into `/ops`, `/audit`, and `/analyst` product routes.</p>
           <p>
             Introduce the stream server, shared protocol package, and deterministic bank simulator.
           </p>

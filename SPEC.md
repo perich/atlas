@@ -13,8 +13,8 @@ feel related, but they do not need to share one strict canonical event history.
 
 1. `/ops` shows live rail, liquidity, reconciliation, and invariant state under a real server-owned
    event firehose, with at least one blisteringly fast worker-backed Canvas visualization.
-2. `/ledger` showcases an exceptional server-backed virtualized table over hundreds of thousands of
-   rows, with search, filtering, sorting, and draggable columns.
+2. `/audit` showcases an exceptional server-backed virtualized table over hundreds of thousands of
+   Bank Core Audit Log rows, with search, filtering, sorting, and draggable columns.
 3. `/analyst` demonstrates constrained CodeMode-style analysis that generates typed, validated UI
    from read-only bank data tools.
 
@@ -22,7 +22,7 @@ Candidate cross-route flow, if it stays valuable after the surfaces exist:
 
 ```txt
 /ops highlights an unusual bank-core condition
-  -> /ledger opens a matching filtered table view
+  -> /audit opens a matching filtered table view
   -> /analyst explains impact and renders a generated mini-dashboard
 ```
 
@@ -83,11 +83,12 @@ Required controls:
 - Pause/resume, reconnect, and reset seed.
 - Backpressure mode indicator.
 
-### `/ledger`: High-Scale Table Surface
+### `/audit`: Bank Core Audit Log
 
-Purpose: demonstrate a genuinely excellent table over bank-shaped data. The table may be a ledger,
-audit log, payment event archive, bank-core activity log, or another operator dataset. It does not
-need to be constantly updated by the `/ops` firehose.
+Purpose: demonstrate a genuinely excellent table over bank-shaped data. The route renders a
+server-backed Bank Core Audit Log: operational entries that may reference payments, rails,
+journals, customers, accounts, stablecoin settlement observations, exceptions, configuration
+changes, or operator actions. It does not need to be constantly updated by the `/ops` firehose.
 
 Required surfaces:
 
@@ -100,21 +101,12 @@ Required surfaces:
   memory at once.
 - Client-side pruning or cache-window management as the user scrolls.
 - Search, filters, and sorting that feel instant and remain URL-addressable.
-- Saved views with URL-persisted filters once the row subject is settled.
+- Saved views with URL-persisted filters.
 - Faceted filters for rail, customer industry, status, anomaly type, risk tier, amount, and time
   range.
-- Row details drawer with domain-specific detail once the row subject is settled.
+- Row details drawer with domain-specific audit-entry detail.
 - Command palette for saved views and common investigations.
 - Render trace panel showing visible range, rows mounted, filter latency, and main-thread blocking.
-
-Candidate row subjects:
-
-- Bank-core audit log.
-- Payment event archive.
-- Ledger journal archive.
-- Reconciliation exception queue.
-- Customer balance and exposure snapshots.
-- Stablecoin settlement observations.
 
 Candidate saved views:
 
@@ -138,7 +130,7 @@ Required surfaces:
 - Tool-call trace.
 - Validated UI schema.
 - Rendered generated dashboard.
-- Deep links back to `/ledger`.
+- Deep links back to `/audit`.
 
 The model must not render arbitrary React. It may produce a declarative dashboard schema only after
 calling typed, read-only tools.
@@ -153,7 +145,7 @@ type GeneratedDashboard = {
     | { type: "metric"; title: string; value: string; delta?: string }
     | { type: "table"; title: string; queryResultId: string }
     | { type: "barChart"; title: string; data: Array<{ label: string; value: number }> }
-    | { type: "ledgerLink"; label: string; href: string }
+    | { type: "auditLink"; label: string; href: string }
   >;
 };
 ```
@@ -351,7 +343,7 @@ Synthetic data classes:
 - Accounts for customer deposits, bank settlement, rail clearing, liquidity reserve, and exception
   queues.
 - Bank Core Events for live stream.
-- High-scale table rows for `/ledger`.
+- Bank Core Audit Log entries for `/audit`.
 - Journal entries for double-entry finality.
 - Incidents and invariant failures.
 - Saved views and operator annotations.
@@ -441,8 +433,8 @@ Testing:
 - Property tests for simulator invariants where cheap.
 - Unit tests for saved-view URL serialization.
 - Component tests for route-level smoke states.
-- Playwright flow for `/ledger` search, filter, sort, and column reorder.
-- Optional Playwright flow for `/ops` condition -> `/ledger` deep link if that integration remains
+- Playwright flow for `/audit` search, filter, sort, and column reorder.
+- Optional Playwright flow for `/ops` condition -> `/audit` deep link if that integration remains
   useful.
 - Playwright flow for `/analyst` deterministic generated dashboard.
 
@@ -471,8 +463,8 @@ Accessibility:
 6. `/ops` route shell with static rail/liquidity/invariant panels.
 7. Browser ingress worker and external snapshot store.
 8. OffscreenCanvas settlement flow.
-9. Virtualized `/ledger` table and saved views.
-10. Optional `/ops` condition deep link into `/ledger`.
+9. Virtualized `/audit` table and saved views.
+10. Optional `/ops` condition deep link into `/audit`.
 11. Analyst deterministic CodeMode fallback.
 12. Optional live model path.
 13. Deployment, README polish, screenshots, and walkthrough.
@@ -487,4 +479,3 @@ Accessibility:
   deterministic local interpreter for the first version.
 - Whether the final public demo runs one shared global simulation or one seeded simulation per
   browser session.
-- What the `/ledger` rows actually represent.

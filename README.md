@@ -16,17 +16,17 @@ The implementation target is tracked in [SPEC.md](./SPEC.md). Domain language is
 
 - `/ops` — real-time bank operations dashboard with rail health, liquidity, settlement flow,
   invariant monitoring, and cutoff simulation.
-- `/ledger` — high-scale ledger and payment-event investigation table with virtualized rows,
-  saved views, URL-persisted filters, and alert drilldowns.
+- `/audit` — high-scale bank-core audit log with virtualized rows, saved views,
+  URL-persisted filters, and alert drilldowns.
 - `/analyst` — constrained CodeMode analyst that turns operational questions into validated,
   typed UI specs instead of arbitrary generated React.
 
 The first end-to-end workflow should be:
 
 1. `/ops` raises a stablecoin reconciliation alert.
-2. The alert deep-links to `/ledger?view=unreconciled-stablecoin&batch=88412`.
-3. `/ledger` shows affected events, customers, amounts, state transitions, and missing journal
-   finality.
+2. The alert deep-links to `/audit?view=stablecoin-activity&batch=88412`.
+3. `/audit` shows affected audit entries, customers, amounts, state transitions, and related
+   journal finality when available.
 4. `/analyst` explains the incident and generates a mini-dashboard from typed read-only tools.
 
 ## Route 1: Ops Dashboard
