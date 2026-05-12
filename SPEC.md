@@ -268,6 +268,14 @@ type BalanceSheetMovement = {
 };
 ```
 
+Debit and credit are labeled from the bank balance sheet bucket point of view:
+
+- `credit` increases the referenced `bucket`.
+- `debit` decreases the referenced `bucket`.
+- A `BalanceSheetMovement` is a single visible tape row, not a full balanced `Journal`.
+- A row may reference a `journalId`, `offsetBucket`, or type-specific detail payload when the UI
+  needs to show the balanced accounting context.
+
 Example tape rows:
 
 ```txt
