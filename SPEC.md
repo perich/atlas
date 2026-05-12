@@ -110,6 +110,56 @@ Required surfaces:
 - Command palette for saved views and common investigations.
 - Render trace panel showing visible range, rows mounted, filter latency, and main-thread blocking.
 
+Audit entries use a common envelope with type-specific details:
+
+```ts
+type AuditEntryKind =
+  | "payment"
+  | "journal"
+  | "settlement"
+  | "reconciliation"
+  | "risk"
+  | "liquidity"
+  | "rail_health"
+  | "cutoff"
+  | "configuration"
+  | "operator_action";
+
+type AuditSubjectType =
+  | "payment"
+  | "journal"
+  | "customer"
+  | "account"
+  | "rail"
+  | "settlement"
+  | "exception"
+  | "configuration"
+  | "cutoff"
+  | "operator";
+
+type AuditEntry = {
+  id: string;
+  ts: number;
+  severity: "info" | "notice" | "warning" | "critical";
+  kind: AuditEntryKind;
+  actor: "system" | "operator" | "rail" | "api" | "scheduler" | "risk_engine";
+  action: string;
+  subjectType: AuditSubjectType;
+  subjectId: string;
+  customerId?: string;
+  accountId?: string;
+  rail?: Rail;
+  asset?: Asset;
+  amountMinor?: bigint;
+  status: "accepted" | "pending" | "posted" | "settled" | "failed" | "reversed";
+  riskTier?: 0 | 1 | 2 | 3;
+  traceId: string;
+  idempotencyKey?: string;
+  summary: string;
+  detail: Record<string, unknown>;
+};
+```
+
 Candidate saved views:
 
 - Stablecoin activity over threshold.
@@ -345,7 +395,7 @@ Synthetic data classes:
 - Accounts for customer deposits, bank settlement, rail clearing, liquidity reserve, and exception
   queues.
 - Bank Core Events for live stream.
-- Bank Core Audit Log entries for `/audit`.
+- Bank Core Audit Log entries for `/audit`, modeled as heterogeneous Audit Entry envelopes.
 - Journal entries for double-entry finality.
 - Incidents and invariant failures.
 - Saved views and operator annotations.
