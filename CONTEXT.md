@@ -27,6 +27,16 @@ A sequenced realtime activity record emitted by the simulator for payment, rail,
 liquidity, or system activity.
 _Avoid_: Message, row
 
+**Balance Sheet Tape**:
+A realtime visual tape of credit and debit movements affecting high-level bank balance sheet
+buckets.
+_Avoid_: Trade history
+
+**Balance Sheet Movement**:
+A simplified debit or credit record used by the `/ops` firehose to show activity against the bank's
+global balance sheet.
+_Avoid_: Journal, unless the record is a balanced double-entry Journal
+
 **Settlement**:
 The point at which movement over a Payment Rail is considered final for that rail.
 _Avoid_: Payment, transfer
@@ -65,6 +75,9 @@ _Avoid_: Transaction, ledger row
 
 - A **Customer** owns one or more **Accounts**.
 - A **Payment Rail** emits or receives **Bank Core Events**.
+- A **Balance Sheet Tape** renders many **Balance Sheet Movements**.
+- A **Balance Sheet Movement** may reference a **Customer**, **Account**, **Payment Rail**, or
+  **Journal**.
 - A **Bank Core Event** may produce one or more **Journals**.
 - A **Journal** must satisfy double-entry ledger **Invariants**.
 - **Reconciliation** matches rail finality to internal **Journal** finality.
@@ -90,3 +103,5 @@ _Avoid_: Transaction, ledger row
   matching rail finality to internal ledger finality.
 - `/audit` renders **Audit Entries** from the Bank Core Audit Log. It is broader than a pure ledger
   journal table.
+- The `/ops` **Balance Sheet Tape** is inspired by trading UI tapes, but it is not a trade history:
+  its rows are debit and credit movements, not asset trades.
