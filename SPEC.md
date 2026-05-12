@@ -127,6 +127,9 @@ Audit query semantics:
   visible range.
 - The browser should not fetch the full audit dataset just to filter or sort it.
 - The API should not expose page-number or offset pagination as the primary table model.
+- Default sort is `ts desc`, then `id desc`.
+- Every cursor must include a stable tie-breaker id so repeated timestamps do not produce skipped or
+  duplicated rows.
 
 Audit cursors are opaque strings to the browser. Internally, a cursor can encode the active sort
 position plus a stable tie-breaker row id:
@@ -150,7 +153,7 @@ type AuditQuery = {
     rail?: Rail[];
     status?: AuditEntry["status"][];
   };
-  sort?: Array<{ field: keyof AuditEntry; dir: "asc" | "desc" }>;
+  sort?: Array<{ field: "ts" | "severity" | "rail" | "status" | "kind"; dir: "asc" | "desc" }>;
   after?: string;
   before?: string;
   limit: number;
