@@ -9,4 +9,3 @@ test-results/
 .env.*
 !.env.example
 GOALS.md
-SPEC.md

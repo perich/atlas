@@ -7,6 +7,11 @@ This repo starts from a lean React SPA scaffold and will grow into a small, high
 demo. The target is not a consumer banking clone. The target is an internal operator surface that
 makes bank-core complexity legible under live operational pressure.
 
+## Spec
+
+The implementation target is tracked in [SPEC.md](./SPEC.md). Domain language is tracked in
+[CONTEXT.md](./CONTEXT.md), and architectural decisions live in [docs/adr](./docs/adr).
+
 ## Product Shape
 
 - `/ops` — real-time bank operations dashboard with rail health, liquidity, settlement flow,
