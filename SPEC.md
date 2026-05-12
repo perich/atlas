@@ -14,7 +14,7 @@ feel related, but they do not need to share one strict canonical event history.
 1. `/ops` centers on a blisteringly fast worker-backed Canvas Balance Sheet Tape, supported by live
    rail, liquidity, reconciliation, and system health context.
 2. `/audit` showcases an exceptional server-backed virtualized table over hundreds of thousands of
-   Bank Core Audit Log rows, with search, filtering, sorting, and draggable columns.
+   Bank Core Audit Log rows, with filtering, sorting, facets, and draggable columns.
 3. `/analyst` demonstrates constrained CodeMode-style analysis that generates typed, validated UI
    from read-only bank data tools.
 
@@ -101,14 +101,14 @@ changes, or operator actions. It does not need to be constantly updated by the `
 
 Required surfaces:
 
-- 100k+ synthetic rows in the first complete version; target 250k+ after server-side paging and
-  query behavior are polished.
+- 100k+ synthetic rows in the first complete version; target 250k+ after server-side filtering,
+  sorting, cursor windowing, and facets are polished.
 - TanStack Virtual table.
 - Sorting, column resize, column visibility, and column pinning.
 - Drag-and-drop column reordering.
 - Server-backed cursor windowing so the browser does not need to hold every row in memory at once.
 - Client-side pruning or cache-window management as the user scrolls.
-- Search, filters, and sorting that feel instant and remain URL-addressable.
+- Filters and sorting that feel instant and remain URL-addressable.
 - Saved views with URL-persisted filters.
 - Faceted filters for rail, customer industry, status, anomaly type, risk tier, amount, and time
   range.
@@ -118,7 +118,7 @@ Required surfaces:
 
 Audit query semantics:
 
-- `/api/audit` owns search, filtering, sorting, and cursor-based windowing.
+- `/api/audit` owns filtering, sorting, and cursor-based windowing.
 - `/api/audit/facets` returns count breakdowns for filter dimensions under the current query
   context, without returning rows.
 - `/api/audit/:id` returns type-specific detail for the row details drawer.
@@ -142,7 +142,6 @@ type AuditCursorPayload = {
 
 ```ts
 type AuditQuery = {
-  search?: string;
   filters?: {
     rail?: Rail[];
     severity?: AuditEntry["severity"][];
@@ -606,7 +605,7 @@ Testing:
 - Property tests for simulator invariants where cheap.
 - Unit tests for saved-view URL serialization.
 - Component tests for route-level smoke states.
-- Playwright flow for `/audit` search, filter, sort, and column reorder.
+- Playwright flow for `/audit` filter, sort, facet, and column reorder.
 - Optional Playwright flow for `/ops` condition -> `/audit` deep link if that integration remains
   useful.
 - Playwright flow for `/analyst` deterministic generated dashboard.
