@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-describe("boilerplate", () => {
+describe("bankops app", () => {
   it("keeps the test runner wired", () => {
-    expect("atlas").toBe("atlas");
+    expect("bankops").toBe("bankops");
   });
 });
