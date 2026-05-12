@@ -64,15 +64,16 @@ looks relevant to bank operations.
 Required surfaces:
 
 - At least one OffscreenCanvas component rendered by a worker, fed by a server-owned firehose of
-  bank-core events.
-- A dense realtime visualization of bank-core activity: payment movement, rail traffic, ledger
-  posting pulses, stablecoin settlement observations, or system events.
+  balance sheet movements.
+- A dense realtime Balance Sheet Tape: a trade-history-like stream of credits and debits against
+  high-level bank balance sheet buckets, with customer, rail, asset, amount, status, and risk
+  metadata.
 - Rail and system health components for ACH, wire, instant payments, card, internal ledger, and
   stablecoin rails.
 - Realtime charts or sparklines for throughput, latency, queue depth, failure rate, liquidity, and
   event volume.
 - Performance HUD that makes the architecture measurable: event rate, decode latency, FPS, worker
-  queue depth, dropped visual-only particles, and React snapshot cadence.
+  queue depth, dropped visual-only rows, and React snapshot cadence.
 - Optional alert or anomaly components if they strengthen the product feel.
 
 Required controls:
@@ -216,50 +217,62 @@ they apply, but no route is required to expose every term:
 
 ## Event Model
 
-The `/ops` simulator should emit deterministic, bank-shaped activity rather than unrelated random
-points. Events should be semantically plausible, but the firehose is primarily a realtime rendering
-and systems demo.
+The `/ops` simulator should emit deterministic Balance Sheet Movements rather than unrelated random
+points. Movements should be semantically plausible, but the firehose is primarily a realtime
+rendering and systems demo.
 
 ```ts
 type Rail = "ach" | "wire" | "instant" | "card" | "internal_ledger" | "stablecoin";
 type Asset = "USD" | "USDC" | "USDT" | "PYUSD" | "EURC";
 
 type EventKind =
-  | "deposit_created"
-  | "outflow_requested"
-  | "payment_observed"
-  | "payment_confirmed"
-  | "ledger_posted"
-  | "reconciled"
-  | "failed"
-  | "reversed"
-  | "liquidity_threshold_breached"
-  | "invariant_failed";
+  | "deposit_credit"
+  | "wire_debit"
+  | "ach_debit"
+  | "instant_payment_credit"
+  | "stablecoin_credit"
+  | "stablecoin_debit"
+  | "fee_credit"
+  | "reversal_credit"
+  | "reserve_transfer"
+  | "exception_hold";
 
-type BankCoreEvent = {
+type BalanceSheetBucket =
+  | "customer_deposits"
+  | "settlement_cash"
+  | "reserve_cash"
+  | "rail_clearing"
+  | "stablecoin_treasury"
+  | "fee_income"
+  | "exception_queue";
+
+type BalanceSheetMovement = {
   seq: bigint;
   serverTs: number;
   kind: EventKind;
+  side: "debit" | "credit";
+  bucket: BalanceSheetBucket;
   rail: Rail;
   asset: Asset;
-  sourceNodeId: number;
-  targetNodeId: number;
-  customerId: number;
-  batchId: number;
+  customerId: string;
+  customerName: string;
+  accountId: string;
   amountMinor: bigint;
   latencyMs: number;
+  status: "accepted" | "pending" | "posted" | "settled" | "failed" | "held";
   riskTier: 0 | 1 | 2 | 3;
+  traceId: string;
   flags: number;
 };
 ```
 
-Example activity sequences:
+Example tape rows:
 
 ```txt
-payment_observed -> payment_confirmed -> ledger_posted -> reconciled
-payment_observed -> failed
-payment_confirmed -> ledger_posted -> invariant_failed
-payment_confirmed -> reversed -> ledger_posted -> reconciled
+credit  +$2,400,000  customer_deposits   USDC  Acme Robotics       stablecoin  settled
+debit     -$850,000  settlement_cash     USD   Northstar AI        wire        posted
+credit     +$12,400  fee_income          USD   Vector Defense      ach         posted
+debit     -$310,000  exception_queue     USD   Orbital Systems     instant     held
 ```
 
 ## System Architecture
@@ -286,7 +299,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 
 `apps/stream-server` owns:
 
-- deterministic seeded Bank Core Event generation
+- deterministic seeded Balance Sheet Movement generation
 - global sequence numbers
 - scenario state
 - aggregate metric computation
@@ -313,7 +326,7 @@ existing Vite app to `apps/web` and introduce pnpm workspaces before adding serv
 Transport:
 
 - WebSocket for the hot path.
-- Binary event batches for Bank Core Events.
+- Binary event batches for Balance Sheet Movements.
 - JSON control and aggregate messages for low-frequency state.
 - One logical stream with channel identifiers.
 
@@ -340,46 +353,47 @@ toSeq          u64
 serverTsMs     f64
 eventCount     u32
 
-Event record
-------------
+Movement record
+---------------
 seqDelta       u32
 dtMs           u16
 kind           u8
+side           u8
+bucket         u8
 rail           u8
 asset          u8
-sourceNodeId   u32
-targetNodeId   u32
 customerId     u32
-batchId        u32
+accountId      u32
 amountMinor    i64
 latencyMs      u16
+status         u8
 riskTier       u8
 flags          u16
 ```
 
-React must not subscribe to every Bank Core Event. The ingress worker should decode batches, update
-a recent-event ring buffer, and post compact snapshots to React at roughly 4-10 Hz.
+React must not subscribe to every Balance Sheet Movement. The ingress worker should decode batches,
+update a recent-movement ring buffer, and post compact snapshots to React at roughly 4-10 Hz.
 
 ## Rendering Model
 
-The settlement flow visualization should be a bounded visual representation of the event stream,
-not a DOM rendering of every event.
+The Balance Sheet Tape should be a bounded visual representation of the movement stream, not a DOM
+rendering of every movement.
 
 Required behavior:
 
-- OffscreenCanvas renderer receives node/edge topology and event intensity updates.
-- Particle pool is bounded.
+- OffscreenCanvas renderer receives decoded movement batches and aggregate bucket totals.
+- The visible tape row pool is bounded.
 - Under load, visual sampling is allowed.
 - Data loss and visual sampling must be reported separately.
-- Edge glow/intensity remains accurate enough when particle sampling activates.
+- Bucket totals, side totals, and throughput indicators remain accurate when row sampling activates.
 
 Performance HUD must show:
 
 - server event rate
 - decoded event rate
-- visual particle rate
+- rendered tape row rate
 - sample rate
-- dropped visual-only particles
+- dropped visual-only rows
 - client sequence lag
 - decode p95
 - render FPS
@@ -392,7 +406,7 @@ Synthetic data classes:
 - Customers grouped by AI, defense, robotics, hardware, crypto, fintech, and venture funds.
 - Accounts for customer deposits, bank settlement, rail clearing, liquidity reserve, and exception
   queues.
-- Bank Core Events for live stream.
+- Balance Sheet Movements for the `/ops` live stream.
 - Bank Core Audit Log entries for `/audit`, modeled as heterogeneous Audit Entry envelopes.
 - Journal entries for double-entry finality.
 - Incidents and invariant failures.
@@ -500,7 +514,7 @@ Accessibility:
 
 - Keyboard-accessible route navigation, table focus, command palette, dialogs, and controls.
 - No information conveyed by color alone.
-- Respect reduced motion by lowering particle intensity and animation cadence.
+- Respect reduced motion by lowering tape animation cadence.
 - Text must fit on mobile and desktop without overlap.
 
 ## Implementation Milestones
@@ -512,7 +526,7 @@ Accessibility:
 5. Stream server with health route, `/stream`, scenarios, and aggregate snapshots.
 6. `/ops` route shell with static rail/liquidity/invariant panels.
 7. Browser ingress worker and external snapshot store.
-8. OffscreenCanvas settlement flow.
+8. OffscreenCanvas Balance Sheet Tape.
 9. Virtualized `/audit` table and saved views.
 10. Optional `/ops` condition deep link into `/audit`.
 11. Analyst deterministic CodeMode fallback.
