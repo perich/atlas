@@ -119,6 +119,55 @@ Required surfaces:
 - Command palette for saved views and common investigations.
 - Render trace panel showing visible range, rows mounted, filter latency, and main-thread blocking.
 
+Audit query semantics:
+
+- `/api/audit` owns search, filtering, sorting, and paging/windowing.
+- `/api/audit/facets` returns count breakdowns for filter dimensions under the current query
+  context, without returning rows.
+- `/api/audit/:id` returns type-specific detail for the row details drawer.
+- The browser owns virtualized rendering, column state, URL state, and a bounded row cache around the
+  visible range.
+- The browser should not fetch the full audit dataset just to filter or sort it.
+
+```ts
+type AuditQuery = {
+  search?: string;
+  filters?: {
+    rail?: Rail[];
+    severity?: AuditEntry["severity"][];
+    status?: AuditEntry["status"][];
+    kind?: AuditEntryKind[];
+    subjectType?: AuditSubjectType[];
+    riskTier?: Array<0 | 1 | 2 | 3>;
+    asset?: Asset[];
+    amountMinMinor?: bigint;
+    amountMaxMinor?: bigint;
+    tsFrom?: number;
+    tsTo?: number;
+  };
+  sort?: Array<{ field: keyof AuditEntry; dir: "asc" | "desc" }>;
+  cursor?: string;
+  limit: number;
+};
+
+type AuditPage = {
+  rows: AuditEntry[];
+  nextCursor?: string;
+  totalMatched: number;
+  queryMs: number;
+};
+
+type AuditFacets = {
+  rail: Record<string, number>;
+  severity: Record<string, number>;
+  status: Record<string, number>;
+  kind: Record<string, number>;
+  subjectType: Record<string, number>;
+  riskTier: Record<string, number>;
+  asset: Record<string, number>;
+};
+```
+
 Audit entries use a common envelope with type-specific details:
 
 ```ts
