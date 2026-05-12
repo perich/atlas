@@ -81,6 +81,8 @@ _Avoid_: Transaction, ledger row
 - A **Customer** owns one or more **Accounts**.
 - A **Payment Rail** emits or receives **Bank Core Events**.
 - A **Balance Sheet Tape** renders many **Balance Sheet Movements**.
+- A **Balance Sheet Tape** renders raw **Balance Sheet Movements** in supported modes, not
+  summarized or sampled rows.
 - A **Balance Sheet Movement** may reference a **Customer**, **Account**, **Payment Rail**, or
   **Journal**.
 - A **Balance Sheet Movement** is labeled from the **Balance Sheet Perspective**.

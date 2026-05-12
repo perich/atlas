@@ -44,7 +44,7 @@ stream-server
 ```
 
 React should receive coalesced snapshots for product UI state at roughly 4-10 Hz. The firehose path
-can run far faster because binary decode, ring-buffer writes, and visual sampling stay outside the
+can run far faster because binary decode, ring-buffer writes, and Canvas rendering stay outside the
 React render loop.
 
 ### SettlementStream Targets
@@ -54,8 +54,8 @@ React render loop.
 - JSON control and aggregate messages for low-frequency state.
 - Client-side worker owns the socket, decode path, recent-event ring buffer, and perf telemetry.
 - OffscreenCanvas renderer owns the high-rate tape visualization.
-- Performance HUD shows event rate, client sequence lag, FPS, decode latency, visual sampling, and
-  React snapshot cadence.
+- Performance HUD shows event rate, client sequence lag, FPS, decode latency, rendered rows/sec,
+  worker backlog, and React snapshot cadence.
 
 ## Bank-Domain Model
 
