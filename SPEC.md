@@ -402,8 +402,11 @@ Required behavior:
 
 - OffscreenCanvas renderer receives decoded movement batches and aggregate bucket totals.
 - The visible tape row pool is bounded and recycles rows as new movements arrive.
+- Rows render in a fixed-column terminal style, not as cards.
 - Newest movements stream into the tape in one direction with stable columns for time, side, amount,
   bucket, asset, customer, rail, and status.
+- Column widths are stable and use tabular/monospace metrics so the tape feels like a serious
+  financial terminal.
 - Supported stream-rate modes render raw individual movements, not summarized or sampled rows.
 - If the renderer cannot keep up, the system should expose backlog and frame-cost pressure rather
   than silently sampling the tape.
