@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./src/test/e2e",
+  testDir: "./apps/web/src/test/e2e",
   fullyParallel: true,
   reporter: "html",
   use: {
@@ -9,7 +9,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "pnpm dev",
+    command: "pnpm dev:web",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: !process.env.CI,
   },

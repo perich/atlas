@@ -1,4 +1,10 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./apps/server" },
+    { "path": "./packages/contracts" },
+    { "path": "./packages/ops-tape-sim" },
+    { "path": "./packages/audit-log-model" }
+  ]
 }
