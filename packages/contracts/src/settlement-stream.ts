@@ -26,7 +26,6 @@ export const StreamChannel = {
 export type StreamChannel = (typeof StreamChannel)[keyof typeof StreamChannel];
 
 export type MovementBatchFrame = {
-  channel: typeof StreamChannel.MovementBatch;
   fromSeq: bigint;
   toSeq: bigint;
   serverTsMs: number;
@@ -52,6 +51,7 @@ export class SettlementStreamDecodeError extends Error {
 
 const MAX_U16 = 0xffff;
 const MAX_U32 = 0xffffffff;
+const MAX_U32_BIGINT = BigInt(MAX_U32);
 const MIN_I64 = -(1n << 63n);
 const MAX_I64 = (1n << 63n) - 1n;
 
@@ -74,7 +74,7 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   // Header fields apply to the whole batch; records store small deltas from them.
   view.setUint32(0, SETTLEMENT_STREAM_MAGIC, STREAM_LITTLE_ENDIAN);
   view.setUint16(4, SETTLEMENT_STREAM_VERSION, STREAM_LITTLE_ENDIAN);
-  view.setUint16(6, frame.channel, STREAM_LITTLE_ENDIAN);
+  view.setUint16(6, StreamChannel.MovementBatch, STREAM_LITTLE_ENDIAN);
   view.setBigUint64(8, frame.fromSeq, STREAM_LITTLE_ENDIAN);
   view.setBigUint64(16, frame.toSeq, STREAM_LITTLE_ENDIAN);
   view.setFloat64(24, frame.serverTsMs, STREAM_LITTLE_ENDIAN);
@@ -87,28 +87,27 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
     const seqDelta = movement.seq - frame.fromSeq;
     const dtMs = movement.serverTs - frame.serverTsMs;
 
-    assertUint("seqDelta", seqDelta, MAX_U32);
+    assertBigUint32("seqDelta", seqDelta);
     assertUint("dtMs", dtMs, MAX_U16);
     assertUint("customerId", movement.customerId, MAX_U32);
     assertUint("accountId", movement.accountId, MAX_U32);
     assertInt64("amountMinor", movement.amountMinor);
     assertUint("latencyMs", movement.latencyMs, MAX_U16);
-    assertRiskTier(movement.riskTier);
     assertUint("flags", movement.flags, MAX_U16);
 
     view.setUint32(offset, Number(seqDelta), STREAM_LITTLE_ENDIAN);
     offset += 4;
     view.setUint16(offset, dtMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    view.setUint8(offset, movementKindCode.get(movement.kind) ?? failUnknownValue("kind"));
+    view.setUint8(offset, codeOf(movementKindCode, movement.kind));
     offset += 1;
-    view.setUint8(offset, movementSideCode.get(movement.side) ?? failUnknownValue("side"));
+    view.setUint8(offset, codeOf(movementSideCode, movement.side));
     offset += 1;
-    view.setUint8(offset, bucketCode.get(movement.bucket) ?? failUnknownValue("bucket"));
+    view.setUint8(offset, codeOf(bucketCode, movement.bucket));
     offset += 1;
-    view.setUint8(offset, railCode.get(movement.rail) ?? failUnknownValue("rail"));
+    view.setUint8(offset, codeOf(railCode, movement.rail));
     offset += 1;
-    view.setUint8(offset, assetCode.get(movement.asset) ?? failUnknownValue("asset"));
+    view.setUint8(offset, codeOf(assetCode, movement.asset));
     offset += 1;
     view.setUint32(offset, movement.customerId, STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -118,7 +117,7 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
     offset += 8;
     view.setUint16(offset, movement.latencyMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    view.setUint8(offset, movementStatusCode.get(movement.status) ?? failUnknownValue("status"));
+    view.setUint8(offset, codeOf(movementStatusCode, movement.status));
     offset += 1;
     view.setUint8(offset, movement.riskTier);
     offset += 1;
@@ -239,7 +238,6 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
   }
 
   return {
-    channel: StreamChannel.MovementBatch,
     fromSeq,
     toSeq,
     serverTsMs,
@@ -249,6 +247,16 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
 
 function makeCodeMap<const T extends readonly string[]>(values: T): ReadonlyMap<T[number], number> {
   return new Map(values.map((value, index) => [value, index]));
+}
+
+function codeOf<T extends string>(codes: ReadonlyMap<T, number>, value: T): number {
+  const code = codes.get(value);
+
+  if (code === undefined) {
+    throw new RangeError(`Missing stream code for ${value}`);
+  }
+
+  return code;
 }
 
 function readCode<const T extends readonly string[]>(
@@ -275,10 +283,6 @@ function toDataView(source: ArrayBuffer | ArrayBufferView): DataView {
 }
 
 function assertMovementBatchFrame(frame: MovementBatchFrame) {
-  if (frame.channel !== StreamChannel.MovementBatch) {
-    throw new RangeError("Movement batches must use the movement batch stream channel");
-  }
-
   if (frame.fromSeq < 0n || frame.toSeq < frame.fromSeq) {
     throw new RangeError("Movement batch sequence range is invalid");
   }
@@ -298,11 +302,15 @@ function assertMovementBatchFrame(frame: MovementBatchFrame) {
   }
 }
 
-function assertUint(label: string, value: bigint | number, max: number) {
-  const numeric = typeof value === "bigint" ? Number(value) : value;
-
-  if (!Number.isInteger(numeric) || numeric < 0 || numeric > max) {
+function assertUint(label: string, value: number, max: number) {
+  if (!Number.isInteger(value) || value < 0 || value > max) {
     throw new RangeError(`${label} must be an integer between 0 and ${max}`);
+  }
+}
+
+function assertBigUint32(label: string, value: bigint) {
+  if (value < 0n || value > MAX_U32_BIGINT) {
+    throw new RangeError(`${label} must fit in an unsigned 32-bit integer`);
   }
 }
 
@@ -312,16 +320,6 @@ function assertInt64(label: string, value: bigint) {
   }
 }
 
-function assertRiskTier(value: number) {
-  if (!isRiskTier(value)) {
-    throw new RangeError("riskTier must be 0, 1, 2, or 3");
-  }
-}
-
 function isRiskTier(value: number): value is RiskTier {
   return value === 0 || value === 1 || value === 2 || value === 3;
-}
-
-function failUnknownValue(label: string): never {
-  throw new RangeError(`Unknown ${label} value`);
 }

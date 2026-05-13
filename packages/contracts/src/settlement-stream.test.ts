@@ -14,6 +14,8 @@ import {
   type MovementBatchFrame,
 } from "./index.js";
 
+const SERVER_TS_MS = 1_778_600_000_000;
+
 const baseMovement: BalanceSheetMovement = {
   seq: 10_000n,
   serverTs: 1_778_600_000_050,
@@ -31,13 +33,19 @@ const baseMovement: BalanceSheetMovement = {
   flags: 3,
 };
 
+const baseFrame: MovementBatchFrame = {
+  fromSeq: baseMovement.seq,
+  toSeq: baseMovement.seq,
+  serverTsMs: SERVER_TS_MS,
+  movements: [baseMovement],
+};
+
 describe("SettlementStream movement batch frames", () => {
   it("round trips movement batches through the fixed-width binary frame", () => {
     const frame: MovementBatchFrame = {
-      channel: StreamChannel.MovementBatch,
       fromSeq: 10_000n,
       toSeq: 10_002n,
-      serverTsMs: 1_778_600_000_000,
+      serverTsMs: SERVER_TS_MS,
       movements: [
         baseMovement,
         {
@@ -84,13 +92,7 @@ describe("SettlementStream movement batch frames", () => {
   });
 
   it("round trips ArrayBufferView inputs", () => {
-    const encoded = encodeMovementBatch({
-      channel: StreamChannel.MovementBatch,
-      fromSeq: baseMovement.seq,
-      toSeq: baseMovement.seq,
-      serverTsMs: 1_778_600_000_000,
-      movements: [baseMovement],
-    });
+    const encoded = encodeMovementBatch(baseFrame);
     const padded = new Uint8Array(encoded.byteLength + 8);
     padded.set(new Uint8Array(encoded), 4);
 
@@ -101,10 +103,9 @@ describe("SettlementStream movement batch frames", () => {
 
   it("round trips empty movement batches", () => {
     const frame: MovementBatchFrame = {
-      channel: StreamChannel.MovementBatch,
       fromSeq: 0n,
       toSeq: 0n,
-      serverTsMs: 1_778_600_000_000,
+      serverTsMs: SERVER_TS_MS,
       movements: [],
     };
 
@@ -112,13 +113,7 @@ describe("SettlementStream movement batch frames", () => {
   });
 
   it("rejects bad magic values", () => {
-    const encoded = encodeMovementBatch({
-      channel: StreamChannel.MovementBatch,
-      fromSeq: baseMovement.seq,
-      toSeq: baseMovement.seq,
-      serverTsMs: 1_778_600_000_000,
-      movements: [baseMovement],
-    });
+    const encoded = encodeMovementBatch(baseFrame);
     const view = new DataView(encoded);
     view.setUint32(0, SETTLEMENT_STREAM_MAGIC + 1, STREAM_LITTLE_ENDIAN);
 
@@ -126,13 +121,7 @@ describe("SettlementStream movement batch frames", () => {
   });
 
   it("rejects unsupported versions", () => {
-    const encoded = encodeMovementBatch({
-      channel: StreamChannel.MovementBatch,
-      fromSeq: baseMovement.seq,
-      toSeq: baseMovement.seq,
-      serverTsMs: 1_778_600_000_000,
-      movements: [baseMovement],
-    });
+    const encoded = encodeMovementBatch(baseFrame);
     const view = new DataView(encoded);
     view.setUint16(4, SETTLEMENT_STREAM_VERSION + 1, STREAM_LITTLE_ENDIAN);
 
@@ -140,13 +129,7 @@ describe("SettlementStream movement batch frames", () => {
   });
 
   it("rejects unsupported channels for movement batch decoding", () => {
-    const encoded = encodeMovementBatch({
-      channel: StreamChannel.MovementBatch,
-      fromSeq: baseMovement.seq,
-      toSeq: baseMovement.seq,
-      serverTsMs: 1_778_600_000_000,
-      movements: [baseMovement],
-    });
+    const encoded = encodeMovementBatch(baseFrame);
     const view = new DataView(encoded);
     view.setUint16(6, StreamChannel.AggregateSnapshot, STREAM_LITTLE_ENDIAN);
 
@@ -158,25 +141,13 @@ describe("SettlementStream movement batch frames", () => {
   });
 
   it("rejects truncated records", () => {
-    const encoded = encodeMovementBatch({
-      channel: StreamChannel.MovementBatch,
-      fromSeq: baseMovement.seq,
-      toSeq: baseMovement.seq,
-      serverTsMs: 1_778_600_000_000,
-      movements: [baseMovement],
-    });
+    const encoded = encodeMovementBatch(baseFrame);
 
     expectDecodeError(encoded.slice(0, encoded.byteLength - 1), "truncated_record");
   });
 
   it("rejects invalid enum codes", () => {
-    const encoded = encodeMovementBatch({
-      channel: StreamChannel.MovementBatch,
-      fromSeq: baseMovement.seq,
-      toSeq: baseMovement.seq,
-      serverTsMs: 1_778_600_000_000,
-      movements: [baseMovement],
-    });
+    const encoded = encodeMovementBatch(baseFrame);
     const kindOffset = STREAM_FRAME_HEADER_BYTES + 6;
     new DataView(encoded).setUint8(kindOffset, 255);
 
@@ -191,10 +162,9 @@ describe("SettlementStream movement batch frames", () => {
 
     expect(() =>
       encodeMovementBatch({
-        channel: StreamChannel.MovementBatch,
         fromSeq: movement.seq,
         toSeq: movement.seq,
-        serverTsMs: 1_778_600_000_000,
+        serverTsMs: SERVER_TS_MS,
         movements: [movement],
       }),
     ).toThrow(RangeError);
@@ -205,18 +175,19 @@ function expectDecodeError(
   source: ArrayBuffer | ArrayBufferView,
   reason: SettlementStreamDecodeError["reason"],
 ) {
-  expect(() => decodeMovementBatch(source)).toThrow(SettlementStreamDecodeError);
+  let thrown: unknown;
 
   try {
     decodeMovementBatch(source);
   } catch (error) {
-    if (!(error instanceof SettlementStreamDecodeError)) {
-      throw error;
-    }
-
-    expect(error.reason).toBe(reason);
-    return;
+    thrown = error;
   }
 
-  throw new Error("Expected decodeMovementBatch to throw");
+  expect(thrown).toBeInstanceOf(SettlementStreamDecodeError);
+
+  if (!(thrown instanceof SettlementStreamDecodeError)) {
+    throw new Error("Expected SettlementStreamDecodeError");
+  }
+
+  expect(thrown.reason).toBe(reason);
 }
