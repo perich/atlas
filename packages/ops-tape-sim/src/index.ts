@@ -27,6 +27,12 @@ export const DEFAULT_CUSTOMER_COUNT = 96;
 export const DEFAULT_LIQUIDITY_RESERVE_MINOR = 2_500_000_000_00n;
 export const DEFAULT_ROLLING_WINDOW_TICKS = 60;
 
+const MOVEMENT_FLAG_FAILED = 1;
+const MOVEMENT_FLAG_HELD = 2;
+const MOVEMENT_FLAG_STABLECOIN = 4;
+const MOVEMENT_FLAG_LARGE_AMOUNT = 8;
+const MOVEMENT_FLAG_HIGH_RISK = 16;
+
 export type { CustomerIndustry };
 
 export type SyntheticAccount = {
@@ -453,26 +459,27 @@ function movementFlags(
   riskTier: RiskTier,
   amountMinor: bigint,
 ): number {
+  // Flags pack hot-path booleans into one integer for the binary stream record.
   let flags = 0;
 
   if (status === "failed") {
-    flags |= 1;
+    flags |= MOVEMENT_FLAG_FAILED;
   }
 
   if (status === "held") {
-    flags |= 2;
+    flags |= MOVEMENT_FLAG_HELD;
   }
 
   if (rail === "stablecoin") {
-    flags |= 4;
+    flags |= MOVEMENT_FLAG_STABLECOIN;
   }
 
   if (amountMinor >= 1_000_000_00n) {
-    flags |= 8;
+    flags |= MOVEMENT_FLAG_LARGE_AMOUNT;
   }
 
   if (riskTier === 3) {
-    flags |= 16;
+    flags |= MOVEMENT_FLAG_HIGH_RISK;
   }
 
   return flags;
