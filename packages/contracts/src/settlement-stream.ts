@@ -6,7 +6,6 @@ import {
   MOVEMENT_SIDES,
   MOVEMENT_STATUSES,
   RAILS,
-  type RiskTier,
 } from "./domain.js";
 
 // Fixed-width binary frames keep the hot /ops stream cheap to parse in a worker.
@@ -55,14 +54,6 @@ const MAX_U32_BIGINT = BigInt(MAX_U32);
 const MIN_I64 = -(1n << 63n);
 const MAX_I64 = (1n << 63n) - 1n;
 
-// Enum order is part of the wire format. Append values or bump the version.
-const movementKindCode = makeCodeMap(MOVEMENT_KINDS);
-const movementSideCode = makeCodeMap(MOVEMENT_SIDES);
-const bucketCode = makeCodeMap(BALANCE_SHEET_BUCKETS);
-const railCode = makeCodeMap(RAILS);
-const assetCode = makeCodeMap(ASSETS);
-const movementStatusCode = makeCodeMap(MOVEMENT_STATUSES);
-
 export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   assertMovementBatchFrame(frame);
 
@@ -99,15 +90,15 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
     offset += 4;
     view.setUint16(offset, dtMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    view.setUint8(offset, codeOf(movementKindCode, movement.kind));
+    view.setUint8(offset, MOVEMENT_KINDS.indexOf(movement.kind));
     offset += 1;
-    view.setUint8(offset, codeOf(movementSideCode, movement.side));
+    view.setUint8(offset, MOVEMENT_SIDES.indexOf(movement.side));
     offset += 1;
-    view.setUint8(offset, codeOf(bucketCode, movement.bucket));
+    view.setUint8(offset, BALANCE_SHEET_BUCKETS.indexOf(movement.bucket));
     offset += 1;
-    view.setUint8(offset, codeOf(railCode, movement.rail));
+    view.setUint8(offset, RAILS.indexOf(movement.rail));
     offset += 1;
-    view.setUint8(offset, codeOf(assetCode, movement.asset));
+    view.setUint8(offset, ASSETS.indexOf(movement.asset));
     offset += 1;
     view.setUint32(offset, movement.customerId, STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -117,7 +108,7 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
     offset += 8;
     view.setUint16(offset, movement.latencyMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    view.setUint8(offset, codeOf(movementStatusCode, movement.status));
+    view.setUint8(offset, MOVEMENT_STATUSES.indexOf(movement.status));
     offset += 1;
     view.setUint8(offset, movement.riskTier);
     offset += 1;
@@ -129,7 +120,10 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
 }
 
 export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): MovementBatchFrame {
-  const view = toDataView(source);
+  const view =
+    source instanceof ArrayBuffer
+      ? new DataView(source)
+      : new DataView(source.buffer, source.byteOffset, source.byteLength);
 
   if (view.byteLength < STREAM_FRAME_HEADER_BYTES) {
     throw new SettlementStreamDecodeError(
@@ -186,15 +180,38 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
     offset += 4;
     const dtMs = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    const kind = readCode(MOVEMENT_KINDS, view.getUint8(offset), "kind");
+    const kindCode = view.getUint8(offset);
+    const kind = MOVEMENT_KINDS[kindCode];
+    if (kind === undefined) {
+      throw new SettlementStreamDecodeError(`Invalid kind code ${kindCode}`, "invalid_enum_code");
+    }
     offset += 1;
-    const side = readCode(MOVEMENT_SIDES, view.getUint8(offset), "side");
+    const sideCode = view.getUint8(offset);
+    const side = MOVEMENT_SIDES[sideCode];
+    if (side === undefined) {
+      throw new SettlementStreamDecodeError(`Invalid side code ${sideCode}`, "invalid_enum_code");
+    }
     offset += 1;
-    const bucket = readCode(BALANCE_SHEET_BUCKETS, view.getUint8(offset), "bucket");
+    const bucketCode = view.getUint8(offset);
+    const bucket = BALANCE_SHEET_BUCKETS[bucketCode];
+    if (bucket === undefined) {
+      throw new SettlementStreamDecodeError(
+        `Invalid bucket code ${bucketCode}`,
+        "invalid_enum_code",
+      );
+    }
     offset += 1;
-    const rail = readCode(RAILS, view.getUint8(offset), "rail");
+    const railCode = view.getUint8(offset);
+    const rail = RAILS[railCode];
+    if (rail === undefined) {
+      throw new SettlementStreamDecodeError(`Invalid rail code ${railCode}`, "invalid_enum_code");
+    }
     offset += 1;
-    const asset = readCode(ASSETS, view.getUint8(offset), "asset");
+    const assetCode = view.getUint8(offset);
+    const asset = ASSETS[assetCode];
+    if (asset === undefined) {
+      throw new SettlementStreamDecodeError(`Invalid asset code ${assetCode}`, "invalid_enum_code");
+    }
     offset += 1;
     const customerId = view.getUint32(offset, STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -204,12 +221,19 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
     offset += 8;
     const latencyMs = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    const status = readCode(MOVEMENT_STATUSES, view.getUint8(offset), "status");
+    const statusCode = view.getUint8(offset);
+    const status = MOVEMENT_STATUSES[statusCode];
+    if (status === undefined) {
+      throw new SettlementStreamDecodeError(
+        `Invalid status code ${statusCode}`,
+        "invalid_enum_code",
+      );
+    }
     offset += 1;
     const riskTier = view.getUint8(offset);
     offset += 1;
 
-    if (!isRiskTier(riskTier)) {
+    if (riskTier !== 0 && riskTier !== 1 && riskTier !== 2 && riskTier !== 3) {
       throw new SettlementStreamDecodeError(
         `Invalid riskTier code ${riskTier}`,
         "invalid_enum_code",
@@ -243,43 +267,6 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
     serverTsMs,
     movements,
   };
-}
-
-function makeCodeMap<const T extends readonly string[]>(values: T): ReadonlyMap<T[number], number> {
-  return new Map(values.map((value, index) => [value, index]));
-}
-
-function codeOf<T extends string>(codes: ReadonlyMap<T, number>, value: T): number {
-  const code = codes.get(value);
-
-  if (code === undefined) {
-    throw new RangeError(`Missing stream code for ${value}`);
-  }
-
-  return code;
-}
-
-function readCode<const T extends readonly string[]>(
-  values: T,
-  code: number,
-  label: string,
-): T[number] {
-  const value = values[code];
-
-  if (value === undefined) {
-    throw new SettlementStreamDecodeError(`Invalid ${label} code ${code}`, "invalid_enum_code");
-  }
-
-  return value;
-}
-
-function toDataView(source: ArrayBuffer | ArrayBufferView): DataView {
-  if (source instanceof ArrayBuffer) {
-    return new DataView(source);
-  }
-
-  // WebSocket/worker code may pass sliced typed arrays, so preserve view bounds.
-  return new DataView(source.buffer, source.byteOffset, source.byteLength);
 }
 
 function assertMovementBatchFrame(frame: MovementBatchFrame) {
@@ -318,8 +305,4 @@ function assertInt64(label: string, value: bigint) {
   if (value < MIN_I64 || value > MAX_I64) {
     throw new RangeError(`${label} must fit in a signed 64-bit integer`);
   }
-}
-
-function isRiskTier(value: number): value is RiskTier {
-  return value === 0 || value === 1 || value === 2 || value === 3;
 }
