@@ -15,32 +15,25 @@ The implementation target is tracked in [SPEC.md](./SPEC.md). Domain language is
 ## Product Shape
 
 - `/ops` — real-time bank operations dashboard centered on a worker-rendered Balance Sheet Tape,
-  with rail health, liquidity, and cutoff simulation context.
-- `/audit` — high-scale bank-core audit log with virtualized rows, saved views,
-  URL-persisted filters, and alert drilldowns.
-- `/analyst` — constrained CodeMode analyst that turns operational questions into validated,
-  typed UI specs instead of arbitrary generated React.
+  with rail health, liquidity, system health, and stream performance context.
+- `/audit` — high-scale bank-core audit log with virtualized rows, sparse facets, URL-persisted
+  filters, and advanced column controls.
+- `/analyst` — placeholder for a future constrained CodeMode analyst surface.
 
-The first end-to-end workflow should be:
-
-1. `/ops` raises a stablecoin reconciliation alert.
-2. The alert deep-links to `/audit?view=stablecoin-activity&batch=88412`.
-3. `/audit` shows affected audit entries, customers, amounts, state transitions, and related
-   journal finality when available.
-4. `/analyst` explains the incident and generates a mini-dashboard from typed read-only tools.
+The routes are independent product surfaces over shared bank-operations vocabulary. `/ops` and
+`/audit` do not require row-level data consistency or cross-route drilldowns in the first cut.
 
 ## Route 1: Ops Dashboard
 
-The dashboard should be backed by a real local stream server, not by timers buried in React
+The dashboard should be backed by a real local Node server, not by timers buried in React
 components.
 
 ```txt
-stream-server
+apps/server
   -> WebSocket binary event batches
-  -> browser ingress worker
-  -> bounded ring buffer and aggregate snapshots
-  -> OffscreenCanvas renderer for dense Balance Sheet Tape
-  -> React shell for controls, metrics, sparklines, alerts, and drilldowns
+  -> ops-tape.worker.ts
+  -> bounded ring buffer, aggregate snapshots, and OffscreenCanvas Balance Sheet Tape
+  -> React shell for controls, metrics, sparklines, and status panels
 ```
 
 React should receive coalesced snapshots for product UI state at roughly 4-10 Hz. The firehose path
@@ -52,9 +45,9 @@ React render loop.
 - Server-owned deterministic Balance Sheet Movement stream.
 - Binary event batches over WebSocket for the hot path.
 - JSON aggregate snapshots at roughly 4 Hz for the React dashboard panels.
-- JSON control messages for scenario, stream rate, pause/resume, reconnect, and backpressure.
-- Client-side worker owns the socket, decode path, recent-event ring buffer, and perf telemetry.
-- OffscreenCanvas renderer owns the high-rate tape visualization.
+- JSON control messages for stream rate and client performance telemetry.
+- `ops-tape.worker.ts` owns the socket, decode path, recent-event ring buffer, aggregate snapshots,
+  perf telemetry, and high-rate OffscreenCanvas tape visualization.
 - Performance HUD shows event rate, client sequence lag, FPS, decode latency, rendered rows/sec,
   worker backlog, and React snapshot cadence.
 
@@ -87,15 +80,12 @@ inspired by public themes around bank operability.
 
 Planned additions as the product surfaces require them:
 
-- WebSocket stream server
+- Node server with WebSocket stream and audit API
 - worker-backed protocol decoder
 - OffscreenCanvas renderer
 - TanStack Table
 - dnd-kit
 - Zod
-- Comlink
-- DuckDB-WASM or an equivalent worker-side analytics path
-- IndexedDB and BroadcastChannel for operator workspace sync
 
 ## Scripts
 

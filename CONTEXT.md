@@ -67,10 +67,6 @@ A precise timestamp after which outgoing execution is gated and inbound activity
 marked for review.
 _Avoid_: Freeze, shutdown
 
-**Saved View**:
-A reusable audit investigation state containing filters, columns, sorting, and drilldown context.
-_Avoid_: Report
-
 **Facet**:
 A count breakdown for one audit filter dimension under the current query context.
 _Avoid_: Row, result
@@ -93,7 +89,6 @@ _Avoid_: Transaction, ledger row
 - A **Bank Core Event** may produce one or more **Journals**.
 - A **Journal** must satisfy double-entry ledger **Invariants**.
 - **Reconciliation** matches rail finality to internal **Journal** finality.
-- An **Incident** should deep-link to one or more **Saved Views**.
 - A **Cutoff** changes how subsequent **Bank Core Events** are classified and executed.
 - An **Audit Entry** may reference a **Bank Core Event**, **Journal**, **Customer**, **Account**, or
   **Payment Rail**.
@@ -118,5 +113,7 @@ _Avoid_: Transaction, ledger row
   journal table.
 - The `/ops` **Balance Sheet Tape** is inspired by trading UI tapes, but it is not a trade history:
   its rows are debit and credit movements, not asset trades.
+- `/ops` **Balance Sheet Movements** and `/audit` **Audit Entries** are separate synthetic datasets;
+  they share vocabulary but do not require row-level correspondence.
 - **Balance Sheet Perspective** means a credit increases the referenced balance sheet bucket and a
   debit decreases it; it does not describe whether the Customer feels richer or poorer.
