@@ -3,9 +3,9 @@
 A real-time control plane prototype for modern chartered banking operations: payment rails,
 ledger reconciliation, liquidity, and stablecoin settlement.
 
-This repo starts from a lean React SPA scaffold and will grow into a small, high-polish product
-demo. The target is not a consumer banking clone. The target is an internal operator surface that
-makes bank-core complexity legible under live operational pressure.
+This repo is a pnpm workspace scaffold for a small, high-polish product demo. The target is not a
+consumer banking clone. The target is an internal operator surface that makes bank-core complexity
+legible under live operational pressure.
 
 ## Spec
 
@@ -69,8 +69,10 @@ inspired by public themes around bank operability.
 
 ## Current Stack
 
+- pnpm workspaces
 - React + TypeScript
 - Vite
+- Fastify
 - TanStack Router
 - TanStack Virtual
 - Tailwind CSS
@@ -78,9 +80,19 @@ inspired by public themes around bank operability.
 - Vitest + Playwright
 - oxlint + oxfmt
 
-Planned additions as the product surfaces require them:
+Seeded workspace shape:
 
-- Node server with WebSocket stream and audit API
+```txt
+apps/web                  React/Vite app
+apps/server               Fastify server shell
+packages/contracts        shared API and stream contracts
+packages/ops-tape-sim     server-only tape simulator package
+packages/audit-log-model  server-only audit data/query package
+```
+
+Still to implement as the product surfaces require them:
+
+- real WebSocket stream and audit API behavior
 - worker-backed protocol decoder
 - OffscreenCanvas renderer
 - TanStack Table
