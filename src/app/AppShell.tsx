@@ -1,7 +1,6 @@
 import React from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Home, Info, Landmark } from "lucide-react";
-import { Toaster } from "sonner";
 
 import { NavLink } from "../design/components";
 
@@ -43,8 +42,6 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-
-      <Toaster theme="dark" />
     </div>
   );
 }
