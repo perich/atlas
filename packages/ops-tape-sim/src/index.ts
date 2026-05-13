@@ -15,7 +15,6 @@ import {
 export const OPS_TAPE_TICK_HZ = 60;
 export const DEFAULT_OPS_TAPE_SEED = 0xb40f_2026;
 export const DEFAULT_CUSTOMER_COUNT = 96;
-export const DEFAULT_ACCOUNTS_PER_CUSTOMER = ASSETS.length;
 export const DEFAULT_LIQUIDITY_RESERVE_MINOR = 2_500_000_000_00n;
 export const DEFAULT_ROLLING_WINDOW_TICKS = 60;
 
@@ -30,7 +29,6 @@ export type CustomerIndustry =
 
 export type SyntheticAccount = {
   id: number;
-  customerId: number;
   label: string;
   asset: Asset;
 };
@@ -54,8 +52,6 @@ export type OpsTapeBatch = {
   fromSeq: bigint;
   toSeq: bigint;
   serverTsMs: number;
-  targetRate: StreamRate;
-  tickIndex: number;
   movements: SimulatedBalanceSheetMovement[];
 };
 
@@ -96,24 +92,6 @@ export type OpsTapeAggregateSnapshot = {
   bucketTotals: Record<BalanceSheetBucket, bigint>;
   railHealth: RailHealthSnapshot[];
   chart: OpsTapeChartPoint[];
-};
-
-export type OpsTapeSimConfig = {
-  seed: number;
-  customerCount: number;
-  accountsPerCustomer: number;
-  tickHz: number;
-  rollingWindowTicks: number;
-  initialLiquidityReserveMinor: bigint;
-};
-
-export const DEFAULT_OPS_TAPE_SIM_CONFIG: OpsTapeSimConfig = {
-  seed: DEFAULT_OPS_TAPE_SEED,
-  customerCount: DEFAULT_CUSTOMER_COUNT,
-  accountsPerCustomer: DEFAULT_ACCOUNTS_PER_CUSTOMER,
-  tickHz: OPS_TAPE_TICK_HZ,
-  rollingWindowTicks: DEFAULT_ROLLING_WINDOW_TICKS,
-  initialLiquidityReserveMinor: DEFAULT_LIQUIDITY_RESERVE_MINOR,
 };
 
 type RandomState = {
@@ -181,6 +159,7 @@ const CUSTOMER_NAMES = [
 ] as const;
 
 const ACCOUNT_LABELS = ["operating", "payroll", "stablecoin", "reserve", "settlement"] as const;
+const RISK_TIERS = [0, 1, 2, 3] as const;
 
 const MOVEMENT_PROFILES: readonly MovementProfile[] = [
   {
@@ -369,25 +348,20 @@ const TOTAL_PROFILE_WEIGHT = MOVEMENT_PROFILES.reduce(
 export class OpsTapeSimulator {
   readonly customers: SyntheticCustomer[];
 
-  private readonly random: RandomState;
-  private readonly config: OpsTapeSimConfig;
+  private readonly random: RandomState = { value: DEFAULT_OPS_TAPE_SEED };
   private readonly railCounters = createRailCounters();
   private readonly bucketTotals = createBucketTotals();
   private readonly recentTicks: RecentTick[] = [];
 
   private nextSeq = 1n;
   private eventRemainder = 0;
-  private tickIndex = 0;
   private cumulativeCreditsMinor = 0n;
   private cumulativeDebitsMinor = 0n;
-  private liquidityReserveMinor: bigint;
+  private liquidityReserveMinor = DEFAULT_LIQUIDITY_RESERVE_MINOR;
   private exceptionQueueDepth = 0;
 
-  constructor(config: OpsTapeSimConfig) {
-    this.config = config;
-    this.random = { value: config.seed >>> 0 };
-    this.customers = createCustomers(config);
-    this.liquidityReserveMinor = config.initialLiquidityReserveMinor;
+  constructor() {
+    this.customers = createCustomers();
   }
 
   nextBatch(targetRate: StreamRate, serverTsMs: number): OpsTapeBatch {
@@ -396,11 +370,11 @@ export class OpsTapeSimulator {
 
     this.eventRemainder += targetRate;
 
-    const eventCount = Math.floor(this.eventRemainder / this.config.tickHz);
-    this.eventRemainder %= this.config.tickHz;
+    const eventCount = Math.floor(this.eventRemainder / OPS_TAPE_TICK_HZ);
+    this.eventRemainder %= OPS_TAPE_TICK_HZ;
 
     for (let index = 0; index < eventCount; index += 1) {
-      movements.push(this.createMovement(serverTsMs, index, eventCount));
+      movements.push(this.createMovement(serverTsMs));
     }
 
     const toSeq = movements.length === 0 ? fromSeq : this.nextSeq - 1n;
@@ -411,18 +385,12 @@ export class OpsTapeSimulator {
 
     this.recordTick(serverTsMs, movements);
 
-    const batch = {
+    return {
       fromSeq,
       toSeq,
       serverTsMs,
-      targetRate,
-      tickIndex: this.tickIndex,
       movements,
     };
-
-    this.tickIndex += 1;
-
-    return batch;
   }
 
   getAggregateSnapshot(): OpsTapeAggregateSnapshot {
@@ -439,19 +407,11 @@ export class OpsTapeSimulator {
     };
   }
 
-  private createMovement(
-    serverTsMs: number,
-    movementIndex: number,
-    eventCount: number,
-  ): SimulatedBalanceSheetMovement {
+  private createMovement(serverTsMs: number): SimulatedBalanceSheetMovement {
     const profile = this.pickProfile();
     const customer = this.customers[randomInt(this.random, 0, this.customers.length - 1)];
     const asset = profile.assets[randomInt(this.random, 0, profile.assets.length - 1)];
-    const account = customer.accounts.find((candidate) => candidate.asset === asset);
-
-    if (account === undefined) {
-      throw new Error(`Missing ${asset} account for customer ${customer.id}`);
-    }
+    const account = customer.accounts[ASSETS.indexOf(asset)];
 
     const unsignedAmount = BigInt(
       randomInt(this.random, profile.minAmountMinor, profile.maxAmountMinor),
@@ -459,14 +419,12 @@ export class OpsTapeSimulator {
     const amountMinor = profile.side === "credit" ? unsignedAmount : -unsignedAmount;
     const status = this.pickStatus(profile);
     const seq = this.nextSeq;
-    const serverTs =
-      serverTsMs + Math.floor((movementIndex * 1_000) / this.config.tickHz / eventCount);
 
     this.nextSeq += 1n;
 
     return {
       seq,
-      serverTs,
+      serverTs: serverTsMs,
       kind: profile.kind,
       side: profile.side,
       bucket: profile.bucket,
@@ -611,7 +569,7 @@ export class OpsTapeSimulator {
       railCounts,
     });
 
-    if (this.recentTicks.length > this.config.rollingWindowTicks) {
+    if (this.recentTicks.length > DEFAULT_ROLLING_WINDOW_TICKS) {
       this.recentTicks.shift();
     }
 
@@ -625,7 +583,7 @@ export class OpsTapeSimulator {
       return 0;
     }
 
-    return Math.round((eventCount * this.config.tickHz) / this.recentTicks.length);
+    return Math.round((eventCount * OPS_TAPE_TICK_HZ) / this.recentTicks.length);
   }
 
   private getRailHealth(rail: Rail): RailHealthSnapshot {
@@ -651,7 +609,7 @@ export class OpsTapeSimulator {
       eventsPerSec:
         this.recentTicks.length === 0
           ? 0
-          : Math.round((recentRailEvents * this.config.tickHz) / this.recentTicks.length),
+          : Math.round((recentRailEvents * OPS_TAPE_TICK_HZ) / this.recentTicks.length),
       failureRate,
       pendingCount: counters.pendingCount,
       heldCount: counters.heldCount,
@@ -662,47 +620,27 @@ export class OpsTapeSimulator {
   }
 }
 
-export function createOpsTapeSimulator(config: OpsTapeSimConfig): OpsTapeSimulator {
-  return new OpsTapeSimulator(config);
+export function createOpsTapeSimulator(): OpsTapeSimulator {
+  return new OpsTapeSimulator();
 }
 
-export function createDefaultOpsTapeSimulator(): OpsTapeSimulator {
-  return new OpsTapeSimulator(DEFAULT_OPS_TAPE_SIM_CONFIG);
-}
-
-export function eventsPerTick(targetRate: StreamRate, tickHz = OPS_TAPE_TICK_HZ): number {
-  return targetRate / tickHz;
-}
-
-function createCustomers(config: OpsTapeSimConfig): SyntheticCustomer[] {
-  const random = { value: config.seed ^ 0x9e37_79b9 };
+function createCustomers(): SyntheticCustomer[] {
+  const random = { value: DEFAULT_OPS_TAPE_SEED ^ 0x9e37_79b9 };
   const customers: SyntheticCustomer[] = [];
 
-  for (let index = 0; index < config.customerCount; index += 1) {
+  for (let index = 0; index < DEFAULT_CUSTOMER_COUNT; index += 1) {
     const id = 10_000 + index;
     const name = `${CUSTOMER_NAMES[index % CUSTOMER_NAMES.length]} ${Math.floor(index / CUSTOMER_NAMES.length) + 1}`;
     const industry = INDUSTRIES[index % INDUSTRIES.length];
-    const riskTier = pickRiskTier(random);
+    const riskTier = RISK_TIERS[randomInt(random, 0, RISK_TIERS.length - 1)];
     const accounts: SyntheticAccount[] = [];
 
-    for (let accountIndex = 0; accountIndex < config.accountsPerCustomer; accountIndex += 1) {
-      const asset = ASSETS[(index + accountIndex) % ASSETS.length];
-
+    for (let accountIndex = 0; accountIndex < ASSETS.length; accountIndex += 1) {
       accounts.push({
         id: id * 10 + accountIndex,
-        customerId: id,
-        label: `${ACCOUNT_LABELS[accountIndex % ACCOUNT_LABELS.length]} ${asset}`,
-        asset,
+        label: `${ACCOUNT_LABELS[accountIndex % ACCOUNT_LABELS.length]} ${ASSETS[accountIndex]}`,
+        asset: ASSETS[accountIndex],
       });
-    }
-
-    if (!accounts.some((account) => account.asset === "USD")) {
-      accounts[0] = {
-        id: id * 10,
-        customerId: id,
-        label: "operating USD",
-        asset: "USD",
-      };
     }
 
     customers.push({
@@ -830,14 +768,4 @@ function createRailLatencyBuckets(): Record<Rail, number[]> {
 
 export function isSupportedStreamRate(value: number): value is StreamRate {
   return value === 50 || value === 2_000 || value === 10_000;
-}
-
-function pickRiskTier(random: RandomState): RiskTier {
-  const value = randomInt(random, 0, 3);
-
-  if (value === 0 || value === 1 || value === 2 || value === 3) {
-    return value;
-  }
-
-  throw new Error("Risk tier generation produced an impossible value");
 }
