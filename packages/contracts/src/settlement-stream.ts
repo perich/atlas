@@ -9,6 +9,7 @@ import {
   type RiskTier,
 } from "./domain.js";
 
+// Fixed-width binary frames keep the hot /ops stream cheap to parse in a worker.
 export const SETTLEMENT_STREAM_MAGIC = 0x424f5053;
 export const SETTLEMENT_STREAM_VERSION = 1;
 export const STREAM_FRAME_HEADER_BYTES = 36;
@@ -32,6 +33,7 @@ export type MovementBatchFrame = {
   movements: BalanceSheetMovement[];
 };
 
+// Machine-readable reasons let the worker surface bad frames without guesswork.
 export class SettlementStreamDecodeError extends Error {
   constructor(
     message: string,
@@ -53,6 +55,7 @@ const MAX_U32 = 0xffffffff;
 const MIN_I64 = -(1n << 63n);
 const MAX_I64 = (1n << 63n) - 1n;
 
+// Enum order is part of the wire format. Append values or bump the version.
 const movementKindCode = makeCodeMap(MOVEMENT_KINDS);
 const movementSideCode = makeCodeMap(MOVEMENT_SIDES);
 const bucketCode = makeCodeMap(BALANCE_SHEET_BUCKETS);
@@ -68,6 +71,7 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes);
   const view = new DataView(buffer);
 
+  // Header fields apply to the whole batch; records store small deltas from them.
   view.setUint32(0, SETTLEMENT_STREAM_MAGIC, STREAM_LITTLE_ENDIAN);
   view.setUint16(4, SETTLEMENT_STREAM_VERSION, STREAM_LITTLE_ENDIAN);
   view.setUint16(6, frame.channel, STREAM_LITTLE_ENDIAN);
@@ -79,6 +83,7 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   let offset = STREAM_FRAME_HEADER_BYTES;
 
   for (const movement of frame.movements) {
+    // Deltas keep each movement record compact while preserving exact seq/time.
     const seqDelta = movement.seq - frame.fromSeq;
     const dtMs = movement.serverTs - frame.serverTsMs;
 
@@ -265,6 +270,7 @@ function toDataView(source: ArrayBuffer | ArrayBufferView): DataView {
     return new DataView(source);
   }
 
+  // WebSocket/worker code may pass sliced typed arrays, so preserve view bounds.
   return new DataView(source.buffer, source.byteOffset, source.byteLength);
 }
 
