@@ -73,8 +73,8 @@ export type AuditQuery = {
   limit: number;
 };
 
-export type AuditPage<TEntry = AuditEntry> = {
-  rows: TEntry[];
+export type AuditPage = {
+  rows: AuditEntry[];
   nextCursor?: string;
   prevCursor?: string;
   totalMatched: number;
