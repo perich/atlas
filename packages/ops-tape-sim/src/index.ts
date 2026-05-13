@@ -4,13 +4,22 @@ import {
   type Asset,
   type BalanceSheetBucket,
   type BalanceSheetMovement,
-  type MovementKind,
-  type MovementSide,
   type MovementStatus,
   type Rail,
   type RiskTier,
   type StreamRate,
 } from "@bankops/contracts";
+
+import {
+  ACCOUNT_LABELS,
+  CUSTOMER_NAMES,
+  INDUSTRIES,
+  MOVEMENT_PROFILES,
+  RISK_TIERS,
+  TOTAL_PROFILE_WEIGHT,
+  type CustomerIndustry,
+  type MovementProfile,
+} from "./constants.js";
 
 export const OPS_TAPE_TICK_HZ = 60;
 export const DEFAULT_OPS_TAPE_SEED = 0xb40f_2026;
@@ -18,14 +27,7 @@ export const DEFAULT_CUSTOMER_COUNT = 96;
 export const DEFAULT_LIQUIDITY_RESERVE_MINOR = 2_500_000_000_00n;
 export const DEFAULT_ROLLING_WINDOW_TICKS = 60;
 
-export type CustomerIndustry =
-  | "ai"
-  | "defense"
-  | "robotics"
-  | "hardware"
-  | "crypto"
-  | "fintech"
-  | "venture";
+export type { CustomerIndustry };
 
 export type SyntheticAccount = {
   id: number;
@@ -98,23 +100,6 @@ type RandomState = {
   value: number;
 };
 
-type MovementProfile = {
-  weight: number;
-  kind: MovementKind;
-  side: MovementSide;
-  bucket: BalanceSheetBucket;
-  rail: Rail;
-  assets: readonly Asset[];
-  minAmountMinor: number;
-  maxAmountMinor: number;
-  minLatencyMs: number;
-  maxLatencyMs: number;
-  normalStatus: MovementStatus;
-  pendingBps: number;
-  failedBps: number;
-  heldBps: number;
-};
-
 type RailCounters = {
   eventCount: number;
   failedCount: number;
@@ -128,222 +113,6 @@ type RailCounters = {
 type RecentTick = OpsTapeChartPoint & {
   railCounts: Record<Rail, number>;
 };
-
-const INDUSTRIES: readonly CustomerIndustry[] = [
-  "ai",
-  "defense",
-  "robotics",
-  "hardware",
-  "crypto",
-  "fintech",
-  "venture",
-];
-
-const CUSTOMER_NAMES = [
-  "Northstar AI",
-  "Vector Defense",
-  "Orbital Systems",
-  "Acme Robotics",
-  "Helios Hardware",
-  "Keystone Crypto",
-  "Riverbank Fintech",
-  "Foundry Ventures",
-  "Apex Autonomy",
-  "Sentry Dynamics",
-  "Atlas Compute",
-  "Forge Labs",
-  "Cobalt Robotics",
-  "Nova Devices",
-  "Meridian Capital",
-  "Frontier Payments",
-] as const;
-
-const ACCOUNT_LABELS = ["operating", "payroll", "stablecoin", "reserve", "settlement"] as const;
-const RISK_TIERS = [0, 1, 2, 3] as const;
-
-const MOVEMENT_PROFILES: readonly MovementProfile[] = [
-  {
-    weight: 24,
-    kind: "deposit_credit",
-    side: "credit",
-    bucket: "customer_deposits",
-    rail: "ach",
-    assets: ["USD"],
-    minAmountMinor: 2_500_00,
-    maxAmountMinor: 8_000_000_00,
-    minLatencyMs: 140,
-    maxLatencyMs: 1_400,
-    normalStatus: "posted",
-    pendingBps: 240,
-    failedBps: 15,
-    heldBps: 20,
-  },
-  {
-    weight: 16,
-    kind: "wire_debit",
-    side: "debit",
-    bucket: "settlement_cash",
-    rail: "wire",
-    assets: ["USD"],
-    minAmountMinor: 25_000_00,
-    maxAmountMinor: 22_000_000_00,
-    minLatencyMs: 380,
-    maxLatencyMs: 3_200,
-    normalStatus: "posted",
-    pendingBps: 420,
-    failedBps: 35,
-    heldBps: 25,
-  },
-  {
-    weight: 14,
-    kind: "ach_debit",
-    side: "debit",
-    bucket: "rail_clearing",
-    rail: "ach",
-    assets: ["USD"],
-    minAmountMinor: 900_00,
-    maxAmountMinor: 2_500_000_00,
-    minLatencyMs: 500,
-    maxLatencyMs: 6_500,
-    normalStatus: "accepted",
-    pendingBps: 900,
-    failedBps: 80,
-    heldBps: 40,
-  },
-  {
-    weight: 12,
-    kind: "instant_payment_credit",
-    side: "credit",
-    bucket: "customer_deposits",
-    rail: "instant",
-    assets: ["USD"],
-    minAmountMinor: 250_00,
-    maxAmountMinor: 750_000_00,
-    minLatencyMs: 8,
-    maxLatencyMs: 180,
-    normalStatus: "settled",
-    pendingBps: 70,
-    failedBps: 20,
-    heldBps: 10,
-  },
-  {
-    weight: 12,
-    kind: "stablecoin_credit",
-    side: "credit",
-    bucket: "stablecoin_treasury",
-    rail: "stablecoin",
-    assets: ["USDC", "USDT", "PYUSD", "EURC"],
-    minAmountMinor: 5_000_00,
-    maxAmountMinor: 14_000_000_00,
-    minLatencyMs: 120,
-    maxLatencyMs: 1_900,
-    normalStatus: "settled",
-    pendingBps: 280,
-    failedBps: 25,
-    heldBps: 55,
-  },
-  {
-    weight: 10,
-    kind: "stablecoin_debit",
-    side: "debit",
-    bucket: "stablecoin_treasury",
-    rail: "stablecoin",
-    assets: ["USDC", "USDT", "PYUSD", "EURC"],
-    minAmountMinor: 5_000_00,
-    maxAmountMinor: 12_000_000_00,
-    minLatencyMs: 140,
-    maxLatencyMs: 2_400,
-    normalStatus: "settled",
-    pendingBps: 340,
-    failedBps: 35,
-    heldBps: 70,
-  },
-  {
-    weight: 5,
-    kind: "fee_credit",
-    side: "credit",
-    bucket: "fee_income",
-    rail: "card",
-    assets: ["USD"],
-    minAmountMinor: 25_00,
-    maxAmountMinor: 25_000_00,
-    minLatencyMs: 30,
-    maxLatencyMs: 420,
-    normalStatus: "posted",
-    pendingBps: 60,
-    failedBps: 5,
-    heldBps: 0,
-  },
-  {
-    weight: 2,
-    kind: "reversal_credit",
-    side: "credit",
-    bucket: "customer_deposits",
-    rail: "internal_ledger",
-    assets: ["USD"],
-    minAmountMinor: 500_00,
-    maxAmountMinor: 600_000_00,
-    minLatencyMs: 8,
-    maxLatencyMs: 80,
-    normalStatus: "posted",
-    pendingBps: 20,
-    failedBps: 0,
-    heldBps: 0,
-  },
-  {
-    weight: 3,
-    kind: "reserve_transfer",
-    side: "credit",
-    bucket: "reserve_cash",
-    rail: "internal_ledger",
-    assets: ["USD"],
-    minAmountMinor: 100_000_00,
-    maxAmountMinor: 18_000_000_00,
-    minLatencyMs: 4,
-    maxLatencyMs: 40,
-    normalStatus: "posted",
-    pendingBps: 15,
-    failedBps: 0,
-    heldBps: 0,
-  },
-  {
-    weight: 3,
-    kind: "reserve_transfer",
-    side: "debit",
-    bucket: "reserve_cash",
-    rail: "internal_ledger",
-    assets: ["USD"],
-    minAmountMinor: 100_000_00,
-    maxAmountMinor: 18_000_000_00,
-    minLatencyMs: 4,
-    maxLatencyMs: 40,
-    normalStatus: "posted",
-    pendingBps: 15,
-    failedBps: 0,
-    heldBps: 0,
-  },
-  {
-    weight: 1,
-    kind: "exception_hold",
-    side: "debit",
-    bucket: "exception_queue",
-    rail: "instant",
-    assets: ["USD"],
-    minAmountMinor: 10_000_00,
-    maxAmountMinor: 900_000_00,
-    minLatencyMs: 30,
-    maxLatencyMs: 650,
-    normalStatus: "held",
-    pendingBps: 0,
-    failedBps: 0,
-    heldBps: 10_000,
-  },
-];
-
-const TOTAL_PROFILE_WEIGHT = MOVEMENT_PROFILES.reduce(
-  (total, profile) => total + profile.weight,
-  0,
-);
 
 export class OpsTapeSimulator {
   readonly customers: SyntheticCustomer[];
@@ -523,8 +292,22 @@ export class OpsTapeSimulator {
   }
 
   private recordTick(serverTsMs: number, movements: SimulatedBalanceSheetMovement[]) {
-    const railCounts = createRailCounts();
-    const railLatencies = createRailLatencyBuckets();
+    const railCounts: Record<Rail, number> = {
+      ach: 0,
+      wire: 0,
+      instant: 0,
+      card: 0,
+      internal_ledger: 0,
+      stablecoin: 0,
+    };
+    const railLatencies: Record<Rail, number[]> = {
+      ach: [],
+      wire: [],
+      instant: [],
+      card: [],
+      internal_ledger: [],
+      stablecoin: [],
+    };
     const latencies: number[] = [];
     let failures = 0;
     let creditMinor = 0n;
@@ -723,49 +506,59 @@ function createBucketTotals(): Record<BalanceSheetBucket, bigint> {
 
 function createRailCounters(): Record<Rail, RailCounters> {
   return {
-    ach: createRailCounter(),
-    wire: createRailCounter(),
-    instant: createRailCounter(),
-    card: createRailCounter(),
-    internal_ledger: createRailCounter(),
-    stablecoin: createRailCounter(),
+    ach: {
+      eventCount: 0,
+      failedCount: 0,
+      pendingCount: 0,
+      heldCount: 0,
+      totalLatencyMs: 0,
+      p95LatencyMs: 0,
+      lastEventTs: 0,
+    },
+    wire: {
+      eventCount: 0,
+      failedCount: 0,
+      pendingCount: 0,
+      heldCount: 0,
+      totalLatencyMs: 0,
+      p95LatencyMs: 0,
+      lastEventTs: 0,
+    },
+    instant: {
+      eventCount: 0,
+      failedCount: 0,
+      pendingCount: 0,
+      heldCount: 0,
+      totalLatencyMs: 0,
+      p95LatencyMs: 0,
+      lastEventTs: 0,
+    },
+    card: {
+      eventCount: 0,
+      failedCount: 0,
+      pendingCount: 0,
+      heldCount: 0,
+      totalLatencyMs: 0,
+      p95LatencyMs: 0,
+      lastEventTs: 0,
+    },
+    internal_ledger: {
+      eventCount: 0,
+      failedCount: 0,
+      pendingCount: 0,
+      heldCount: 0,
+      totalLatencyMs: 0,
+      p95LatencyMs: 0,
+      lastEventTs: 0,
+    },
+    stablecoin: {
+      eventCount: 0,
+      failedCount: 0,
+      pendingCount: 0,
+      heldCount: 0,
+      totalLatencyMs: 0,
+      p95LatencyMs: 0,
+      lastEventTs: 0,
+    },
   };
-}
-
-function createRailCounter(): RailCounters {
-  return {
-    eventCount: 0,
-    failedCount: 0,
-    pendingCount: 0,
-    heldCount: 0,
-    totalLatencyMs: 0,
-    p95LatencyMs: 0,
-    lastEventTs: 0,
-  };
-}
-
-function createRailCounts(): Record<Rail, number> {
-  return {
-    ach: 0,
-    wire: 0,
-    instant: 0,
-    card: 0,
-    internal_ledger: 0,
-    stablecoin: 0,
-  };
-}
-
-function createRailLatencyBuckets(): Record<Rail, number[]> {
-  return {
-    ach: [],
-    wire: [],
-    instant: [],
-    card: [],
-    internal_ledger: [],
-    stablecoin: [],
-  };
-}
-
-export function isSupportedStreamRate(value: number): value is StreamRate {
-  return value === 50 || value === 2_000 || value === 10_000;
 }
