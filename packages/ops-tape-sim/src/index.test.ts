@@ -2,8 +2,8 @@ import { STREAM_RATES } from "@bankops/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
-  createDefaultOpsTapeSimulator,
-  DEFAULT_OPS_TAPE_SIM_CONFIG,
+  createOpsTapeSimulator,
+  DEFAULT_ROLLING_WINDOW_TICKS,
   OPS_TAPE_TICK_HZ,
   type SimulatedBalanceSheetMovement,
 } from "./index.js";
@@ -13,8 +13,8 @@ const TICK_MS = 1_000 / OPS_TAPE_TICK_HZ;
 
 describe("OpsTapeSimulator", () => {
   it("emits stable default-seeded movement sequences", () => {
-    const first = createDefaultOpsTapeSimulator();
-    const second = createDefaultOpsTapeSimulator();
+    const first = createOpsTapeSimulator();
+    const second = createOpsTapeSimulator();
 
     const firstBatches = Array.from({ length: 8 }, (_value, tick) =>
       first.nextBatch(2_000, tickTs(tick)),
@@ -28,7 +28,7 @@ describe("OpsTapeSimulator", () => {
 
   it("hits supported target throughputs over a 60 Hz second", () => {
     for (const streamRate of STREAM_RATES) {
-      const simulator = createDefaultOpsTapeSimulator();
+      const simulator = createOpsTapeSimulator();
       let movementCount = 0;
 
       for (let tick = 0; tick < OPS_TAPE_TICK_HZ; tick += 1) {
@@ -41,7 +41,7 @@ describe("OpsTapeSimulator", () => {
   });
 
   it("generates plausible bank balance sheet movements", () => {
-    const simulator = createDefaultOpsTapeSimulator();
+    const simulator = createOpsTapeSimulator();
     const batch = simulator.nextBatch(10_000, BASE_TS_MS);
     const movement = batch.movements[0];
 
@@ -58,7 +58,7 @@ describe("OpsTapeSimulator", () => {
   });
 
   it("keeps aggregate counters consistent with emitted movements", () => {
-    const simulator = createDefaultOpsTapeSimulator();
+    const simulator = createOpsTapeSimulator();
     const movements: SimulatedBalanceSheetMovement[] = [];
 
     for (let tick = 0; tick < 90; tick += 1) {
@@ -79,7 +79,7 @@ describe("OpsTapeSimulator", () => {
     expect(snapshot.cumulativeDebitsMinor).toBe(debits);
     expect(snapshot.exceptionQueueDepth).toBeGreaterThanOrEqual(0);
     expect(snapshot.liquidityReserveMinor).toBeGreaterThanOrEqual(0n);
-    expect(snapshot.chart).toHaveLength(DEFAULT_OPS_TAPE_SIM_CONFIG.rollingWindowTicks);
+    expect(snapshot.chart).toHaveLength(DEFAULT_ROLLING_WINDOW_TICKS);
     expect(snapshot.railHealth).toHaveLength(6);
     expect(railEvents).toBe(movements.length);
   });
