@@ -158,7 +158,7 @@ describe("OpsRoute", () => {
     });
 
     expect(host?.textContent).toContain("Open");
-    expect(host?.textContent).toContain("SettlementStream");
+    expect(host?.textContent).toContain("Sequence");
     expect(host?.textContent).toContain("seq 84");
     expect(host?.textContent).toContain("2,000/s");
     expect(host?.textContent).toContain("$8.1B");
