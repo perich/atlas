@@ -39,7 +39,7 @@ export type OpsChartPoint = {
   ts: number;
   eventCount: number;
   eventRate: number;
-  latencyP95Ms: number;
+  p95LatencyMs: number;
   failureRate: number;
   exceptionQueueDepth: number;
   liquidityReserveMinor: string;
