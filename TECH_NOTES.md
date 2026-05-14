@@ -17,9 +17,15 @@ Living notes for implementation details worth remembering as the portfolio app g
 - Adjacent scrolling uses cursor requests (`after` / `before`) so normal movement extends the current bounded window.
 - Large scrollbar jumps use offset requests. This matches the current static demo dataset and keeps manual scrollbar seeks responsive without walking every skipped page.
 - The client keeps a bounded cache of audit windows. When it jumps far away, it replaces the old window instead of retaining everything between the old and new positions.
+- Audit pages are intentionally larger than the visible viewport, and the next cursor page is fetched well before the viewport reaches the loaded edge. Normal wheel scrolling should stay inside already-loaded rows; only large scrollbar jumps should expose placeholders.
 - Visible-range loads are debounced by a small window in the route. Dragging the scrollbar emits many virtual ranges, but those are coalesced into one server seek for the final settled range.
 - `useAuditWindow` guards fetch results with a request id so stale responses from an older range cannot overwrite the latest visible window.
-- Audit filters and sorting live in URL query params because they should survive refresh and be shareable. Column layout is a local preference and should live in local storage when implemented.
+- Audit filters and sorting live in URL query params because they should survive refresh and be shareable.
+- `/audit` search params are owned by TanStack Router. Sort/filter updates use router navigation with `replace: true` and `resetScroll: false`, so URL state changes do not reset the document viewport.
+- Audit first-page queries use TanStack Query placeholder data to keep the previous table window visible while a new sort/filter query is fetching. This avoids blank flashes during URL-backed table updates.
+- Audit column width, order, and visibility live in `localStorage` only. These are user preferences, not shareable investigation state.
+- Column resizing uses pointer events and column reordering uses native header drag/drop, avoiding extra table-control dependencies for this demo slice.
+- The render trace panel exposes visible range, mounted rows, server query time, main-thread long-task p95 when the browser supports it, and the current bounded row-window state.
 
 ## API And Data Shape
 
