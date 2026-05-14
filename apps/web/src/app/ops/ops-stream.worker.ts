@@ -69,7 +69,9 @@ const columns = [
 const headerHeight = 30;
 const rowHeight = 20;
 const cellPaddingX = 14;
-const amountColumnIndex = 2;
+const magnitudeGutterWidth = 142;
+const magnitudeBarInsetX = 16;
+const magnitudeBarHeight = 6;
 
 self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
   const command = event.data;
@@ -221,8 +223,17 @@ function draw() {
 
   drawHeader(canvasContext);
 
-  rows.slice(0, visibleRows).forEach((movement, index) => {
-    drawRow(canvasContext!, movement, headerHeight + index * rowHeight, index);
+  const visibleMovements = rows.slice(0, visibleRows);
+  const maxVisibleAmountMinor = maxAmountMinor(visibleMovements);
+
+  visibleMovements.forEach((movement, index) => {
+    drawRow(
+      canvasContext!,
+      movement,
+      headerHeight + index * rowHeight,
+      index,
+      maxVisibleAmountMinor,
+    );
   });
 
   frameCount += 1;
@@ -258,6 +269,7 @@ function drawHeader(context: OffscreenCanvasRenderingContext2D) {
   context.fillStyle = "rgba(255,255,255,0.08)";
   context.fillRect(0, headerHeight - 1, tapeLayout.width, 1);
   context.fillStyle = "#89929c";
+  context.fillText("SIZE", cellPaddingX, 15, magnitudeGutterWidth - magnitudeBarInsetX);
   drawCells(
     context,
     columns.map(([label]) => label.toUpperCase()),
@@ -272,6 +284,7 @@ function drawRow(
   movement: BalanceSheetMovement,
   y: number,
   index: number,
+  maxVisibleAmountMinor: number,
 ) {
   const color = movement.side === "credit" ? "#86efac" : "#fda4af";
   const tint = movement.side === "credit" ? "rgba(34,197,94," : "rgba(244,63,94,";
@@ -285,7 +298,7 @@ function drawRow(
   context.fillStyle = color;
   context.fillRect(0, y + 3, 3, rowHeight - 6);
 
-  drawAmountBar(context, movement, y);
+  drawMagnitudeBar(context, movement, y, maxVisibleAmountMinor);
   drawMovementCells(context, movement, y + 10, color);
 }
 
@@ -295,7 +308,7 @@ function drawCells(
   y: number,
   color = "#d7dee8",
 ) {
-  let x = cellPaddingX;
+  let x = cellPaddingX + magnitudeGutterWidth;
 
   columns.forEach(([, width], index) => {
     context.fillStyle = color;
@@ -318,30 +331,27 @@ function drawMovementCells(
   });
 }
 
-function drawAmountBar(
+function drawMagnitudeBar(
   context: OffscreenCanvasRenderingContext2D,
   movement: BalanceSheetMovement,
   y: number,
+  maxVisibleAmountMinor: number,
 ) {
-  const x = columnX(amountColumnIndex) - 6;
-  const maxWidth = columns[amountColumnIndex][1] - 18;
-  const width = Math.max(8, maxWidth * amountIntensity(movement.amountMinor));
-  const gradient = context.createLinearGradient(x, y, x + maxWidth, y);
+  const x = magnitudeBarInsetX;
+  const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
+  const amountMinor = Math.abs(Number(movement.amountMinor));
+  const intensity =
+    maxVisibleAmountMinor === 0 ? 0 : Math.sqrt(amountMinor / maxVisibleAmountMinor);
+  const width = Math.max(3, maxWidth * Math.min(1, intensity));
+  const barY = y + (rowHeight - magnitudeBarHeight) / 2;
 
-  if (movement.side === "credit") {
-    gradient.addColorStop(0, "rgba(34,197,94,0.22)");
-    gradient.addColorStop(1, "rgba(34,197,94,0)");
-  } else {
-    gradient.addColorStop(0, "rgba(244,63,94,0.24)");
-    gradient.addColorStop(1, "rgba(244,63,94,0)");
-  }
-
-  context.fillStyle = gradient;
-  context.fillRect(x, y + 3, width, rowHeight - 6);
+  context.fillStyle = movement.side === "credit" ? "#22c55e" : "#f43f5e";
+  context.fillRect(x, barY, width, magnitudeBarHeight);
 }
 
 function drawColumnRules(context: OffscreenCanvasRenderingContext2D) {
   context.fillStyle = "rgba(255,255,255,0.035)";
+  context.fillRect(cellPaddingX + magnitudeGutterWidth - 10, 0, 1, tapeLayout.height);
 
   columns.slice(1).forEach((_, index) => {
     context.fillRect(columnX(index + 1) - 10, 0, 1, tapeLayout.height);
@@ -371,16 +381,17 @@ function movementCellColor(movement: BalanceSheetMovement, index: number, sideCo
 function columnX(index: number) {
   return (
     cellPaddingX +
+    magnitudeGutterWidth +
     columns.slice(0, index).reduce((total, [, width]) => {
       return total + width;
     }, 0)
   );
 }
 
-function amountIntensity(value: bigint) {
-  const amount = Number(value < 0n ? -value : value) / 100;
-
-  return Math.min(1, Math.log10(Math.max(10, amount)) / 8);
+function maxAmountMinor(movements: BalanceSheetMovement[]) {
+  return movements.reduce((max, movement) => {
+    return Math.max(max, Math.abs(Number(movement.amountMinor)));
+  }, 0);
 }
 
 function pushRows(movements: BalanceSheetMovement[]) {
