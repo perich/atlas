@@ -45,10 +45,10 @@ export function AuditFilterPanel({
   setQueryState: (state: AuditQueryState) => void;
 }) {
   return (
-    <Panel className="flex flex-wrap items-end gap-4">
+    <Panel className="m-4 mb-0 overflow-hidden p-0">
       {renderTrace}
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-2.5 bg-bankops-panel px-4 py-3">
         <FilterSelect
           label="Time"
           onChange={(value) => {
@@ -113,6 +113,7 @@ export function AuditFilterPanel({
           value={queryState.filters.status?.[0] ?? "all"}
         />
 
+        <div className="flex-1" />
         <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
       </div>
     </Panel>
@@ -135,7 +136,7 @@ function FilterSelect<T extends string>({
   const select = (
     <select
       aria-label={ariaLabel}
-      className="h-9 rounded-md border border-white/10 bg-black/30 px-2 text-xs normal-case tracking-normal text-white"
+      className="h-8 min-w-28 appearance-none rounded-md border border-white/[0.08] bg-[#1a1c1f] px-3 font-mono text-xs normal-case tracking-normal text-bankops-text outline-none transition-colors focus:ring-1 focus:ring-white/20"
       onChange={(event) => onChange(options[event.currentTarget.selectedIndex]?.value ?? value)}
       value={value}
     >
@@ -152,7 +153,7 @@ function FilterSelect<T extends string>({
   }
 
   return (
-    <label className="grid gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-bankops-muted">
+    <label className="grid gap-1 text-[10px] font-semibold uppercase leading-none tracking-widest text-[#5a6272]">
       {label}
       {select}
     </label>

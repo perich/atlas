@@ -77,20 +77,26 @@ export function AuditTablePanel({
   visibleColumns: SizedAuditColumn[];
 }) {
   return (
-    <Panel className="overflow-hidden p-0">
+    <Panel className="m-4 overflow-hidden p-0">
       {hasError ? (
         <div className="border-b border-rose-300/20 bg-rose-950/25 px-4 py-3 text-sm text-rose-100">
           Audit backend unavailable. Filters and layout remain usable while the data request
           recovers.
         </div>
       ) : null}
+      <div className="flex h-9 items-center gap-2.5 border-b border-white/[0.08] bg-bankops-sidebar px-4">
+        <span className="h-3.5 w-0.5 rounded-full bg-bankops-text" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
+          Audit Log
+        </span>
+      </div>
       <div
-        className="h-[620px] overflow-auto bg-black/[0.16]"
+        className="h-[620px] overflow-auto bg-[#0c0d0e]"
         data-testid="audit-table-scroll"
         ref={scrollRef}
       >
         <div
-          className="sticky top-0 z-30 flex min-w-full border-b border-white/[0.075] bg-[#15181a] px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted"
+          className="sticky top-0 z-30 flex min-w-full border-b border-white/[0.08] bg-bankops-sidebar px-4 text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]"
           style={{ height: `${AUDIT_HEADER_HEIGHT}px`, width: `${tableWidth}px` }}
         >
           {visibleColumns.map((column) => {
@@ -179,7 +185,7 @@ function AuditVirtualRow({
     return (
       <div
         aria-label="Loading audit row"
-        className="absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.045] bg-[linear-gradient(90deg,rgba(56,189,248,0.025),rgba(255,255,255,0.012)_36%,rgba(255,255,255,0))] px-4"
+        className="absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.05] bg-[linear-gradient(90deg,rgba(96,165,250,0.035),rgba(255,255,255,0.014)_36%,rgba(255,255,255,0))] px-4"
         data-testid="audit-row-placeholder"
         style={{
           height: `${virtualRow.size}px`,
@@ -198,7 +204,7 @@ function AuditVirtualRow({
 
   return (
     <div
-      className="absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.055] px-4 font-mono text-xs leading-none text-bankops-muted"
+      className={`absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.05] px-4 font-mono text-[11px] leading-none text-bankops-muted transition-colors duration-75 hover:bg-white/[0.03] ${virtualRow.index % 2 === 0 ? "bg-[#0c0d0e]" : "bg-white/[0.015]"}`}
       data-testid="audit-row"
       style={{
         height: `${virtualRow.size}px`,
