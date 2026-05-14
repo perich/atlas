@@ -44,6 +44,10 @@ const columns = [
   ["rail", 118],
   ["status", 92],
 ] as const;
+const headerHeight = 30;
+const rowHeight = 20;
+const cellPaddingX = 14;
+const amountColumnIndex = 2;
 
 self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
   const command = event.data;
@@ -184,13 +188,10 @@ function draw() {
   }
 
   const startedAt = performance.now();
-  const rowHeight = 20;
-  const headerHeight = 28;
   const visibleRows = Math.floor((tapeLayout.height - headerHeight) / rowHeight);
 
   canvasContext.setTransform(tapeLayout.dpr, 0, 0, tapeLayout.dpr, 0, 0);
-  canvasContext.fillStyle = "#070809";
-  canvasContext.fillRect(0, 0, tapeLayout.width, tapeLayout.height);
+  drawBackdrop(canvasContext);
   canvasContext.font = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
   canvasContext.textBaseline = "middle";
 
@@ -210,15 +211,36 @@ function scheduleDraw() {
   renderTimer = self.setTimeout(draw, 8);
 }
 
+function drawBackdrop(context: OffscreenCanvasRenderingContext2D) {
+  const gradient = context.createLinearGradient(0, 0, tapeLayout.width, tapeLayout.height);
+
+  gradient.addColorStop(0, "#070809");
+  gradient.addColorStop(0.45, "#09100d");
+  gradient.addColorStop(1, "#070809");
+
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, tapeLayout.width, tapeLayout.height);
+}
+
 function drawHeader(context: OffscreenCanvasRenderingContext2D) {
-  context.fillStyle = "#111315";
-  context.fillRect(0, 0, tapeLayout.width, 28);
+  const gradient = context.createLinearGradient(0, 0, tapeLayout.width, 0);
+
+  gradient.addColorStop(0, "#111315");
+  gradient.addColorStop(0.55, "#101815");
+  gradient.addColorStop(1, "#111315");
+
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, tapeLayout.width, headerHeight);
+  context.fillStyle = "rgba(255,255,255,0.08)";
+  context.fillRect(0, headerHeight - 1, tapeLayout.width, 1);
   context.fillStyle = "#89929c";
   drawCells(
     context,
-    columns.map(([label]) => label),
-    14,
+    columns.map(([label]) => label.toUpperCase()),
+    15,
+    "#89929c",
   );
+  drawColumnRules(context);
 }
 
 function drawRow(
@@ -227,19 +249,114 @@ function drawRow(
   y: number,
   index: number,
 ) {
+  const color = movement.side === "credit" ? "#86efac" : "#fda4af";
+  const tint = movement.side === "credit" ? "rgba(34,197,94," : "rgba(244,63,94,";
+  const alpha = Math.max(0.02, 0.075 - index * 0.0015);
+
   context.fillStyle = index % 2 === 0 ? "#0b0d0f" : "#090a0b";
-  context.fillRect(0, y, tapeLayout.width, 20);
-  context.fillStyle = movement.side === "credit" ? "#86efac" : "#fda4af";
-  drawCells(context, movementCells(movement), y + 10);
+  context.fillRect(0, y, tapeLayout.width, rowHeight);
+  context.fillStyle = `${tint}${alpha})`;
+  context.fillRect(0, y, tapeLayout.width, rowHeight);
+
+  context.fillStyle = color;
+  context.fillRect(0, y + 3, 3, rowHeight - 6);
+
+  drawAmountBar(context, movement, y);
+  drawMovementCells(context, movement, y + 10, color);
 }
 
-function drawCells(context: OffscreenCanvasRenderingContext2D, cells: string[], y: number) {
-  let x = 12;
+function drawCells(
+  context: OffscreenCanvasRenderingContext2D,
+  cells: string[],
+  y: number,
+  color = "#d7dee8",
+) {
+  let x = cellPaddingX;
 
   columns.forEach(([, width], index) => {
+    context.fillStyle = color;
     context.fillText(cells[index], x, y, width - 12);
     x += width;
   });
+}
+
+function drawMovementCells(
+  context: OffscreenCanvasRenderingContext2D,
+  movement: BalanceSheetMovement,
+  y: number,
+  sideColor: string,
+) {
+  const cells = movementCells(movement);
+
+  columns.forEach(([, width], index) => {
+    context.fillStyle = movementCellColor(movement, index, sideColor);
+    context.fillText(cells[index], columnX(index), y, width - 12);
+  });
+}
+
+function drawAmountBar(
+  context: OffscreenCanvasRenderingContext2D,
+  movement: BalanceSheetMovement,
+  y: number,
+) {
+  const x = columnX(amountColumnIndex) - 6;
+  const maxWidth = columns[amountColumnIndex][1] - 18;
+  const width = Math.max(8, maxWidth * amountIntensity(movement.amountMinor));
+  const gradient = context.createLinearGradient(x, y, x + maxWidth, y);
+
+  if (movement.side === "credit") {
+    gradient.addColorStop(0, "rgba(34,197,94,0.22)");
+    gradient.addColorStop(1, "rgba(34,197,94,0)");
+  } else {
+    gradient.addColorStop(0, "rgba(244,63,94,0.24)");
+    gradient.addColorStop(1, "rgba(244,63,94,0)");
+  }
+
+  context.fillStyle = gradient;
+  context.fillRect(x, y + 3, width, rowHeight - 6);
+}
+
+function drawColumnRules(context: OffscreenCanvasRenderingContext2D) {
+  context.fillStyle = "rgba(255,255,255,0.035)";
+
+  columns.slice(1).forEach((_, index) => {
+    context.fillRect(columnX(index + 1) - 10, 0, 1, tapeLayout.height);
+  });
+}
+
+function movementCellColor(movement: BalanceSheetMovement, index: number, sideColor: string) {
+  if (index === 1 || index === 2) {
+    return sideColor;
+  }
+
+  if (index === 3 || index === 4 || index === 6) {
+    return "#b9f6c8";
+  }
+
+  if (index === 7 && (movement.status === "failed" || movement.status === "held")) {
+    return "#fda4af";
+  }
+
+  if (index === 0) {
+    return "#a8b1bc";
+  }
+
+  return "#d7dee8";
+}
+
+function columnX(index: number) {
+  return (
+    cellPaddingX +
+    columns.slice(0, index).reduce((total, [, width]) => {
+      return total + width;
+    }, 0)
+  );
+}
+
+function amountIntensity(value: bigint) {
+  const amount = Number(value < 0n ? -value : value) / 100;
+
+  return Math.min(1, Math.log10(Math.max(10, amount)) / 8);
 }
 
 function pushRows(movements: BalanceSheetMovement[]) {
