@@ -26,7 +26,7 @@ export function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   }, undefined);
 
   return (
-    <section className="grid gap-3 xl:grid-cols-6">
+    <section className="flex w-full overflow-x-auto border-b border-white/[0.08]">
       <OpsMetricCard
         icon={Activity}
         label="Event rate"
@@ -82,14 +82,16 @@ function OpsMetricCard({
   value: React.ReactNode;
 }) {
   return (
-    <article className="min-w-0 rounded-[5px] border border-white/[0.075] bg-white/[0.022] p-3 shadow-[0_1px_0_rgba(255,255,255,0.018)_inset]">
-      <div className="mb-3 flex items-center gap-2 text-bankops-muted">
-        <Icon aria-hidden={true} className="size-3.5 shrink-0 text-sky-300/85" />
-        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em]">{label}</p>
+    <article className="min-w-48 flex-1 border-r border-white/[0.08] bg-bankops-panel p-3 last:border-r-0">
+      <div className="mb-1 flex items-center gap-2 text-bankops-muted">
+        <Icon aria-hidden={true} className="size-3 shrink-0 text-[#5a6272]" />
+        <p className="truncate text-[9px] font-semibold uppercase tracking-widest text-[#5a6272]">
+          {label}
+        </p>
         <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
       </div>
       <p
-        className={`truncate text-[1.35rem] font-semibold leading-none tracking-tight ${tone === undefined ? "text-white" : railHealthClassNames[tone]}`}
+        className={`truncate font-mono text-xl leading-none ${tone === undefined ? "text-bankops-text" : railHealthClassNames[tone]}`}
       >
         {value}
       </p>

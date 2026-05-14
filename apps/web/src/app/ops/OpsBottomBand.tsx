@@ -7,7 +7,7 @@ import { formatCount, formatPercent, formatSecondsFromMs } from "../../design/fo
 
 export function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   return (
-    <section className="grid gap-4 xl:grid-cols-4">
+    <section className="grid border-t border-white/[0.08] xl:grid-cols-4">
       <SparklinePanel
         icon={Activity}
         label="Throughput"
@@ -62,7 +62,7 @@ function SparklinePanel({
   const values = points.map(valueForPoint);
 
   return (
-    <Panel className="min-w-0 p-3">
+    <Panel className="min-w-0 rounded-none border-0 border-r border-white/[0.08] bg-bankops-panel p-3 last:border-r-0">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
@@ -70,7 +70,7 @@ function SparklinePanel({
             {label}
             <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
           </div>
-          <p className="mt-2 text-lg font-semibold leading-none text-white">{value}</p>
+          <p className="mt-2 font-mono text-lg leading-none text-bankops-text">{value}</p>
         </div>
       </div>
       <Sparkline values={values} />
@@ -104,7 +104,7 @@ function Sparkline({ values }: { values: number[] }) {
   return (
     <svg
       aria-hidden="true"
-      className="mt-3 h-12 w-full border border-white/[0.055] bg-white/[0.018]"
+      className="mt-3 h-10 w-full border border-white/[0.055] bg-[#0d0f10]"
       preserveAspectRatio="none"
       viewBox={`0 0 ${width} ${height}`}
     >
