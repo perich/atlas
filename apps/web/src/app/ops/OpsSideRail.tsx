@@ -124,7 +124,7 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
     <div className="grid grid-cols-3 gap-px border border-white/[0.08] bg-white/[0.05] text-[11px]">
       {metrics.map(([label, value]) => (
         <div
-          className="bg-[#0d0f10] px-2 py-2"
+          className="bg-[#0d0f10] p-2"
           data-testid={`renderer-metric-${label.replaceAll(" ", "-")}`}
           key={label}
         >
