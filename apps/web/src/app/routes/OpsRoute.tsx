@@ -613,7 +613,7 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
 
   return (
     <div
-      className="relative min-h-[64px] bg-[#101315] px-2.5 py-2.5"
+      className="relative min-h-[64px] bg-[#101315] p-2.5"
       style={{
         background: `linear-gradient(135deg, rgba(${sideRgb},${primaryAlpha}) 0%, rgba(${sideRgb},${secondaryAlpha}) 52%, rgba(${sideRgb},${edgeAlpha}) 100%), #101315`,
       }}
