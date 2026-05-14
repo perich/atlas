@@ -140,7 +140,7 @@ export function InfoTooltip({ children, label }: { children: string; label: stri
       <TooltipPrimitive.Trigger asChild>
         <button
           aria-label={label}
-          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-white/[0.12] text-bankops-muted transition-colors hover:border-white/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-300/35"
+          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-white/[0.12] text-bankops-muted transition-colors hover:border-white/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
           type="button"
         >
           <Info aria-hidden="true" className="size-3" />
