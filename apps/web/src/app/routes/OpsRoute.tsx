@@ -7,7 +7,7 @@ import {
   type Rail,
   type StreamRate,
 } from "@bankops/contracts";
-import { Activity, Gauge, Info, Landmark, RadioTower } from "lucide-react";
+import { Info } from "lucide-react";
 
 import { useOpsStream } from "../ops/ops-stream-store";
 import type {
@@ -16,9 +16,8 @@ import type {
   RailBucketHeatmapCell,
   TapeCanvasLayout,
 } from "../ops/ops-stream-messages";
-import { Button, PageHeader, Panel, StatCard } from "../../design/components";
+import { Button, PageHeader, Panel } from "../../design/components";
 
-const healthChecks = ["Core ledger", "Wire rail", "Stablecoin settlement", "Audit writer"];
 const usdCompact = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 1,
@@ -47,7 +46,6 @@ const tapeCanvasCssHeight = 620;
 
 export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
-  const railHealth = snapshot.railHealth.length > 0 ? snapshot.railHealth : undefined;
 
   return (
     <div className="space-y-5">
@@ -97,37 +95,6 @@ export function OpsRoute() {
       </Panel>
 
       <RailBucketHeatmap cells={snapshot.railBucketHeatmap} />
-
-      <section className="grid gap-3 xl:grid-cols-4">
-        <StatCard
-          icon={RadioTower}
-          label="Connection"
-          value={statusLabels[snapshot.connectionStatus]}
-        />
-        <StatCard icon={Activity} label="Warm rate" value={`${Math.round(snapshot.eventRate)}/s`} />
-        <StatCard
-          icon={Landmark}
-          label="Liquidity"
-          value={formatMinorUsd(snapshot.liquidityReserveMinor)}
-        />
-        <StatCard icon={Gauge} label="Hot movement rate" value={`${snapshot.movementRate}/s`} />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <Panel title="System Health">
-          <div className="space-y-3">
-            {railHealth === undefined
-              ? healthChecks.map((label) => <HealthRow key={label} label={label} value="Waiting" />)
-              : railHealth.map((rail) => (
-                  <HealthRow
-                    key={rail.rail}
-                    label={rail.rail.replaceAll("_", " ")}
-                    value={`${rail.status} · ${Math.round(rail.eventsPerSec)}/s`}
-                  />
-                ))}
-          </div>
-        </Panel>
-      </section>
     </div>
   );
 }
@@ -433,19 +400,6 @@ function emptyHeatmapCell(rail: Rail, bucket: BalanceSheetBucket): RailBucketHea
     rail,
     skew: 0,
   };
-}
-
-function HealthRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 text-sm capitalize last:border-b-0 last:pb-0">
-      <span className="text-bankops-muted">{label}</span>
-      <span className="font-medium text-emerald-300">{value}</span>
-    </div>
-  );
-}
-
-function formatMinorUsd(value: string) {
-  return usdCompact.format(Number(BigInt(value) / 100n));
 }
 
 function formatMinorUsdNumber(value: number) {
