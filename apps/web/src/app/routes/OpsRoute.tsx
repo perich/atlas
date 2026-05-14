@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { STREAM_RATES, type StreamRate } from "@bankops/contracts";
 import { Activity, Gauge, Landmark, RadioTower } from "lucide-react";
 
 import { useOpsStream } from "../ops/ops-stream-store";
-import type { OpsConnectionStatus } from "../ops/ops-stream-messages";
+import type { OpsConnectionStatus, OpsStreamSnapshot } from "../ops/ops-stream-messages";
 import { Button, PageHeader, Panel, StatCard } from "../../design/components";
 
 const healthChecks = ["Core ledger", "Wire rail", "Stablecoin settlement", "Audit writer"];
@@ -32,7 +32,7 @@ const streamRateLabels: Record<StreamRate, string> = {
 };
 
 export function OpsRoute() {
-  const { setStreamRate, snapshot } = useOpsStream();
+  const { attachTapeCanvas, setStreamRate, snapshot } = useOpsStream();
   const railHealth = snapshot.railHealth.length > 0 ? snapshot.railHealth : undefined;
 
   return (
@@ -64,26 +64,25 @@ export function OpsRoute() {
               </span>
             </div>
 
-            <div className="text-center">
-              <p className="text-sm font-medium text-white">OffscreenCanvas stream surface</p>
-              <p className="mt-2 text-xs text-bankops-muted">
-                Worker-owned WebSocket is connected before the Canvas tape lands.
-              </p>
-            </div>
+            <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} />
 
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
-              <div className="flex gap-2">
-                {STREAM_RATES.map((streamRate) => (
-                  <Button
-                    className="min-h-8 px-3 text-xs"
-                    key={streamRate}
-                    onClick={() => setStreamRate(streamRate)}
-                    variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
-                  >
-                    {streamRateLabels[streamRate]}
-                  </Button>
-                ))}
+            <div className="grid gap-3">
+              <RendererMetrics snapshot={snapshot} />
+
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
+                <div className="flex gap-2">
+                  {STREAM_RATES.map((streamRate) => (
+                    <Button
+                      className="min-h-8 px-3 text-xs"
+                      key={streamRate}
+                      onClick={() => setStreamRate(streamRate)}
+                      variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
+                    >
+                      {streamRateLabels[streamRate]}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -103,6 +102,65 @@ export function OpsRoute() {
           </div>
         </Panel>
       </section>
+    </div>
+  );
+}
+
+function BalanceSheetTape({
+  attachTapeCanvas,
+}: {
+  attachTapeCanvas: (canvas: OffscreenCanvas) => void;
+}) {
+  const transferredRef = useRef(false);
+  const attachCanvasRef = useCallback(
+    (canvas: HTMLCanvasElement | null) => {
+      if (canvas === null || transferredRef.current || !("transferControlToOffscreen" in canvas)) {
+        return;
+      }
+
+      transferredRef.current = true;
+      attachTapeCanvas(canvas.transferControlToOffscreen());
+    },
+    [attachTapeCanvas],
+  );
+
+  return (
+    <div className="relative overflow-hidden border border-white/[0.075] bg-[#070809]">
+      <canvas
+        aria-label="Live balance sheet movement tape"
+        className="block h-[236px] w-full"
+        data-testid="balance-sheet-tape"
+        height={236}
+        ref={attachCanvasRef}
+        width={1100}
+      />
+      {"transferControlToOffscreen" in HTMLCanvasElement.prototype ? null : (
+        <div className="absolute inset-0 grid place-items-center bg-black/80 text-xs text-bankops-muted">
+          OffscreenCanvas is not supported in this browser.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
+  const metrics = [
+    ["fps", Math.round(snapshot.renderer.fps).toString()],
+    ["frame", `${snapshot.renderer.frameCostMs.toFixed(1)}ms`],
+    ["backlog", snapshot.renderer.backlog.toString()],
+    ["lag", snapshot.renderer.sequenceLag.toString()],
+    ["decoded", `${snapshot.renderer.decodedRate}/s`],
+    ["rendered", `${snapshot.renderer.renderedRowRate}/s`],
+  ];
+
+  return (
+    <div className="grid grid-cols-6 gap-2 text-[11px]">
+      {metrics.map(([label, value]) => (
+        <div className="border border-white/[0.06] bg-white/[0.025] px-2 py-1" key={label}>
+          <p className="uppercase text-bankops-muted">{label}</p>
+          <p className="font-mono text-white">{value}</p>
+        </div>
+      ))}
     </div>
   );
 }

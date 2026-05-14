@@ -1,4 +1,5 @@
 import {
+  type BalanceSheetMovement,
   decodeMovementBatch,
   DEFAULT_STREAM_RATE,
   StreamChannel,
@@ -22,13 +23,33 @@ type WarmOpsSnapshotMessage = Omit<
 let socket: WebSocket | undefined;
 let reconnectTimer: number | undefined;
 let streamRate: StreamRate = DEFAULT_STREAM_RATE;
-let movementCount = 0;
 let snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
+let canvasContext: OffscreenCanvasRenderingContext2D | null = null;
+let renderTimer: number | undefined;
+let frameCount = 0;
+let frameCostTotal = 0;
+let decodedCount = 0;
+let renderedRowCount = 0;
+let latestSeq = 0n;
+const rows: BalanceSheetMovement[] = [];
+const columns = [
+  ["time", 92],
+  ["side", 68],
+  ["amount", 118],
+  ["bucket", 178],
+  ["asset", 70],
+  ["customer", 104],
+  ["rail", 118],
+  ["status", 92],
+] as const;
 
 self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
   const command = event.data;
 
   switch (command.type) {
+    case "canvas.attach":
+      attachCanvas(command.canvas);
+      return;
     case "connect":
       connect("connecting");
       return;
@@ -58,18 +79,36 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   socket.onmessage = (event) => {
     if (typeof event.data === "string") {
       const warmSnapshot = readWarmSnapshot(event.data);
+      const decodedRate = decodedCount * 4;
       publish({
         ...warmSnapshot,
         connectionStatus: "open",
         streamRate,
-        movementRate: movementCount * 4,
+        movementRate: decodedRate,
+        renderer: {
+          supported: canvasContext !== null,
+          fps: frameCount * 4,
+          frameCostMs: frameCount === 0 ? 0 : frameCostTotal / frameCount,
+          backlog: 0,
+          sequenceLag:
+            latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
+          decodedRate,
+          renderedRowRate: renderedRowCount * 4,
+        },
       });
-      movementCount = 0;
+      decodedCount = 0;
+      frameCount = 0;
+      frameCostTotal = 0;
+      renderedRowCount = 0;
       return;
     }
 
     if (event.data instanceof ArrayBuffer) {
-      movementCount += decodeMovementBatch(event.data).movements.length;
+      const batch = decodeMovementBatch(event.data);
+
+      decodedCount += batch.movements.length;
+      latestSeq = batch.toSeq;
+      pushRows(batch.movements);
       return;
     }
 
@@ -96,6 +135,109 @@ function disconnect() {
     socket.close();
   }
   socket = undefined;
+}
+
+function attachCanvas(canvas: OffscreenCanvas) {
+  canvasContext = canvas.getContext("2d");
+
+  if (canvasContext === null) {
+    throw new Error("Expected 2D canvas context");
+  }
+
+  publish({ ...snapshot, renderer: { ...snapshot.renderer, supported: true } });
+  scheduleDraw();
+}
+
+function draw() {
+  if (canvasContext === null) {
+    return;
+  }
+
+  const startedAt = performance.now();
+  const rowHeight = 20;
+  const headerHeight = 28;
+  const visibleRows = Math.floor((canvasContext.canvas.height - headerHeight) / rowHeight);
+
+  canvasContext.fillStyle = "#070809";
+  canvasContext.fillRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+  canvasContext.font = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+  canvasContext.textBaseline = "middle";
+
+  drawHeader(canvasContext);
+
+  rows.slice(0, visibleRows).forEach((movement, index) => {
+    drawRow(canvasContext!, movement, headerHeight + index * rowHeight, index);
+  });
+
+  frameCount += 1;
+  frameCostTotal += performance.now() - startedAt;
+  renderedRowCount += Math.min(rows.length, visibleRows);
+  scheduleDraw();
+}
+
+function scheduleDraw() {
+  self.clearTimeout(renderTimer);
+  renderTimer = self.setTimeout(draw, 8);
+}
+
+function drawHeader(context: OffscreenCanvasRenderingContext2D) {
+  context.fillStyle = "#111315";
+  context.fillRect(0, 0, context.canvas.width, 28);
+  context.fillStyle = "#89929c";
+  drawCells(
+    context,
+    columns.map(([label]) => label),
+    14,
+  );
+}
+
+function drawRow(
+  context: OffscreenCanvasRenderingContext2D,
+  movement: BalanceSheetMovement,
+  y: number,
+  index: number,
+) {
+  context.fillStyle = index % 2 === 0 ? "#0b0d0f" : "#090a0b";
+  context.fillRect(0, y, context.canvas.width, 20);
+  context.fillStyle = movement.side === "credit" ? "#86efac" : "#fda4af";
+  drawCells(context, movementCells(movement), y + 10);
+}
+
+function drawCells(context: OffscreenCanvasRenderingContext2D, cells: string[], y: number) {
+  let x = 12;
+
+  columns.forEach(([, width], index) => {
+    context.fillText(cells[index], x, y, width - 12);
+    x += width;
+  });
+}
+
+function pushRows(movements: BalanceSheetMovement[]) {
+  for (const movement of movements) {
+    rows.unshift(movement);
+  }
+
+  rows.length = Math.min(rows.length, 128);
+}
+
+function movementCells(movement: BalanceSheetMovement) {
+  return [
+    new Date(movement.serverTs).toLocaleTimeString("en-US", { hour12: false }),
+    movement.side,
+    formatMinorUsd(movement.amountMinor),
+    movement.bucket,
+    movement.asset,
+    `C${movement.customerId}`,
+    movement.rail,
+    movement.status,
+  ];
+}
+
+function formatMinorUsd(value: bigint) {
+  return `$${(Number(value < 0n ? -value : value) / 100).toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })}`;
 }
 
 function publish(nextSnapshot: OpsStreamSnapshot) {
