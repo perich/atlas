@@ -57,7 +57,6 @@ const streamRateLabels: Record<StreamRate, string> = {
   10_000: "10k/s",
 };
 const tapeCanvasCssHeight = 620;
-const tapeCanvasStyle = { height: tapeCanvasCssHeight } satisfies React.CSSProperties;
 const elevatedExceptionRate = 0.05;
 const pressureClassNames = {
   nominal: "text-emerald-300",
@@ -74,9 +73,9 @@ export function OpsRoute() {
 
       <OpsTopBand snapshot={snapshot} />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <Panel className="overflow-hidden p-0">
-          <div className="border-b border-white/[0.075] bg-black/20 px-4 py-3">
+      <div className="grid min-h-[calc(100vh-18rem)] items-stretch gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <Panel className="flex min-h-0 flex-col overflow-hidden p-0">
+          <div className="shrink-0 border-b border-white/[0.075] bg-black/20 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
               Balance Sheet Tape
             </p>
@@ -278,14 +277,13 @@ function BalanceSheetTape({
   }, [resizeTapeCanvas]);
 
   return (
-    <div className="relative overflow-hidden border border-white/[0.075] bg-[#070809]">
+    <div className="relative min-h-0 flex-1 overflow-hidden border border-white/[0.075] bg-[#070809]">
       <canvas
         aria-label="Live balance sheet movement tape"
-        className="block w-full"
+        className="block size-full"
         data-testid="balance-sheet-tape"
         height={tapeCanvasCssHeight}
         ref={attachCanvasRef}
-        style={tapeCanvasStyle}
         width={1100}
       />
     </div>
