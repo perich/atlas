@@ -1,11 +1,19 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { STREAM_RATES, type StreamRate } from "@bankops/contracts";
+import {
+  BALANCE_SHEET_BUCKETS,
+  RAILS,
+  STREAM_RATES,
+  type BalanceSheetBucket,
+  type Rail,
+  type StreamRate,
+} from "@bankops/contracts";
 import { Activity, Gauge, Landmark, RadioTower } from "lucide-react";
 
 import { useOpsStream } from "../ops/ops-stream-store";
 import type {
   OpsConnectionStatus,
   OpsStreamSnapshot,
+  RailBucketHeatmapCell,
   TapeCanvasLayout,
 } from "../ops/ops-stream-messages";
 import { Button, PageHeader, Panel, StatCard } from "../../design/components";
@@ -87,6 +95,8 @@ export function OpsRoute() {
 
         <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} resizeTapeCanvas={resizeTapeCanvas} />
       </Panel>
+
+      <RailBucketHeatmap cells={snapshot.railBucketHeatmap} />
 
       <section className="grid gap-3 xl:grid-cols-4">
         <StatCard
@@ -221,6 +231,111 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   );
 }
 
+function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
+  const cellsByKey = new Map(cells.map((cell) => [heatmapKey(cell.rail, cell.bucket), cell]));
+
+  return (
+    <Panel className="overflow-hidden p-0">
+      <div className="border-b border-white/[0.075] px-4 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+          Rail x Balance Sheet Pressure
+        </p>
+        <p className="mt-1 text-sm text-white">
+          Rolling 5s volume by payment rail and balance-sheet bucket
+        </p>
+      </div>
+
+      <div className="px-4 pb-4 pt-3">
+        <div
+          className="grid overflow-hidden border border-white/[0.075] bg-white/[0.045]"
+          style={{
+            gridTemplateColumns: `112px repeat(${BALANCE_SHEET_BUCKETS.length}, minmax(92px, 1fr))`,
+          }}
+        >
+          <div className="bg-[#101315] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
+            Rail
+          </div>
+          {BALANCE_SHEET_BUCKETS.map((bucket) => (
+            <div
+              className="bg-[#101315] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted"
+              key={bucket}
+            >
+              {bucketLabel(bucket)}
+            </div>
+          ))}
+
+          {RAILS.map((rail) => (
+            <React.Fragment key={rail}>
+              <div className="border-t border-white/[0.055] bg-[#0c0e10] px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
+                {railLabel(rail)}
+              </div>
+              {BALANCE_SHEET_BUCKETS.map((bucket) => (
+                <HeatmapCell
+                  cell={cellsByKey.get(heatmapKey(rail, bucket)) ?? emptyHeatmapCell(rail, bucket)}
+                  key={bucket}
+                />
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
+  const sideColor = cell.skew >= 0 ? "34,197,94" : "244,63,94";
+  const alpha = cell.intensity === 0 ? 0.018 : 0.045 + cell.intensity * 0.24;
+  const borderColor = cell.exceptionRate > 0 ? "rgba(251,191,36,0.34)" : "rgba(255,255,255,0.045)";
+
+  return (
+    <div
+      className="relative min-h-[58px] border-l border-t px-2 py-2"
+      style={{
+        background: `linear-gradient(90deg, rgba(${sideColor},${alpha}) 0%, rgba(${sideColor},${Math.max(0.012, alpha * 0.24)}) 54%, rgba(9,10,11,0.74) 100%)`,
+        borderColor,
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-mono text-[11px] font-semibold text-white">
+          {formatMinorUsdNumber(cell.amountPerSecMinor)}
+        </span>
+        <span className="font-mono text-[10px] text-bankops-muted">
+          {formatHeatmapRate(cell.movementRate)}/s
+        </span>
+      </div>
+      <div className="mt-2 h-1 overflow-hidden bg-black/35">
+        <div
+          className="h-full"
+          style={{
+            backgroundColor: `rgba(${sideColor},0.82)`,
+            width: `${Math.max(3, cell.intensity * 100)}%`,
+          }}
+        />
+      </div>
+      {cell.exceptionRate > 0 ? (
+        <div className="absolute bottom-1 right-2 font-mono text-[9px] text-amber-300">
+          {(cell.exceptionRate * 100).toFixed(0)}%
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function emptyHeatmapCell(rail: Rail, bucket: BalanceSheetBucket): RailBucketHeatmapCell {
+  return {
+    amountPerSecMinor: 0,
+    bucket,
+    creditMinor: 0,
+    debitMinor: 0,
+    exceptionRate: 0,
+    intensity: 0,
+    movementRate: 0,
+    rail,
+    skew: 0,
+  };
+}
+
 function HealthRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 text-sm capitalize last:border-b-0 last:pb-0">
@@ -232,4 +347,28 @@ function HealthRow({ label, value }: { label: string; value: string }) {
 
 function formatMinorUsd(value: string) {
   return usdCompact.format(Number(BigInt(value) / 100n));
+}
+
+function formatMinorUsdNumber(value: number) {
+  return usdCompact.format(value / 100);
+}
+
+function formatHeatmapRate(value: number) {
+  if (value > 0 && value < 10) {
+    return value.toFixed(1);
+  }
+
+  return Math.round(value).toString();
+}
+
+function railLabel(rail: Rail) {
+  return rail.replaceAll("_", " ");
+}
+
+function bucketLabel(bucket: BalanceSheetBucket) {
+  return bucket.replaceAll("_", " ");
+}
+
+function heatmapKey(rail: Rail, bucket: BalanceSheetBucket) {
+  return `${rail}:${bucket}`;
 }

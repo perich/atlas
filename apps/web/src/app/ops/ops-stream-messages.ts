@@ -1,4 +1,9 @@
-import { DEFAULT_STREAM_RATE, type Rail, type StreamRate } from "@bankops/contracts";
+import {
+  DEFAULT_STREAM_RATE,
+  type BalanceSheetBucket,
+  type Rail,
+  type StreamRate,
+} from "@bankops/contracts";
 
 export type OpsConnectionStatus = "connecting" | "open" | "reconnecting" | "degraded";
 
@@ -26,7 +31,20 @@ export type OpsStreamSnapshot = {
   liquidityReserveMinor: string;
   exceptionQueueDepth: number;
   railHealth: RailHealthSnapshot[];
+  railBucketHeatmap: RailBucketHeatmapCell[];
   renderer: OpsRendererMetrics;
+};
+
+export type RailBucketHeatmapCell = {
+  rail: Rail;
+  bucket: BalanceSheetBucket;
+  movementRate: number;
+  amountPerSecMinor: number;
+  creditMinor: number;
+  debitMinor: number;
+  exceptionRate: number;
+  skew: number;
+  intensity: number;
 };
 
 export type OpsRendererMetrics = {
@@ -56,6 +74,7 @@ export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
   liquidityReserveMinor: "0",
   exceptionQueueDepth: 0,
   railHealth: [],
+  railBucketHeatmap: [],
   renderer: {
     supported: false,
     fps: 0,
