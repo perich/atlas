@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -23,6 +23,7 @@ type ExtraWindowCache = {
 
 export function useAuditWindow() {
   const queryClient = useQueryClient();
+  const requestIdRef = useRef(0);
   const [queryState, setQueryStateValue] = useState(() => readAuditQueryState());
   const [extraCache, setExtraCache] = useState<ExtraWindowCache>();
   const queryKey = serializeAuditQueryState(queryState);
@@ -55,34 +56,44 @@ export function useAuditWindow() {
   const cache = extraCache?.queryKey === queryKey ? extraCache.cache : initialCache;
   const rows = useMemo(() => cache.windows.flatMap((window) => window.rows), [cache]);
 
-  async function loadVisibleRange(visibleRange: AuditVisibleRange) {
-    const request = nextAuditWindowRequest(cache, visibleRange);
+  const loadVisibleRange = useCallback(
+    async (visibleRange: AuditVisibleRange) => {
+      const request = nextAuditWindowRequest(cache, visibleRange);
 
-    if (request === undefined) {
-      return;
-    }
+      if (request === undefined) {
+        return;
+      }
 
-    const page = await queryClient.fetchQuery({
-      queryKey: ["audit-window", queryKey, request],
-      queryFn: ({ signal }) => fetchAuditPage({ request, signal, state: queryState }),
-      staleTime: 30_000,
-    });
+      const requestId = (requestIdRef.current += 1);
+      const page = await queryClient.fetchQuery({
+        queryKey: ["audit-window", queryKey, request],
+        queryFn: ({ signal }) => fetchAuditPage({ request, signal, state: queryState }),
+        staleTime: 30_000,
+      });
 
-    setExtraCache({
-      cache: mergeAuditWindow(cache, request, page),
-      queryKey,
-    });
-  }
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
 
-  function setQueryState(nextState: AuditQueryState) {
+      setExtraCache({
+        cache: mergeAuditWindow(cache, request, page),
+        queryKey,
+      });
+    },
+    [cache, queryClient, queryKey, queryState],
+  );
+
+  const setQueryState = useCallback((nextState: AuditQueryState) => {
+    requestIdRef.current += 1;
     writeAuditQueryState(nextState);
     setQueryStateValue(nextState);
     setExtraCache(undefined);
-  }
+  }, []);
 
   return {
     cache,
     facets: facetsQuery.data,
+    hasError: firstPageQuery.isError || facetsQuery.isError,
     isFetching: firstPageQuery.isFetching || facetsQuery.isFetching,
     queryState,
     rows,
