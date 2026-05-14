@@ -1,9 +1,7 @@
 import {
-  type BalanceSheetBucket,
   type BalanceSheetMovement,
   decodeMovementBatch,
   DEFAULT_STREAM_RATE,
-  type Rail,
   StreamChannel,
   type StreamRate,
 } from "@bankops/contracts";
@@ -11,10 +9,10 @@ import {
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
   type OpsStreamSnapshot,
-  type RailBucketHeatmapCell,
   type TapeCanvasLayout,
   type OpsWorkerCommand,
 } from "./ops-stream-messages";
+import { OpsMovementWindow } from "./ops-movement-window";
 
 type WarmOpsSnapshotMessage = Omit<
   OpsStreamSnapshot,
@@ -23,20 +21,6 @@ type WarmOpsSnapshotMessage = Omit<
   channel: typeof StreamChannel.AggregateSnapshot;
   type: "ops.snapshot";
 };
-type HeatmapDelta = {
-  rail: Rail;
-  bucket: BalanceSheetBucket;
-  movementCount: number;
-  creditMinor: number;
-  debitMinor: number;
-  exceptionCount: number;
-};
-type MovementBin = {
-  startedAt: number;
-  maxAmountMinor: number;
-  cells: Map<string, HeatmapDelta>;
-};
-
 let socket: WebSocket | undefined;
 let reconnectTimer: number | undefined;
 let streamRate: StreamRate = DEFAULT_STREAM_RATE;
@@ -49,18 +33,8 @@ let frameCostTotal = 0;
 let decodedCount = 0;
 let renderedRowCount = 0;
 let latestSeq = 0n;
-let latestMovementTs = 0;
 const rows: BalanceSheetMovement[] = [];
-const movementWindowMs = 5_000;
-const movementBinMs = 250;
-const movementBins: MovementBin[] = Array.from(
-  { length: movementWindowMs / movementBinMs },
-  () => ({
-    cells: new Map(),
-    maxAmountMinor: 0,
-    startedAt: 0,
-  }),
-);
+const movementWindow = new OpsMovementWindow();
 const columns = [
   ["time", 92],
   ["side", 68],
@@ -147,7 +121,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
         chart: warmSnapshot.chart,
         seq: warmSnapshot.seq,
         streamRate,
-        railBucketHeatmap: buildHeatmapSnapshot(),
+        railBucketHeatmap: movementWindow.heatmapSnapshot(),
         renderer: {
           supported: canvasContext !== null,
           fps: frameCount * 4,
@@ -172,7 +146,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
       decodedCount += batch.movements.length;
       latestSeq = batch.toSeq;
       pushRows(batch.movements);
-      recordMovementStats(batch.movements);
+      movementWindow.record(batch.movements);
       return;
     }
 
@@ -253,7 +227,7 @@ function draw() {
   drawHeader(canvasContext);
 
   const visibleMovements = rows.slice(0, visibleRows);
-  const amountScaleMinor = rollingAmountScaleMinor();
+  const amountScaleMinor = movementWindow.rollingAmountScaleMinor();
 
   visibleMovements.forEach((movement, index) => {
     drawRow(canvasContext!, movement, headerHeight + index * rowHeight, index, amountScaleMinor);
@@ -415,124 +389,6 @@ function pushRows(movements: BalanceSheetMovement[]) {
   }
 
   rows.length = Math.min(rows.length, 128);
-}
-
-function recordMovementStats(movements: BalanceSheetMovement[]) {
-  for (const movement of movements) {
-    latestMovementTs = Math.max(latestMovementTs, movement.serverTs);
-
-    const bin = movementBinFor(movement.serverTs);
-    const key = `${movement.rail}:${movement.bucket}`;
-    const cell =
-      bin.cells.get(key) ??
-      ({
-        bucket: movement.bucket,
-        creditMinor: 0,
-        debitMinor: 0,
-        exceptionCount: 0,
-        movementCount: 0,
-        rail: movement.rail,
-      } satisfies HeatmapDelta);
-    const amountMinor = Math.abs(Number(movement.amountMinor));
-
-    bin.maxAmountMinor = Math.max(bin.maxAmountMinor, amountMinor);
-    cell.movementCount += 1;
-
-    if (movement.side === "credit") {
-      cell.creditMinor += amountMinor;
-    } else {
-      cell.debitMinor += amountMinor;
-    }
-
-    if (
-      movement.status === "failed" ||
-      movement.status === "held" ||
-      movement.status === "pending"
-    ) {
-      cell.exceptionCount += 1;
-    }
-
-    bin.cells.set(key, cell);
-  }
-}
-
-function rollingAmountScaleMinor() {
-  const now = latestMovementTs === 0 ? Date.now() : latestMovementTs;
-  const cutoff = now - movementWindowMs;
-
-  return movementBins.reduce((max, bin) => {
-    if (bin.startedAt <= cutoff) {
-      return max;
-    }
-
-    return Math.max(max, bin.maxAmountMinor);
-  }, 0);
-}
-
-function buildHeatmapSnapshot(): RailBucketHeatmapCell[] {
-  const now = latestMovementTs === 0 ? Date.now() : latestMovementTs;
-  const cutoff = now - movementWindowMs;
-  const totals = new Map<string, HeatmapDelta>();
-
-  for (const bin of movementBins) {
-    if (bin.startedAt <= cutoff) {
-      continue;
-    }
-
-    for (const [key, cell] of bin.cells) {
-      const total =
-        totals.get(key) ??
-        ({
-          bucket: cell.bucket,
-          creditMinor: 0,
-          debitMinor: 0,
-          exceptionCount: 0,
-          movementCount: 0,
-          rail: cell.rail,
-        } satisfies HeatmapDelta);
-
-      total.movementCount += cell.movementCount;
-      total.creditMinor += cell.creditMinor;
-      total.debitMinor += cell.debitMinor;
-      total.exceptionCount += cell.exceptionCount;
-      totals.set(key, total);
-    }
-  }
-
-  const cells = [...totals.values()].map((cell) => {
-    const amountMinor = cell.creditMinor + cell.debitMinor;
-
-    return {
-      amountPerSecMinor: amountMinor / (movementWindowMs / 1_000),
-      bucket: cell.bucket,
-      creditMinor: cell.creditMinor,
-      debitMinor: cell.debitMinor,
-      exceptionRate: cell.movementCount === 0 ? 0 : cell.exceptionCount / cell.movementCount,
-      intensity: 0,
-      movementRate: cell.movementCount / (movementWindowMs / 1_000),
-      rail: cell.rail,
-      skew: amountMinor === 0 ? 0 : (cell.creditMinor - cell.debitMinor) / amountMinor,
-    } satisfies RailBucketHeatmapCell;
-  });
-  const maxAmountPerSecMinor = Math.max(1, ...cells.map((cell) => cell.amountPerSecMinor));
-
-  return cells.map((cell) => ({
-    ...cell,
-    intensity: Math.sqrt(cell.amountPerSecMinor / maxAmountPerSecMinor),
-  }));
-}
-
-function movementBinFor(ts: number) {
-  const startedAt = Math.floor(ts / movementBinMs) * movementBinMs;
-  const bin = movementBins[Math.floor(startedAt / movementBinMs) % movementBins.length];
-
-  if (bin.startedAt !== startedAt) {
-    bin.startedAt = startedAt;
-    bin.maxAmountMinor = 0;
-    bin.cells.clear();
-  }
-
-  return bin;
 }
 
 function movementCells(movement: BalanceSheetMovement) {
