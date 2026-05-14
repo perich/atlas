@@ -47,11 +47,21 @@ function parseAuditQuery(params: AuditQueryParams): AuditQuery {
   const limit = parseLimit(params.limit);
   const after = single(params.after, "after");
   const before = single(params.before, "before");
+  const rawOffset = single(params.offset, "offset");
+  const offset = rawOffset === undefined ? undefined : Number(rawOffset);
   const sortField = single(params.sortField, "sortField");
   const sortDir = single(params.sortDir, "sortDir");
 
   if (after !== undefined && before !== undefined) {
-    throw new Error("Use either after or before, not both");
+    throw new Error("Use only one paging anchor");
+  }
+
+  if (offset !== undefined && (after !== undefined || before !== undefined)) {
+    throw new Error("Use only one paging anchor");
+  }
+
+  if (offset !== undefined && (!Number.isSafeInteger(offset) || offset < 0)) {
+    throw new Error("offset must be a non-negative integer");
   }
 
   const field = sortField ?? DEFAULT_AUDIT_SORT.field;
@@ -68,6 +78,10 @@ function parseAuditQuery(params: AuditQueryParams): AuditQuery {
 
   if (before !== undefined) {
     query.before = before;
+  }
+
+  if (offset !== undefined) {
+    query.offset = offset;
   }
 
   return query;

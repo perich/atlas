@@ -20,6 +20,7 @@ export type AuditWindowCache = {
 
 export type AuditWindowRequest =
   | { direction: "initial" }
+  | { direction: "offset"; offset: number }
   | { direction: "after"; cursor: string }
   | { direction: "before"; cursor: string };
 
@@ -38,21 +39,21 @@ export function mergeAuditWindow(
   request: AuditWindowRequest,
   page: JsonAuditPage,
 ): AuditWindowCache {
-  const last = cache.windows.at(-1);
-  let start = 0;
-
-  if (request.direction === "before") {
-    start = Math.max(0, cache.windows[0].start - page.rows.length);
-  } else if (last !== undefined) {
-    start = last.start + last.rows.length;
-  }
-
   const window = {
     rows: page.rows,
-    start,
+    start: page.offset,
     prevCursor: page.prevCursor,
     nextCursor: page.nextCursor,
   } satisfies AuditWindow;
+
+  if (request.direction === "offset") {
+    return {
+      windows: [window],
+      totalMatched: page.totalMatched,
+      queryMs: page.queryMs,
+    };
+  }
+
   let windows =
     request.direction === "before" ? [window, ...cache.windows] : [...cache.windows, window];
 
@@ -77,9 +78,18 @@ export function nextAuditWindowRequest(
 ): AuditWindowRequest | undefined {
   const first = cache.windows[0];
   const last = cache.windows.at(-1);
+  const offset = Math.max(0, visibleRange.start - PREFETCH_DISTANCE);
 
   if (first === undefined || last === undefined) {
     return { direction: "initial" };
+  }
+
+  if (visibleRange.end < first.start) {
+    return { direction: "offset", offset };
+  }
+
+  if (visibleRange.start >= last.start + last.rows.length) {
+    return { direction: "offset", offset };
   }
 
   if (visibleRange.start <= first.start + PREFETCH_DISTANCE && first.prevCursor !== undefined) {

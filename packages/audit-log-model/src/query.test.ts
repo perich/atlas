@@ -8,6 +8,7 @@ describe("audit query model", () => {
     const page = queryAuditEntries(entries(), { limit: 4 });
 
     expect(page.rows.map((row) => row.id)).toEqual(["aud_f", "aud_d", "aud_c", "aud_b"]);
+    expect(page.offset).toBe(0);
     expect(page.totalMatched).toBe(6);
     expect(page.nextCursor).toEqual(expect.any(String));
     expect(page.prevCursor).toBeUndefined();
@@ -64,6 +65,13 @@ describe("audit query model", () => {
     const previous = queryAuditEntries(entries(), { before: second.prevCursor, limit: 2 });
 
     expect(previous.rows.map((row) => row.id)).toEqual(first.rows.map((row) => row.id));
+  });
+
+  it("pages directly from an offset for static virtualized result sets", () => {
+    const page = queryAuditEntries(entries(), { limit: 2, offset: 2 });
+
+    expect(page.offset).toBe(2);
+    expect(page.rows.map((row) => row.id)).toEqual(["aud_c", "aud_b"]);
   });
 
   it("computes facets inside the active filter context", () => {
