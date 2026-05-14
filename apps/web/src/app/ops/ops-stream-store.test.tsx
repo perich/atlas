@@ -3,8 +3,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OpsRoute } from "../routes/OpsRoute";
-import type { OpsWorkerCommand, OpsWorkerMessage } from "./ops-stream-messages";
-import { createOpsStreamStore, initialOpsStreamSnapshot } from "./ops-stream-store";
+import {
+  INITIAL_OPS_STREAM_SNAPSHOT,
+  type OpsWorkerCommand,
+  type OpsWorkerMessage,
+} from "./ops-stream-messages";
+import { createOpsStreamStore } from "./ops-stream-store";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -51,7 +55,7 @@ describe("ops stream store", () => {
     expect(worker.commands).toEqual([{ type: "connect" }]);
 
     worker.emit({
-      snapshot: { ...initialOpsStreamSnapshot, connectionStatus: "open", seq: "42" },
+      snapshot: { ...INITIAL_OPS_STREAM_SNAPSHOT, connectionStatus: "open", seq: "42" },
       type: "snapshot",
     });
 
@@ -98,7 +102,7 @@ describe("OpsRoute", () => {
     act(() => {
       worker.emit({
         snapshot: {
-          ...initialOpsStreamSnapshot,
+          ...INITIAL_OPS_STREAM_SNAPSHOT,
           connectionStatus: "open",
           eventRate: 2_000,
           liquidityReserveMinor: "81240000000",
