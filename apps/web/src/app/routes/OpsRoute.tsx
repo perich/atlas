@@ -7,16 +7,30 @@ import {
   type Rail,
   type StreamRate,
 } from "@bankops/contracts";
-import { Info } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  Gauge,
+  Info,
+  Landmark,
+  RadioTower,
+  ShieldAlert,
+  Timer,
+  Wallet,
+} from "lucide-react";
 
 import { useOpsStream } from "../ops/ops-stream-store";
 import type {
+  OpsChartPoint,
   OpsConnectionStatus,
   OpsStreamSnapshot,
   RailBucketHeatmapCell,
+  RailHealthSnapshot,
   TapeCanvasLayout,
 } from "../ops/ops-stream-messages";
-import { Button, PageHeader, Panel } from "../../design/components";
+import { Button, PageHeader, Panel, StatCard } from "../../design/components";
 
 const usdCompact = new Intl.NumberFormat("en-US", {
   currency: "USD",
@@ -45,6 +59,11 @@ const streamRateLabels: Record<StreamRate, string> = {
 const tapeCanvasCssHeight = 620;
 const tapeCanvasStyle = { height: tapeCanvasCssHeight } satisfies React.CSSProperties;
 const elevatedExceptionRate = 0.05;
+const pressureClassNames = {
+  nominal: "text-emerald-300",
+  watch: "text-amber-300",
+  strained: "text-rose-300",
+} as const;
 
 export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
@@ -53,54 +72,135 @@ export function OpsRoute() {
     <div className="space-y-5">
       <PageHeader eyebrow="God Mode" title="Operations control plane" />
 
-      <Panel className="overflow-hidden p-0">
-        <div className="border-b border-white/[0.075] bg-black/20 px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-                Balance Sheet Tape
-              </p>
-              <p className="mt-1 text-sm text-white">Global debit and credit movement stream</p>
-            </div>
+      <OpsTopBand snapshot={snapshot} />
 
-            <div className="text-right text-xs text-bankops-muted">
-              <span>SettlementStream seq {snapshot.seq}</span>
-              <br />
-              <span
-                className={statusClassNames[snapshot.connectionStatus]}
-                data-testid="ops-connection-status"
-              >
-                {statusLabels[snapshot.connectionStatus]}
-              </span>
-            </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <Panel className="overflow-hidden p-0">
+          <div className="border-b border-white/[0.075] bg-black/20 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+              Balance Sheet Tape
+            </p>
+            <p className="mt-1 text-sm text-white">Global debit and credit movement stream</p>
           </div>
 
-          <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_auto] xl:items-end">
-            <RendererMetrics snapshot={snapshot} />
+          <BalanceSheetTape
+            attachTapeCanvas={attachTapeCanvas}
+            resizeTapeCanvas={resizeTapeCanvas}
+          />
+        </Panel>
 
-            <div className="flex items-center justify-between gap-3 xl:justify-end">
-              <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
-              <div className="flex gap-2">
-                {STREAM_RATES.map((streamRate) => (
-                  <Button
-                    className="min-h-8 px-3 text-xs"
-                    key={streamRate}
-                    onClick={() => setStreamRate(streamRate)}
-                    variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
-                  >
-                    {streamRateLabels[streamRate]}
-                  </Button>
-                ))}
-              </div>
+        <OpsSideRail setStreamRate={setStreamRate} snapshot={snapshot} />
+      </div>
+
+      <OpsBottomBand snapshot={snapshot} />
+      <RailBucketHeatmap cells={snapshot.railBucketHeatmap} />
+    </div>
+  );
+}
+
+function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
+  const worstRail = mostSevereRail(snapshot.railHealth);
+
+  return (
+    <section className="grid gap-3 xl:grid-cols-6">
+      <StatCard icon={Activity} label="Event rate" value={`${formatCount(snapshot.eventRate)}/s`} />
+      <StatCard
+        icon={BanknoteArrowUp}
+        label="Credits"
+        value={formatMinorString(snapshot.cumulativeCreditsMinor)}
+      />
+      <StatCard
+        icon={BanknoteArrowDown}
+        label="Debits"
+        value={formatMinorString(snapshot.cumulativeDebitsMinor)}
+      />
+      <StatCard
+        icon={Wallet}
+        label="Liquidity"
+        value={formatMinorString(snapshot.liquidityReserveMinor)}
+      />
+      <StatCard
+        icon={ShieldAlert}
+        label="Exception queue"
+        value={formatCount(snapshot.exceptionQueueDepth)}
+      />
+      <StatCard
+        icon={RadioTower}
+        label="Rail health"
+        value={worstRail === undefined ? "Waiting" : railStatusLabel(worstRail)}
+      />
+    </section>
+  );
+}
+
+function OpsSideRail({
+  setStreamRate,
+  snapshot,
+}: {
+  setStreamRate: (streamRate: StreamRate) => void;
+  snapshot: OpsStreamSnapshot;
+}) {
+  const pressure = streamPressure(snapshot);
+
+  return (
+    <aside className="space-y-4">
+      <Panel title="Stream Control">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-bankops-muted">Connection</span>
+            <span
+              className={statusClassNames[snapshot.connectionStatus]}
+              data-testid="ops-connection-status"
+            >
+              {statusLabels[snapshot.connectionStatus]}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-bankops-muted">SettlementStream</span>
+            <span className="text-xs font-medium text-white">seq {snapshot.seq}</span>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-bankops-muted">Stream rate</p>
+            <div className="grid grid-cols-2 gap-2">
+              {STREAM_RATES.map((streamRate) => (
+                <Button
+                  className="min-h-8 px-3 text-xs"
+                  key={streamRate}
+                  onClick={() => setStreamRate(streamRate)}
+                  variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
+                >
+                  {streamRateLabels[streamRate]}
+                </Button>
+              ))}
             </div>
           </div>
         </div>
-
-        <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} resizeTapeCanvas={resizeTapeCanvas} />
       </Panel>
 
-      <RailBucketHeatmap cells={snapshot.railBucketHeatmap} />
-    </div>
+      <Panel title="Performance HUD">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 border-b border-white/[0.075] pb-3">
+            <span className="inline-flex items-center gap-2 text-xs text-bankops-muted">
+              <Gauge aria-hidden="true" className="size-4" />
+              Stream pressure
+            </span>
+            <span
+              className={`text-xs font-semibold ${pressureClassNames[pressure.level]}`}
+              data-testid="ops-stream-pressure"
+            >
+              {pressure.label}
+            </span>
+          </div>
+          <RendererMetrics snapshot={snapshot} />
+        </div>
+      </Panel>
+
+      <Panel title="Rail Health">
+        <RailHealthList rails={snapshot.railHealth} />
+      </Panel>
+    </aside>
   );
 }
 
@@ -187,7 +287,7 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   ];
 
   return (
-    <div className="grid grid-cols-6 gap-2 text-[11px]">
+    <div className="grid grid-cols-2 gap-2 text-[11px]">
       {metrics.map(([label, value]) => (
         <div
           className="border border-white/[0.06] bg-white/[0.025] px-2 py-1"
@@ -199,6 +299,171 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
+  if (rails.length === 0) {
+    return <p className="text-xs text-bankops-muted">Waiting for rail telemetry.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {rails.map((rail) => (
+        <div
+          className="grid grid-cols-[1fr_auto] gap-3 border-b border-white/[0.055] pb-2 last:border-0 last:pb-0"
+          key={rail.rail}
+        >
+          <div>
+            <p className="text-xs font-medium text-white">{railLabel(rail.rail)}</p>
+            <p className="mt-0.5 text-[11px] text-bankops-muted">
+              {formatCount(rail.eventsPerSec)}/s · p95 {formatLatency(rail.p95LatencyMs)}
+            </p>
+          </div>
+          <span className={`text-[11px] font-semibold ${railHealthClassName(rail.status)}`}>
+            {rail.status}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
+  return (
+    <section className="grid gap-4 xl:grid-cols-5">
+      <SparklinePanel
+        icon={Activity}
+        label="Throughput"
+        value={`${formatCount(snapshot.eventRate)}/s`}
+        points={snapshot.chart}
+        valueForPoint={(point) => point.eventRate}
+      />
+      <SparklinePanel
+        icon={Timer}
+        label="P95 latency"
+        value={formatLatency(lastChartPoint(snapshot.chart)?.latencyP95Ms ?? 0)}
+        points={snapshot.chart}
+        valueForPoint={(point) => point.latencyP95Ms}
+      />
+      <SparklinePanel
+        icon={AlertTriangle}
+        label="Failure rate"
+        value={formatPercent(lastChartPoint(snapshot.chart)?.failureRate ?? 0)}
+        points={snapshot.chart}
+        valueForPoint={(point) => point.failureRate}
+      />
+      <SparklinePanel
+        icon={ShieldAlert}
+        label="Queue depth"
+        value={formatCount(snapshot.exceptionQueueDepth)}
+        points={snapshot.chart}
+        valueForPoint={(point) => point.exceptionQueueDepth}
+      />
+      <BucketTotalsPanel bucketTotals={snapshot.bucketTotals} />
+    </section>
+  );
+}
+
+function SparklinePanel({
+  icon: Icon,
+  label,
+  points,
+  value,
+  valueForPoint,
+}: {
+  icon: React.ComponentType<{ "aria-hidden": true; className: string }>;
+  label: string;
+  points: OpsChartPoint[];
+  value: string;
+  valueForPoint: (point: OpsChartPoint) => number;
+}) {
+  const values = points.map(valueForPoint);
+
+  return (
+    <Panel className="p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
+            <Icon aria-hidden={true} className="size-3.5" />
+            {label}
+          </p>
+          <p className="mt-2 text-lg font-semibold leading-none text-white">{value}</p>
+        </div>
+      </div>
+      <Sparkline values={values} />
+    </Panel>
+  );
+}
+
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) {
+    return (
+      <div className="mt-3 flex h-12 items-center border border-white/[0.055] bg-white/[0.018] px-3 text-xs text-bankops-muted">
+        Waiting for samples
+      </div>
+    );
+  }
+
+  const width = 160;
+  const height = 48;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const path = values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / span) * (height - 8) - 4;
+
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  return (
+    <svg
+      aria-hidden="true"
+      className="mt-3 h-12 w-full border border-white/[0.055] bg-white/[0.018]"
+      preserveAspectRatio="none"
+      viewBox={`0 0 ${width} ${height}`}
+    >
+      <polyline
+        fill="none"
+        points={path}
+        stroke="#86efac"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function BucketTotalsPanel({ bucketTotals }: { bucketTotals: Record<string, string> }) {
+  const buckets = BALANCE_SHEET_BUCKETS.map((bucket) => ({
+    bucket,
+    value: Number.parseFloat(bucketTotals[bucket] ?? "0"),
+  }));
+  const max = Math.max(1, ...buckets.map(({ value }) => Math.abs(value)));
+
+  return (
+    <Panel className="p-3">
+      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
+        <Landmark aria-hidden="true" className="size-3.5" />
+        Bucket totals
+      </p>
+      <div className="mt-3 space-y-1.5">
+        {buckets.map(({ bucket, value }) => (
+          <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2" key={bucket}>
+            <span className="truncate text-[11px] text-bankops-muted">{bucketLabel(bucket)}</span>
+            <span className="h-2 bg-white/[0.045]">
+              <span
+                className={`block h-full ${value >= 0 ? "bg-emerald-300/75" : "bg-rose-300/75"}`}
+                style={{ width: `${Math.max(2, (Math.abs(value) / max) * 100)}%` }}
+              />
+            </span>
+          </div>
+        ))}
+      </div>
+    </Panel>
   );
 }
 
@@ -400,6 +665,18 @@ function formatMinorUsdNumber(value: number) {
   return usdCompact.format(value / 100);
 }
 
+function formatMinorString(value: string) {
+  return formatMinorUsdNumber(Number.parseFloat(value));
+}
+
+function formatCount(value: number) {
+  return Math.round(value).toLocaleString("en-US");
+}
+
+function formatLatency(value: number) {
+  return `${Math.round(value).toLocaleString("en-US")}ms`;
+}
+
 function formatHeatmapRate(value: number) {
   if (value > 0 && value < 10) {
     return value.toFixed(1);
@@ -410,6 +687,76 @@ function formatHeatmapRate(value: number) {
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
+}
+
+function lastChartPoint(points: OpsChartPoint[]) {
+  return points.at(-1);
+}
+
+function mostSevereRail(rails: RailHealthSnapshot[]) {
+  return rails.reduce<RailHealthSnapshot | undefined>((current, rail) => {
+    if (current === undefined || railSeverity(rail.status) > railSeverity(current.status)) {
+      return rail;
+    }
+
+    return current;
+  }, undefined);
+}
+
+function railSeverity(status: RailHealthSnapshot["status"]) {
+  switch (status) {
+    case "incident":
+      return 2;
+    case "degraded":
+      return 1;
+    case "nominal":
+      return 0;
+  }
+
+  return 0;
+}
+
+function railStatusLabel(rail: RailHealthSnapshot) {
+  return `${railLabel(rail.rail)} ${rail.status}`;
+}
+
+function railHealthClassName(status: RailHealthSnapshot["status"]) {
+  switch (status) {
+    case "incident":
+      return "text-rose-300";
+    case "degraded":
+      return "text-amber-300";
+    case "nominal":
+      return "text-emerald-300";
+  }
+
+  return "text-bankops-muted";
+}
+
+function streamPressure(snapshot: OpsStreamSnapshot): {
+  label: string;
+  level: keyof typeof pressureClassNames;
+} {
+  const { renderer } = snapshot;
+
+  if (snapshot.connectionStatus === "connecting" || snapshot.connectionStatus === "reconnecting") {
+    return { label: "Watch", level: "watch" };
+  }
+
+  if (snapshot.connectionStatus === "degraded" || renderer.fps < 35 || renderer.frameCostMs > 18) {
+    return { label: "Strained", level: "strained" };
+  }
+
+  if (
+    renderer.fps < 55 ||
+    renderer.frameCostMs > 10 ||
+    renderer.sequenceLag > Math.max(250, snapshot.eventRate * 0.25) ||
+    renderer.backlog > 0
+  ) {
+    return { label: "Watch", level: "watch" };
+  }
+
+  return { label: "Nominal", level: "nominal" };
 }
 
 function railLabel(rail: Rail) {

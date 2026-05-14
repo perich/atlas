@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OpsRoute } from "../routes/OpsRoute";
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
+  type OpsStreamSnapshot,
   type OpsWorkerCommand,
   type OpsWorkerMessage,
 } from "./ops-stream-messages";
@@ -147,17 +148,20 @@ describe("OpsRoute", () => {
 
     act(() => {
       worker.emit({
-        snapshot: {
-          ...INITIAL_OPS_STREAM_SNAPSHOT,
+        snapshot: opsSnapshot({
           connectionStatus: "open",
+          eventRate: 2_000,
           seq: "84",
-        },
+        }),
         type: "snapshot",
       });
     });
 
     expect(host?.textContent).toContain("Open");
-    expect(host?.textContent).toContain("SettlementStream seq 84");
+    expect(host?.textContent).toContain("SettlementStream");
+    expect(host?.textContent).toContain("seq 84");
+    expect(host?.textContent).toContain("2,000/s");
+    expect(host?.textContent).toContain("$8.1B");
 
     const stressButton = findButton("10k/s");
 
@@ -166,6 +170,38 @@ describe("OpsRoute", () => {
     });
 
     expect(worker.commands).toContainEqual({ type: "stream.rate.set", targetRate: 10_000 });
+  });
+
+  it("renders reconnecting and degraded stream states", () => {
+    act(() => root?.render(<OpsRoute />));
+
+    const worker = latestWorker();
+
+    act(() => {
+      worker.emit({
+        snapshot: opsSnapshot({
+          connectionStatus: "reconnecting",
+          renderer: { ...INITIAL_OPS_STREAM_SNAPSHOT.renderer, fps: 60 },
+        }),
+        type: "snapshot",
+      });
+    });
+
+    expect(host?.textContent).toContain("Reconnecting");
+    expect(host?.textContent).toContain("Watch");
+
+    act(() => {
+      worker.emit({
+        snapshot: opsSnapshot({
+          connectionStatus: "degraded",
+          renderer: { ...INITIAL_OPS_STREAM_SNAPSHOT.renderer, fps: 20, frameCostMs: 24 },
+        }),
+        type: "snapshot",
+      });
+    });
+
+    expect(host?.textContent).toContain("Backend unavailable");
+    expect(host?.textContent).toContain("Strained");
   });
 });
 
@@ -189,4 +225,84 @@ function findButton(text: string) {
   }
 
   return button;
+}
+
+function opsSnapshot(overrides: Partial<OpsStreamSnapshot>): OpsStreamSnapshot {
+  return {
+    ...INITIAL_OPS_STREAM_SNAPSHOT,
+    eventRate: 2_000,
+    cumulativeCreditsMinor: "812400000000",
+    cumulativeDebitsMinor: "621100000000",
+    liquidityReserveMinor: "250000000000",
+    exceptionQueueDepth: 12,
+    bucketTotals: {
+      customer_deposits: "180000000000",
+      exception_queue: "-1200000000",
+      fee_income: "140000000",
+      rail_clearing: "-7200000000",
+      reserve_cash: "50000000000",
+      settlement_cash: "82000000000",
+      stablecoin_treasury: "36000000000",
+    },
+    chart: [
+      {
+        creditMinor: "100000000",
+        debitMinor: "90000000",
+        eventCount: 20,
+        eventRate: 1_200,
+        exceptionQueueDepth: 8,
+        failureRate: 0.01,
+        latencyP95Ms: 140,
+        liquidityReserveMinor: "250000000000",
+        ts: 1,
+      },
+      {
+        creditMinor: "200000000",
+        debitMinor: "160000000",
+        eventCount: 40,
+        eventRate: 2_000,
+        exceptionQueueDepth: 12,
+        failureRate: 0.02,
+        latencyP95Ms: 220,
+        liquidityReserveMinor: "249000000000",
+        ts: 2,
+      },
+    ],
+    railHealth: [
+      {
+        averageLatencyMs: 180,
+        eventCount: 500,
+        eventsPerSec: 900,
+        failureRate: 0.01,
+        heldCount: 2,
+        lastEventTs: 2,
+        p95LatencyMs: 420,
+        pendingCount: 4,
+        rail: "ach",
+        status: "nominal",
+      },
+      {
+        averageLatencyMs: 900,
+        eventCount: 200,
+        eventsPerSec: 320,
+        failureRate: 0.03,
+        heldCount: 4,
+        lastEventTs: 2,
+        p95LatencyMs: 2_600,
+        pendingCount: 12,
+        rail: "wire",
+        status: "degraded",
+      },
+    ],
+    renderer: {
+      backlog: 0,
+      decodedRate: 2_000,
+      fps: 60,
+      frameCostMs: 4,
+      renderedRowRate: 2_000,
+      sequenceLag: 0,
+      supported: true,
+    },
+    ...overrides,
+  };
 }
