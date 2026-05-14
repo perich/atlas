@@ -14,6 +14,7 @@ type JsonAuditEntry = {
 
 type JsonAuditPage = {
   rows: JsonAuditEntry[];
+  offset: number;
   nextCursor?: string;
   prevCursor?: string;
   totalMatched: number;
@@ -88,6 +89,15 @@ describe("/api/audit", () => {
     expect(previous.rows.map((row) => row.id)).toEqual(firstIds);
   });
 
+  it("jumps directly to an offset for virtualized scrollbar seeks", async () => {
+    const page = await getAuditPage("/api/audit?limit=25&offset=500");
+
+    expect(page.rows).toHaveLength(25);
+    expect(page.offset).toBe(500);
+    expect(page.prevCursor).toEqual(expect.any(String));
+    expect(page.nextCursor).toEqual(expect.any(String));
+  });
+
   it("returns facets without audit rows", async () => {
     const page = await getAuditPage("/api/audit?limit=1&severity=critical&rail=stablecoin");
     const facets = await getAuditFacets("/api/audit/facets?severity=critical&rail=stablecoin");
@@ -137,7 +147,7 @@ function assertJsonAuditPage(value: unknown): asserts value is JsonAuditPage {
     throw new Error("Expected audit page rows");
   }
 
-  if (!("totalMatched" in value) || !("queryMs" in value)) {
+  if (!("offset" in value) || !("totalMatched" in value) || !("queryMs" in value)) {
     throw new Error("Expected audit page totals");
   }
 }

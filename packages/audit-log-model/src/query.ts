@@ -24,6 +24,7 @@ export function queryAuditEntries(entries: readonly AuditEntry[], query: AuditQu
 
   return {
     rows,
+    offset: start,
     nextCursor:
       start + query.limit < sorted.length && rows.length > 0
         ? encodeCursor(rows[rows.length - 1], sort)
@@ -90,6 +91,10 @@ function filterEntries(
 }
 
 function pageStart(entries: readonly AuditEntry[], query: AuditQuery, sort: AuditSort): number {
+  if (query.offset !== undefined) {
+    return Math.min(query.offset, entries.length);
+  }
+
   if (query.after !== undefined) {
     return cursorIndex(entries, query.after, sort) + 1;
   }

@@ -12,6 +12,7 @@ export type JsonAuditEntry = Omit<AuditEntry, "amountMinor" | "detail"> & {
 
 export type JsonAuditPage = {
   rows: JsonAuditEntry[];
+  offset: number;
   nextCursor?: string;
   prevCursor?: string;
   totalMatched: number;
@@ -32,6 +33,10 @@ export async function fetchAuditPage(input: {
 
   if (input.request.direction === "before") {
     params.set("before", input.request.cursor);
+  }
+
+  if (input.request.direction === "offset") {
+    params.set("offset", String(input.request.offset));
   }
 
   const response = await fetch(`/api/audit?${params.toString()}`, {
@@ -73,7 +78,7 @@ function assertAuditPage(value: unknown): asserts value is JsonAuditPage {
     throw new Error("Invalid audit page");
   }
 
-  if (!("totalMatched" in value) || !("queryMs" in value)) {
+  if (!("offset" in value) || !("totalMatched" in value) || !("queryMs" in value)) {
     throw new Error("Invalid audit page");
   }
 }
