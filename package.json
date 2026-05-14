@@ -9,6 +9,7 @@
     "dev:web": "pnpm --filter @bankops/web dev",
     "dev:server": "pnpm --filter @bankops/server dev",
     "build": "pnpm -r --if-present build",
+    "start": "pnpm --filter @bankops/server start",
     "preview:web": "pnpm --filter @bankops/web preview",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "oxlint --type-aware .",
