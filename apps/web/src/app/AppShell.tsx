@@ -52,7 +52,7 @@ export function AppShell() {
             </div>
           </header>
 
-          <main className="px-6 py-6">
+          <main className="p-6">
             <Outlet />
           </main>
         </div>
