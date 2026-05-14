@@ -224,7 +224,7 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
       {metrics.map(([label, value]) => (
         <div className="border border-white/[0.06] bg-white/[0.025] px-2 py-1" key={label}>
           <p className="uppercase text-bankops-muted">{label}</p>
-          <p className="font-mono text-white">{value}</p>
+          <p className="font-semibold text-white">{value}</p>
         </div>
       ))}
     </div>
@@ -233,34 +233,49 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
 
 function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
   const cellsByKey = new Map(cells.map((cell) => [heatmapKey(cell.rail, cell.bucket), cell]));
+  const hottestCell = cells.reduce<RailBucketHeatmapCell | undefined>((current, cell) => {
+    if (current === undefined || cell.intensity > current.intensity) {
+      return cell;
+    }
+
+    return current;
+  }, undefined);
 
   return (
     <Panel className="overflow-hidden p-0">
       <div className="border-b border-white/[0.075] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-            Live Flow Concentration
-          </p>
-          <HeatmapTooltip />
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+                Live Flow Concentration
+              </p>
+              <HeatmapTooltip />
+            </div>
+            <p className="mt-1 text-sm text-white">
+              Rolling 5s pressure across rails and balance-sheet buckets
+            </p>
+          </div>
+
+          <HeatmapSignalSummary cell={hottestCell} />
         </div>
-        <p className="mt-1 text-sm text-white">
-          Rolling 5s pressure across rails and balance-sheet buckets
-        </p>
+
+        <HeatmapLegend />
       </div>
 
       <div className="px-4 pb-4 pt-3">
         <div
-          className="grid overflow-hidden border border-white/[0.075] bg-white/[0.045]"
+          className="grid gap-px overflow-hidden border border-white/[0.075] bg-white/[0.065]"
           style={{
             gridTemplateColumns: `112px repeat(${BALANCE_SHEET_BUCKETS.length}, minmax(92px, 1fr))`,
           }}
         >
-          <div className="bg-[#101315] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
+          <div className="bg-[#101315] px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted">
             Rail
           </div>
           {BALANCE_SHEET_BUCKETS.map((bucket) => (
             <div
-              className="bg-[#101315] px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted"
+              className="bg-[#101315] px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-bankops-muted"
               key={bucket}
             >
               {bucketLabel(bucket)}
@@ -269,7 +284,7 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
 
           {RAILS.map((rail) => (
             <React.Fragment key={rail}>
-              <div className="border-t border-white/[0.055] bg-[#0c0e10] px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
+              <div className="bg-[#0c0e10] px-2.5 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
                 {railLabel(rail)}
               </div>
               {BALANCE_SHEET_BUCKETS.map((bucket) => (
@@ -283,6 +298,52 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
         </div>
       </div>
     </Panel>
+  );
+}
+
+function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefined }) {
+  if (cell === undefined || cell.intensity === 0) {
+    return (
+      <div className="hidden min-w-40 text-right text-xs text-bankops-muted xl:block">
+        Waiting for flow
+      </div>
+    );
+  }
+
+  return (
+    <div className="hidden min-w-56 text-right xl:block">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted">
+        Hottest flow
+      </p>
+      <p className="mt-1 text-sm font-medium text-white">
+        {railLabel(cell.rail)} / {bucketLabel(cell.bucket)}
+      </p>
+      <p className="mt-0.5 text-xs text-bankops-muted">
+        {formatMinorUsdNumber(cell.amountPerSecMinor)}/s · {dominanceLabel(cell)}
+      </p>
+    </div>
+  );
+}
+
+function HeatmapLegend() {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-bankops-muted">
+      <LegendItem color="rgba(34,197,94,0.9)" label="Credit-dominant" />
+      <LegendItem color="rgba(244,63,94,0.9)" label="Debit-dominant" />
+      <LegendItem color="rgba(251,191,36,0.95)" label="Pending / held / failed" />
+      <span className="ml-auto hidden text-[11px] text-bankops-muted/80 xl:inline">
+        Brighter cells carry more amount/sec within this 5s window.
+      </span>
+    </div>
+  );
+}
+
+function LegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="size-2.5 border border-white/15" style={{ backgroundColor: color }} />
+      {label}
+    </span>
   );
 }
 
@@ -309,40 +370,53 @@ function HeatmapTooltip() {
 }
 
 function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
-  const sideColor = cell.skew >= 0 ? "34,197,94" : "244,63,94";
-  const alpha = cell.intensity === 0 ? 0.018 : 0.045 + cell.intensity * 0.24;
-  const borderColor = cell.exceptionRate > 0 ? "rgba(251,191,36,0.34)" : "rgba(255,255,255,0.045)";
+  const isActive = cell.intensity > 0;
+  const sideRgb = cell.skew >= 0 ? "34,197,94" : "244,63,94";
+  const exceptionRing = cell.exceptionRate > 0 ? "inset 0 0 0 1px rgba(251,191,36,0.82)" : "none";
+  const sideAlpha = isActive ? 0.045 + cell.intensity * 0.2 : 0.018;
+  const sideTrack = isActive ? `${Math.max(4, cell.intensity * 100)}%` : "0%";
+  const amountLabel = isActive ? formatMinorUsdNumber(cell.amountPerSecMinor) : "$0";
+  const rateLabel = isActive ? `${formatHeatmapRate(cell.movementRate)}/s` : "0/s";
 
   return (
     <div
-      className="relative min-h-[58px] border-l border-t px-2 py-2"
+      className="relative min-h-[64px] bg-[#101315] px-2.5 py-2.5"
       style={{
-        background: `linear-gradient(90deg, rgba(${sideColor},${alpha}) 0%, rgba(${sideColor},${Math.max(0.012, alpha * 0.24)}) 54%, rgba(9,10,11,0.74) 100%)`,
-        borderColor,
+        background: `linear-gradient(135deg, rgba(${sideRgb},${sideAlpha}) 0%, rgba(${sideRgb},${Math.max(0.012, sideAlpha * 0.18)}) 46%, rgba(16,19,21,0.96) 100%)`,
+        boxShadow: exceptionRing,
       }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-mono text-[11px] font-semibold text-white">
-          {formatMinorUsdNumber(cell.amountPerSecMinor)}
+      <div className="flex items-start justify-between gap-2 text-xs">
+        <span className={isActive ? "font-semibold text-white" : "font-medium text-bankops-muted"}>
+          {amountLabel}
         </span>
-        <span className="font-mono text-[10px] text-bankops-muted">
-          {formatHeatmapRate(cell.movementRate)}/s
-        </span>
+        <span className="text-bankops-muted">{rateLabel}</span>
       </div>
-      <div className="mt-2 h-1 overflow-hidden bg-black/35">
+
+      <div className="mt-3 h-1.5 overflow-hidden bg-black/35">
         <div
           className="h-full"
           style={{
-            backgroundColor: `rgba(${sideColor},0.82)`,
-            width: `${Math.max(3, cell.intensity * 100)}%`,
+            backgroundColor: `rgba(${sideRgb},0.92)`,
+            width: sideTrack,
           }}
         />
       </div>
-      {cell.exceptionRate > 0 ? (
-        <div className="absolute bottom-1 right-2 font-mono text-[9px] text-amber-300">
-          {(cell.exceptionRate * 100).toFixed(0)}%
+
+      {isActive ? (
+        <div className="mt-2 flex items-center justify-between gap-2 text-[10px]">
+          <span className="text-bankops-muted">{dominanceLabel(cell)}</span>
+          {cell.exceptionRate > 0 ? (
+            <span className="font-medium text-amber-300">
+              {formatPercent(cell.exceptionRate)} exception
+            </span>
+          ) : (
+            <span className="text-bankops-muted/60">normal</span>
+          )}
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-2 text-[10px] text-bankops-muted/45">No flow</div>
+      )}
     </div>
   );
 }
@@ -384,6 +458,18 @@ function formatHeatmapRate(value: number) {
   }
 
   return Math.round(value).toString();
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function dominanceLabel(cell: RailBucketHeatmapCell) {
+  if (cell.intensity === 0) {
+    return "no flow";
+  }
+
+  return cell.skew >= 0 ? "credit flow" : "debit flow";
 }
 
 function railLabel(rail: Rail) {
