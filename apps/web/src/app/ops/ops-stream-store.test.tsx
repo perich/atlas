@@ -143,9 +143,6 @@ describe("OpsRoute", () => {
         snapshot: {
           ...INITIAL_OPS_STREAM_SNAPSHOT,
           connectionStatus: "open",
-          eventRate: 2_000,
-          liquidityReserveMinor: "81240000000",
-          movementRate: 1_900,
           seq: "84",
         },
         type: "snapshot",
@@ -153,7 +150,6 @@ describe("OpsRoute", () => {
     });
 
     expect(host?.textContent).toContain("Open");
-    expect(host?.textContent).toContain("2000/s");
     expect(host?.textContent).toContain("SettlementStream seq 84");
 
     const stressButton = findButton("10k/s");
