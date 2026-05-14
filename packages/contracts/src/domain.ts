@@ -54,7 +54,9 @@ export const MOVEMENT_STATUSES = [
 
 export type MovementStatus = (typeof MOVEMENT_STATUSES)[number];
 
-export type RiskTier = 0 | 1 | 2 | 3;
+export const RISK_TIERS = [0, 1, 2, 3] as const;
+
+export type RiskTier = (typeof RISK_TIERS)[number];
 
 export type BalanceSheetMovement = {
   seq: bigint;
