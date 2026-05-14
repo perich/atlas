@@ -66,7 +66,10 @@ export function OpsRoute() {
             <div className="text-right text-xs text-bankops-muted">
               <span>SettlementStream seq {snapshot.seq}</span>
               <br />
-              <span className={statusClassNames[snapshot.connectionStatus]}>
+              <span
+                className={statusClassNames[snapshot.connectionStatus]}
+                data-testid="ops-connection-status"
+              >
                 {statusLabels[snapshot.connectionStatus]}
               </span>
             </div>
@@ -186,7 +189,11 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   return (
     <div className="grid grid-cols-6 gap-2 text-[11px]">
       {metrics.map(([label, value]) => (
-        <div className="border border-white/[0.06] bg-white/[0.025] px-2 py-1" key={label}>
+        <div
+          className="border border-white/[0.06] bg-white/[0.025] px-2 py-1"
+          data-testid={`renderer-metric-${label.replaceAll(" ", "-")}`}
+          key={label}
+        >
           <p className="uppercase text-bankops-muted">{label}</p>
           <p className="font-semibold text-white">{value}</p>
         </div>
