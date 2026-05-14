@@ -1,6 +1,7 @@
 import {
   ASSETS,
   RAILS,
+  RISK_TIERS,
   type Asset,
   type AuditEntry,
   type AuditEntryKind,
@@ -175,7 +176,6 @@ const PROFILES: readonly AuditProfile[] = [
   },
 ];
 
-const RISK_TIERS = [0, 1, 2, 3] as const;
 const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
   payment: (context) => ({
     paymentId: `pay_${context.index.toString(36)}`,

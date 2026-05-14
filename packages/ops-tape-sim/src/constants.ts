@@ -1,10 +1,11 @@
-import type {
-  Asset,
-  BalanceSheetBucket,
-  MovementKind,
-  MovementSide,
-  MovementStatus,
-  Rail,
+import {
+  RISK_TIERS,
+  type Asset,
+  type BalanceSheetBucket,
+  type MovementKind,
+  type MovementSide,
+  type MovementStatus,
+  type Rail,
 } from "@bankops/contracts";
 
 export type CustomerIndustry =
@@ -70,7 +71,7 @@ export const ACCOUNT_LABELS = [
   "settlement",
 ] as const;
 
-export const RISK_TIERS = [0, 1, 2, 3] as const;
+export { RISK_TIERS };
 
 export const MOVEMENT_PROFILES: readonly MovementProfile[] = [
   {
