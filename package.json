@@ -34,7 +34,7 @@
     "typescript": "6.0.3"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,jsonc,css,md,mdx}": "oxfmt --write"
+    "*.{js,jsx,ts,tsx,json,jsonc,css,md,mdx}": "oxfmt --write --no-error-on-unmatched-pattern"
   },
   "engines": {
     "node": ">=22.13"
