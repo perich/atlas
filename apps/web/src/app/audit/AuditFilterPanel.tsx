@@ -134,7 +134,7 @@ function FilterSelect<T extends string>({
   const select = (
     <select
       className="h-8 min-w-28 appearance-none rounded-md border border-white/[0.08] bg-[#1a1c1f] px-3 font-mono text-xs normal-case tracking-normal text-bankops-text outline-none transition-colors focus:ring-1 focus:ring-white/20"
-      onChange={(event) => onChange(event.currentTarget.value as T)}
+      onChange={(event) => onChange(options[event.currentTarget.selectedIndex].value)}
       value={value}
     >
       {options.map((option) => (
