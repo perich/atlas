@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OpsRoute } from "../routes/OpsRoute";
+import { TooltipProvider } from "../../design/components";
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
   type OpsStreamSnapshot,
@@ -140,7 +141,7 @@ describe("OpsRoute", () => {
   });
 
   it("renders worker snapshots and sends stream-rate commands", () => {
-    act(() => root?.render(<OpsRoute />));
+    renderOpsRoute(root);
 
     const worker = latestWorker();
 
@@ -173,7 +174,7 @@ describe("OpsRoute", () => {
   });
 
   it("renders reconnecting and degraded stream states", () => {
-    act(() => root?.render(<OpsRoute />));
+    renderOpsRoute(root);
 
     const worker = latestWorker();
 
@@ -225,6 +226,16 @@ function findButton(text: string) {
   }
 
   return button;
+}
+
+function renderOpsRoute(root: Root | undefined) {
+  act(() => {
+    root?.render(
+      <TooltipProvider delayDuration={0}>
+        <OpsRoute />
+      </TooltipProvider>,
+    );
+  });
 }
 
 function opsSnapshot(overrides: Partial<OpsStreamSnapshot>): OpsStreamSnapshot {
