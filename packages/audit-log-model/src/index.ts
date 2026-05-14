@@ -9,6 +9,8 @@ import {
   type RiskTier,
 } from "@bankops/contracts";
 
+import { randomInt, type RandomState } from "./random.js";
+
 export const DEFAULT_AUDIT_ENTRY_COUNT = 100_000;
 export const AUDIT_LOG_TARGET_COUNT = 250_000;
 
@@ -56,10 +58,6 @@ type AuditProfile = {
   severity: AuditSeverity;
 };
 
-type RandomState = {
-  value: number;
-};
-
 type AuditContext = {
   index: number;
   profile: AuditProfile;
@@ -70,6 +68,9 @@ type AuditContext = {
   customerId: string;
   accountId: string;
 };
+
+type DetailBuilder = (context: AuditContext) => Record<string, unknown>;
+type SubjectIdBuilder = (context: AuditContext) => string;
 
 const PROFILES: readonly AuditProfile[] = [
   {
@@ -171,6 +172,80 @@ const PROFILES: readonly AuditProfile[] = [
 ];
 
 const RISK_TIERS = [0, 1, 2, 3] as const;
+const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
+  payment: (context) => ({
+    paymentId: `pay_${context.index.toString(36)}`,
+    amountMinor: context.amountMinor,
+    rail: context.rail,
+    asset: context.asset,
+    direction: context.index % 2 === 0 ? "inbound" : "outbound",
+  }),
+  journal: (context) => ({
+    journalId: `jrnl_${context.index.toString(36)}`,
+    debitLineCount: 2 + (context.index % 3),
+    creditLineCount: 2 + ((context.index + 1) % 3),
+    balanced: context.index % FAILED_ENTRY_INTERVAL !== 0,
+  }),
+  settlement: (context) => ({
+    settlementBatchId: `set_${Math.floor(context.index / SETTLEMENT_BATCH_SIZE).toString(36)}`,
+    finality: context.rail === "stablecoin" ? "onchain_confirmed" : "rail_acknowledged",
+    observedBlock:
+      context.rail === "stablecoin" ? STABLECOIN_START_BLOCK + context.index : undefined,
+  }),
+  reconciliation: (context) => ({
+    reconciliationRunId: `rec_${Math.floor(context.index / RECONCILIATION_RUN_SIZE).toString(36)}`,
+    matchedCount: 40 + (context.index % 600),
+    unmatchedCount: context.index % 17,
+  }),
+  risk: (context) => ({
+    riskTier: context.riskTier,
+    ruleId: `risk_rule_${context.index % RISK_RULE_COUNT}`,
+    reviewReason: context.index % 2 === 0 ? "velocity_spike" : "counterparty_watch",
+  }),
+  liquidity: (context) => ({
+    reserveTargetMinor: RESERVE_TARGET_MINOR,
+    reserveAfterMinor:
+      RESERVE_TARGET_MINOR + BigInt((context.index % CUTOFF_BATCH_SIZE) * RESERVE_STEP_MINOR),
+    stressScenario: context.index % 3 === 0 ? "startup_outflow" : "normal",
+  }),
+  rail_health: (context) => ({
+    rail: context.rail,
+    p95LatencyMs: 250 + (context.index % 4_000),
+    errorRateBps: context.index % 250,
+  }),
+  cutoff: (context) => ({
+    cutoffId: `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`,
+    effectiveTs: BASE_TS_MS - DAY_MS,
+    quarantineMode: context.index % 2 === 0,
+  }),
+  configuration: (context) => {
+    const config = context.index % 2 === 0 ? STABLECOIN_DAILY_LIMIT : WIRE_APPROVAL_THRESHOLD;
+
+    return {
+      configKey: config.key,
+      previousValue: config.previousValue,
+      nextValue: config.nextValue,
+    };
+  },
+  operator_action: (context) => ({
+    operatorId: `op_${(context.index % OPERATOR_COUNT).toString(36).padStart(3, "0")}`,
+    workspaceAction: context.index % 2 === 0 ? "saved_view.created" : "incident_note.added",
+    reasonCode: "operator_context",
+  }),
+};
+const SUBJECT_ID_BY_TYPE: Record<AuditSubjectType, SubjectIdBuilder> = {
+  payment: (context) => `pay_${context.index.toString(36)}`,
+  journal: (context) => `jrnl_${context.index.toString(36)}`,
+  customer: (context) => context.customerId,
+  account: (context) => context.accountId,
+  rail: (context) => context.rail,
+  settlement: (context) => `set_${Math.floor(context.index / SETTLEMENT_BATCH_SIZE).toString(36)}`,
+  exception: (context) => `exc_${context.index.toString(36)}`,
+  configuration: (context) =>
+    context.index % 2 === 0 ? STABLECOIN_DAILY_LIMIT.key : WIRE_APPROVAL_THRESHOLD.key,
+  cutoff: (context) => `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`,
+  operator: (context) => `op_${(context.index % OPERATOR_COUNT).toString(36).padStart(3, "0")}`,
+};
 
 let defaultAuditEntries: AuditEntry[] | undefined;
 
@@ -205,7 +280,7 @@ function createAuditEntry(index: number, random: RandomState): AuditEntry {
     asset,
     customerId,
     accountId,
-    detail: detailFor(context),
+    detail: DETAIL_BY_KIND[profile.kind](context),
     id: `aud_${index.toString(36).padStart(8, "0")}`,
     idempotencyKey: idempotencyKeyFor(profile.kind, index, customerNumber),
     kind: profile.kind,
@@ -213,7 +288,7 @@ function createAuditEntry(index: number, random: RandomState): AuditEntry {
     riskTier,
     severity: severityFor(profile, index),
     status: statusFor(profile, index),
-    subjectId: subjectIdFor(context),
+    subjectId: SUBJECT_ID_BY_TYPE[profile.subjectType](context),
     subjectType: profile.subjectType,
     summary: `${profile.action} on ${rail} for ${customerId}`,
     traceId,
@@ -266,109 +341,6 @@ function statusFor(profile: AuditProfile, index: number): AuditStatus {
   return profile.status;
 }
 
-function detailFor(context: AuditContext): Record<string, unknown> {
-  switch (context.profile.kind) {
-    case "payment":
-      return {
-        paymentId: `pay_${context.index.toString(36)}`,
-        amountMinor: context.amountMinor,
-        rail: context.rail,
-        asset: context.asset,
-        direction: context.index % 2 === 0 ? "inbound" : "outbound",
-      };
-    case "journal":
-      return {
-        journalId: `jrnl_${context.index.toString(36)}`,
-        debitLineCount: 2 + (context.index % 3),
-        creditLineCount: 2 + ((context.index + 1) % 3),
-        balanced: context.index % FAILED_ENTRY_INTERVAL !== 0,
-      };
-    case "settlement":
-      return {
-        settlementBatchId: `set_${Math.floor(context.index / SETTLEMENT_BATCH_SIZE).toString(36)}`,
-        finality: context.rail === "stablecoin" ? "onchain_confirmed" : "rail_acknowledged",
-        observedBlock:
-          context.rail === "stablecoin" ? STABLECOIN_START_BLOCK + context.index : undefined,
-      };
-    case "reconciliation":
-      return {
-        reconciliationRunId: `rec_${Math.floor(context.index / RECONCILIATION_RUN_SIZE).toString(
-          36,
-        )}`,
-        matchedCount: 40 + (context.index % 600),
-        unmatchedCount: context.index % 17,
-      };
-    case "risk":
-      return {
-        riskTier: context.riskTier,
-        ruleId: `risk_rule_${context.index % RISK_RULE_COUNT}`,
-        reviewReason: context.index % 2 === 0 ? "velocity_spike" : "counterparty_watch",
-      };
-    case "liquidity":
-      return {
-        reserveTargetMinor: RESERVE_TARGET_MINOR,
-        reserveAfterMinor:
-          RESERVE_TARGET_MINOR + BigInt((context.index % CUTOFF_BATCH_SIZE) * RESERVE_STEP_MINOR),
-        stressScenario: context.index % 3 === 0 ? "startup_outflow" : "normal",
-      };
-    case "rail_health":
-      return {
-        rail: context.rail,
-        p95LatencyMs: 250 + (context.index % 4_000),
-        errorRateBps: context.index % 250,
-      };
-    case "cutoff":
-      return {
-        cutoffId: `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`,
-        effectiveTs: BASE_TS_MS - DAY_MS,
-        quarantineMode: context.index % 2 === 0,
-      };
-    case "configuration":
-      const config = context.index % 2 === 0 ? STABLECOIN_DAILY_LIMIT : WIRE_APPROVAL_THRESHOLD;
-
-      return {
-        configKey: config.key,
-        previousValue: config.previousValue,
-        nextValue: config.nextValue,
-      };
-    case "operator_action":
-      return {
-        operatorId: `op_${(context.index % OPERATOR_COUNT).toString(36).padStart(3, "0")}`,
-        workspaceAction: context.index % 2 === 0 ? "saved_view.created" : "incident_note.added",
-        reasonCode: "operator_context",
-      };
-  }
-
-  return assertNever(context.profile.kind);
-}
-
-function subjectIdFor(context: AuditContext): string {
-  switch (context.profile.subjectType) {
-    case "payment":
-      return `pay_${context.index.toString(36)}`;
-    case "journal":
-      return `jrnl_${context.index.toString(36)}`;
-    case "customer":
-      return context.customerId;
-    case "account":
-      return context.accountId;
-    case "rail":
-      return context.rail;
-    case "settlement":
-      return `set_${Math.floor(context.index / SETTLEMENT_BATCH_SIZE).toString(36)}`;
-    case "exception":
-      return `exc_${context.index.toString(36)}`;
-    case "configuration":
-      return context.index % 2 === 0 ? STABLECOIN_DAILY_LIMIT.key : WIRE_APPROVAL_THRESHOLD.key;
-    case "cutoff":
-      return `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`;
-    case "operator":
-      return `op_${(context.index % OPERATOR_COUNT).toString(36).padStart(3, "0")}`;
-  }
-
-  return assertNever(context.profile.subjectType);
-}
-
 function idempotencyKeyFor(
   kind: AuditEntryKind,
   index: number,
@@ -391,13 +363,4 @@ function accountIdFor(accountNumber: number): string {
 
 function traceIdFor(index: number, customerNumber: number): string {
   return `tr_${index.toString(36).padStart(8, "0")}_${customerNumber.toString(36)}`;
-}
-
-function randomInt(state: RandomState, min: number, max: number): number {
-  state.value = (state.value * 1_664_525 + 1_013_904_223) >>> 0;
-  return min + (state.value % (max - min + 1));
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unexpected audit value: ${String(value)}`);
 }
