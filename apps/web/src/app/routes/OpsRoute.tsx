@@ -150,7 +150,7 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
     ["backlog", snapshot.renderer.backlog.toString()],
     ["lag", snapshot.renderer.sequenceLag.toString()],
     ["decoded", `${snapshot.renderer.decodedRate}/s`],
-    ["rendered", `${snapshot.renderer.renderedRowRate}/s`],
+    ["new rows", `${snapshot.renderer.renderedRowRate}/s`],
   ];
 
   return (
