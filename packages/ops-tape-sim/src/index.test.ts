@@ -57,6 +57,35 @@ describe("OpsTapeSimulator", () => {
     expect(amountSignMatchesSide(movement)).toBe(true);
   });
 
+  it("covers plausible modern bank rail and bucket lanes", () => {
+    const simulator = createOpsTapeSimulator();
+    const movements: SimulatedBalanceSheetMovement[] = [];
+
+    for (let tick = 0; tick < OPS_TAPE_TICK_HZ; tick += 1) {
+      movements.push(...simulator.nextBatch(10_000, tickTs(tick)).movements);
+    }
+
+    const pairs = new Set(movements.map(movementPair));
+
+    expect(pairs.size).toBeGreaterThanOrEqual(24);
+    expect([...pairs]).toEqual(
+      expect.arrayContaining([
+        "ach:customer_deposits",
+        "ach:settlement_cash",
+        "ach:exception_queue",
+        "wire:customer_deposits",
+        "wire:rail_clearing",
+        "stablecoin:customer_deposits",
+        "stablecoin:rail_clearing",
+        "stablecoin:exception_queue",
+        "internal_ledger:settlement_cash",
+        "internal_ledger:stablecoin_treasury",
+        "card:settlement_cash",
+        "card:exception_queue",
+      ]),
+    );
+  });
+
   it("keeps aggregate counters consistent with emitted movements", () => {
     const simulator = createOpsTapeSimulator();
     const movements: SimulatedBalanceSheetMovement[] = [];
@@ -91,6 +120,10 @@ function tickTs(tick: number): number {
 
 function abs(value: bigint): bigint {
   return value < 0n ? -value : value;
+}
+
+function movementPair(movement: SimulatedBalanceSheetMovement): string {
+  return `${movement.rail}:${movement.bucket}`;
 }
 
 function amountSignMatchesSide(movement: SimulatedBalanceSheetMovement): boolean {
