@@ -62,6 +62,7 @@ export function createOpsStreamStore(createWorker: () => Worker) {
 }
 
 export const opsStreamStore = createOpsStreamStore(
+  // Standard Vite worker bundling pattern: resolve the worker relative to this module.
   () => new Worker(new URL("./ops-stream.worker.ts", import.meta.url), { type: "module" }),
 );
 
