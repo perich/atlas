@@ -65,6 +65,17 @@ export function Panel({
   );
 }
 
+export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <header className="border-b border-white/[0.075] pb-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-bankops-muted">
+        {eyebrow}
+      </p>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">{title}</h1>
+    </header>
+  );
+}
+
 export function StatCard({
   icon: Icon,
   label,
