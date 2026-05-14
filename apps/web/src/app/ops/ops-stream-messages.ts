@@ -11,8 +11,40 @@ export type OpsStreamSnapshot = {
   connectionStatus: OpsConnectionStatus;
   streamRate: StreamRate;
   seq: string;
+  eventRate: number;
+  cumulativeCreditsMinor: string;
+  cumulativeDebitsMinor: string;
+  liquidityReserveMinor: string;
+  exceptionQueueDepth: number;
+  railHealth: RailHealthSnapshot[];
+  chart: OpsChartPoint[];
   railBucketHeatmap: RailBucketHeatmapCell[];
   renderer: OpsRendererMetrics;
+};
+
+export type RailHealthSnapshot = {
+  rail: Rail;
+  status: "nominal" | "degraded" | "incident";
+  eventCount: number;
+  eventsPerSec: number;
+  failureRate: number;
+  pendingCount: number;
+  heldCount: number;
+  averageLatencyMs: number;
+  p95LatencyMs: number;
+  lastEventTs: number;
+};
+
+export type OpsChartPoint = {
+  ts: number;
+  eventCount: number;
+  eventRate: number;
+  p95LatencyMs: number;
+  failureRate: number;
+  exceptionQueueDepth: number;
+  liquidityReserveMinor: string;
+  creditMinor: string;
+  debitMinor: string;
 };
 
 export type RailBucketHeatmapCell = {
@@ -47,6 +79,13 @@ export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
   connectionStatus: "connecting",
   streamRate: DEFAULT_STREAM_RATE,
   seq: "0",
+  eventRate: 0,
+  cumulativeCreditsMinor: "0",
+  cumulativeDebitsMinor: "0",
+  liquidityReserveMinor: "0",
+  exceptionQueueDepth: 0,
+  railHealth: [],
+  chart: [],
   railBucketHeatmap: [],
   renderer: {
     supported: false,

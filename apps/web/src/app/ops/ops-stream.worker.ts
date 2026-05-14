@@ -138,6 +138,13 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
       publish({
         ...snapshot,
         connectionStatus: "open",
+        eventRate: warmSnapshot.eventRate,
+        cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
+        cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
+        liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
+        exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
+        railHealth: warmSnapshot.railHealth,
+        chart: warmSnapshot.chart,
         seq: warmSnapshot.seq,
         streamRate,
         railBucketHeatmap: buildHeatmapSnapshot(),
