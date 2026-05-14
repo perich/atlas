@@ -118,6 +118,11 @@ describe("OpsRoute", () => {
     MockWorker.instances = [];
     vi.useFakeTimers();
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("OffscreenCanvas", function MockOffscreenCanvas() {});
+    Object.defineProperty(HTMLCanvasElement.prototype, "transferControlToOffscreen", {
+      configurable: true,
+      value: vi.fn(() => new OffscreenCanvas(1, 1)),
+    });
     host = document.createElement("div");
     document.body.append(host);
     root = createRoot(host);
@@ -127,6 +132,8 @@ describe("OpsRoute", () => {
     act(() => root?.unmount());
     vi.advanceTimersByTime(100);
     host?.remove();
+    delete (HTMLCanvasElement.prototype as { transferControlToOffscreen?: unknown })
+      .transferControlToOffscreen;
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -136,7 +143,7 @@ describe("OpsRoute", () => {
 
     const worker = latestWorker();
 
-    expect(worker.commands).toEqual([{ type: "connect" }]);
+    expect(worker.commands).toContainEqual({ type: "connect" });
 
     act(() => {
       worker.emit({
