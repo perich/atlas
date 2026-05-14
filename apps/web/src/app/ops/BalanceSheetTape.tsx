@@ -47,7 +47,7 @@ export function BalanceSheetTape({
   }, [resizeTapeCanvas]);
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden border border-white/[0.075] bg-[#070809]">
+    <div className="relative min-h-0 flex-1 overflow-hidden bg-[#090a0b]">
       <canvas
         aria-label="Live balance sheet movement tape"
         className="block size-full"

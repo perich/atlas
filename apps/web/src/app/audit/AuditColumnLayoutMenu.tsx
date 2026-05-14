@@ -24,17 +24,17 @@ export function AuditColumnLayoutMenu({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-[4px] border border-white/[0.1] bg-white/[0.035] px-3 text-xs font-medium text-bankops-text transition-colors hover:border-white/18 hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-sky-300/35"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-[#1a1c1f] px-3 text-xs font-medium text-bankops-muted transition-colors hover:bg-white/[0.06] hover:text-bankops-text focus:outline-none focus:ring-2 focus:ring-white/25"
           type="button"
         >
-          <Columns3 aria-hidden="true" className="size-4" />
+          <Columns3 aria-hidden="true" className="size-3.5" />
           Columns
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
           align="end"
-          className="z-50 max-h-[70vh] w-72 overflow-y-auto rounded-[5px] border border-white/[0.1] bg-[#111315] p-2 text-sm text-bankops-text shadow-2xl shadow-black/45"
+          className="z-50 max-h-[70vh] w-72 overflow-y-auto rounded-md border border-white/[0.1] bg-[#111315] p-2 text-sm text-bankops-text shadow-2xl shadow-black/45"
           sideOffset={8}
         >
           <DropdownMenu.Label className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">

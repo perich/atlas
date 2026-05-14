@@ -93,8 +93,10 @@ export function AuditRoute() {
   }, [firstVirtualIndex, lastVirtualIndex, loadVisibleRange]);
 
   return (
-    <div className="space-y-5">
-      <PageHeader eyebrow="Bank Core Audit" title="Balance sheet movement history" />
+    <div className="min-h-[calc(100vh-5.25rem)] rounded-md border border-white/[0.08] bg-bankops-bg">
+      <div className="border-b border-white/[0.08] bg-bankops-sidebar px-6 py-5">
+        <PageHeader eyebrow="Bank Core Audit" title="Balance Sheet Movement History" />
+      </div>
 
       <AuditFilterPanel
         columnLayout={columnLayout}
