@@ -9,7 +9,7 @@ import {
   type RiskTier,
 } from "@bankops/contracts";
 
-import { randomInt, type RandomState } from "./random.js";
+import { randomInt } from "./random.js";
 
 export const DEFAULT_AUDIT_ENTRY_COUNT = 100_000;
 export const AUDIT_LOG_TARGET_COUNT = 250_000;
@@ -71,6 +71,7 @@ type AuditContext = {
 
 type DetailBuilder = (context: AuditContext) => Record<string, unknown>;
 type SubjectIdBuilder = (context: AuditContext) => string;
+type Random = Parameters<typeof randomInt>[0];
 
 const PROFILES: readonly AuditProfile[] = [
   {
@@ -255,12 +256,12 @@ export function getAuditLogEntries(): readonly AuditEntry[] {
 }
 
 export function createAuditEntries(count: number): AuditEntry[] {
-  const random: RandomState = { value: DEFAULT_AUDIT_LOG_SEED };
+  const random = { value: DEFAULT_AUDIT_LOG_SEED };
 
   return Array.from({ length: count }, (_value, index) => createAuditEntry(index, random));
 }
 
-function createAuditEntry(index: number, random: RandomState): AuditEntry {
+function createAuditEntry(index: number, random: Random): AuditEntry {
   const profile = PROFILES[index % PROFILES.length];
   const customerNumber = randomInt(random, 0, CUSTOMER_COUNT - 1);
   const accountNumber = randomInt(random, 0, ACCOUNT_COUNT - 1);
@@ -296,7 +297,7 @@ function createAuditEntry(index: number, random: RandomState): AuditEntry {
   };
 }
 
-function amountFor(kind: AuditEntryKind, random: RandomState): bigint | undefined {
+function amountFor(kind: AuditEntryKind, random: Random): bigint | undefined {
   if (
     kind === "configuration" ||
     kind === "operator_action" ||
@@ -309,11 +310,7 @@ function amountFor(kind: AuditEntryKind, random: RandomState): bigint | undefine
   return BigInt(randomInt(random, MIN_AMOUNT_MINOR, MAX_AMOUNT_MINOR));
 }
 
-function riskTierFor(
-  kind: AuditEntryKind,
-  index: number,
-  random: RandomState,
-): RiskTier | undefined {
+function riskTierFor(kind: AuditEntryKind, index: number, random: Random): RiskTier | undefined {
   if (kind === "configuration" || kind === "operator_action") {
     return undefined;
   }
