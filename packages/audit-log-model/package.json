@@ -9,6 +9,14 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "test": "vitest src",
+    "test:run": "vitest run src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@bankops/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "4.1.5"
   }
 }
