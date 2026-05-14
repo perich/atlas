@@ -3,7 +3,16 @@ import { Columns3, Database, ListFilter, Rows3 } from "lucide-react";
 
 import { PageHeader, Panel, StatCard } from "../../design/components";
 
-const rows = [
+type AuditRow = [
+  time: string,
+  side: "credit" | "debit",
+  client: string,
+  amount: string,
+  rail: string,
+  status: string,
+];
+
+const rows: AuditRow[] = [
   ["18:42:11.091", "credit", "Northstar Robotics", "$84,120.00", "wire", "posted"],
   ["18:42:11.088", "debit", "Valkyrie Compute", "$12,440.25", "ach", "posted"],
   ["18:42:11.084", "credit", "Helio Defense", "$240,000.00", "stablecoin", "pending"],
