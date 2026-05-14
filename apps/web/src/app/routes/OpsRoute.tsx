@@ -13,7 +13,6 @@ import {
   BanknoteArrowDown,
   BanknoteArrowUp,
   Gauge,
-  Info,
   RadioTower,
   ShieldAlert,
   Timer,
@@ -29,7 +28,7 @@ import type {
   RailHealthSnapshot,
   TapeCanvasLayout,
 } from "../ops/ops-stream-messages";
-import { Button, PageHeader, Panel } from "../../design/components";
+import { Button, InfoTooltip, PageHeader, Panel } from "../../design/components";
 
 const usdCompact = new Intl.NumberFormat("en-US", {
   currency: "USD",
@@ -104,31 +103,37 @@ function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
       <OpsMetricCard
         icon={Activity}
         label="Event rate"
+        tooltip="Hot stream movements received from the Node stream server per second. This is stream throughput, not React render frequency."
         value={`${formatCount(snapshot.eventRate)}/s`}
       />
       <OpsMetricCard
         icon={BanknoteArrowUp}
         label="Credits"
+        tooltip="Cumulative inbound balance-sheet movement in the current simulator session, counted from synthetic credit entries."
         value={formatMinorString(snapshot.cumulativeCreditsMinor)}
       />
       <OpsMetricCard
         icon={BanknoteArrowDown}
         label="Debits"
+        tooltip="Cumulative outbound balance-sheet movement in the current simulator session, counted from synthetic debit entries."
         value={formatMinorString(snapshot.cumulativeDebitsMinor)}
       />
       <OpsMetricCard
         icon={Wallet}
         label="Liquidity"
+        tooltip="Current simulated reserve-cash balance after applying raw balance-sheet movements. This is bank liquidity in the model, not browser memory or app health."
         value={formatMinorString(snapshot.liquidityReserveMinor)}
       />
       <OpsMetricCard
         icon={ShieldAlert}
-        label="Exceptions"
+        label="Open exceptions"
+        tooltip="Synthetic backlog of failed, held, or exception-hold movements that still need reconciliation or manual review."
         value={formatCount(snapshot.exceptionQueueDepth)}
       />
       <OpsMetricCard
         icon={RadioTower}
         label="Rail health"
+        tooltip="Worst current simulated payment-rail status, derived from rail failure rate, held movement count, pending count, and recent activity."
         tone={worstRail?.status}
         value={worstRail === undefined ? "Waiting" : railStatusLabel(worstRail)}
       />
@@ -140,11 +145,13 @@ function OpsMetricCard({
   icon: Icon,
   label,
   tone,
+  tooltip,
   value,
 }: {
   icon: React.ComponentType<{ "aria-hidden": true; className: string }>;
   label: string;
   tone?: RailHealthSnapshot["status"];
+  tooltip: string;
   value: React.ReactNode;
 }) {
   return (
@@ -152,6 +159,7 @@ function OpsMetricCard({
       <div className="mb-3 flex items-center gap-2 text-bankops-muted">
         <Icon aria-hidden={true} className="size-3.5 shrink-0 text-sky-300/85" />
         <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em]">{label}</p>
+        <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
       </div>
       <p
         className={`truncate text-[1.35rem] font-semibold leading-none tracking-tight ${tone === undefined ? "text-white" : railHealthClassName(tone)}`}
@@ -363,27 +371,31 @@ function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
       <SparklinePanel
         icon={Activity}
         label="Throughput"
+        tooltip="Warm snapshot of hot stream movement rate. This should track the selected stream rate, while React only receives coalesced snapshots."
         value={`${formatCount(snapshot.eventRate)}/s`}
         points={snapshot.chart}
         valueForPoint={(point) => point.eventRate}
       />
       <SparklinePanel
         icon={Timer}
-        label="P95 latency"
-        value={formatLatency(lastChartPoint(snapshot.chart)?.latencyP95Ms ?? 0)}
+        label="Movement p95"
+        tooltip="Simulated bank-core movement latency at p95 for the rolling chart window. This is rail/settlement latency, not UI or canvas render latency."
+        value={formatLatencySeconds(lastChartPoint(snapshot.chart)?.latencyP95Ms ?? 0)}
         points={snapshot.chart}
         valueForPoint={(point) => point.latencyP95Ms}
       />
       <SparklinePanel
         icon={AlertTriangle}
-        label="Failure rate"
+        label="Exception rate"
+        tooltip="Share of recent movements that are failed, held, or otherwise routed toward exception handling in the synthetic bank model."
         value={formatPercent(lastChartPoint(snapshot.chart)?.failureRate ?? 0)}
         points={snapshot.chart}
         valueForPoint={(point) => point.failureRate}
       />
       <SparklinePanel
         icon={ShieldAlert}
-        label="Queue depth"
+        label="Exception queue"
+        tooltip="Open exception backlog awaiting reconciliation or manual review. It rises when failed or held movements arrive and falls when simulated reversals clear work."
         value={formatCount(snapshot.exceptionQueueDepth)}
         points={snapshot.chart}
         valueForPoint={(point) => point.exceptionQueueDepth}
@@ -396,12 +408,14 @@ function SparklinePanel({
   icon: Icon,
   label,
   points,
+  tooltip,
   value,
   valueForPoint,
 }: {
   icon: React.ComponentType<{ "aria-hidden": true; className: string }>;
   label: string;
   points: OpsChartPoint[];
+  tooltip: string;
   value: string;
   valueForPoint: (point: OpsChartPoint) => number;
 }) {
@@ -411,10 +425,11 @@ function SparklinePanel({
     <Panel className="min-w-0 p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
             <Icon aria-hidden={true} className="size-3.5" />
             {label}
-          </p>
+            <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
+          </div>
           <p className="mt-2 text-lg font-semibold leading-none text-white">{value}</p>
         </div>
       </div>
@@ -483,7 +498,13 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
                 Live Flow Concentration
               </p>
-              <HeatmapTooltip />
+              <InfoTooltip label="Explain live flow concentration">
+                Each cell summarizes balance-sheet tape movements over the last 5 seconds. Rows are
+                payment rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s
+                is movement count/sec. Stronger green/red tint means more amount/sec, with color
+                indicating the dominant side. Yellow borders mark cells where pending, held, or
+                failed movements are at least 5%.
+              </InfoTooltip>
             </div>
             <p className="mt-1 text-sm text-white">
               Rolling 5s amount/sec and movement rate by rail and balance-sheet bucket
@@ -579,29 +600,6 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
-function HeatmapTooltip() {
-  return (
-    <span className="group relative inline-flex">
-      <button
-        aria-label="Explain live flow concentration"
-        className="inline-flex size-4 items-center justify-center rounded-full border border-white/[0.12] text-bankops-muted transition-colors hover:border-white/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-300/35"
-        type="button"
-      >
-        <Info aria-hidden="true" className="size-3" />
-      </button>
-      <span
-        className="pointer-events-none absolute left-1/2 top-6 z-30 w-80 -translate-x-1/2 border border-white/[0.12] bg-[#111315] p-3 text-left text-xs leading-5 text-bankops-muted opacity-0 shadow-xl shadow-black/35 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
-        role="tooltip"
-      >
-        Each cell summarizes balance-sheet tape movements over the last 5 seconds. Rows are payment
-        rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s is movement
-        count/sec. Stronger green/red tint means more amount/sec, with color indicating the dominant
-        side. Yellow borders mark cells where pending, held, or failed movements are at least 5%.
-      </span>
-    </span>
-  );
-}
-
 function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const isActive = cell.intensity > 0;
   const isElevatedException = cell.exceptionRate >= elevatedExceptionRate;
@@ -672,6 +670,10 @@ function formatCount(value: number) {
 
 function formatLatency(value: number) {
   return `${Math.round(value).toLocaleString("en-US")}ms`;
+}
+
+function formatLatencySeconds(value: number) {
+  return `${(value / 1_000).toFixed(1)}s`;
 }
 
 function formatHeatmapRate(value: number) {
