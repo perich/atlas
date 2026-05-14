@@ -286,6 +286,9 @@ function severityChipClass(severity: JsonAuditEntry["severity"]) {
     case "warning":
       return "border-amber-300/20 bg-amber-300/[0.12] text-amber-200";
   }
+
+  const exhaustive: never = severity;
+  return exhaustive;
 }
 
 function statusClass(status: JsonAuditEntry["status"]) {
@@ -302,6 +305,9 @@ function statusClass(status: JsonAuditEntry["status"]) {
     case "reversed":
       return "text-rose-300";
   }
+
+  const exhaustive: never = status;
+  return exhaustive;
 }
 
 function amountClass(value: string | undefined) {

@@ -176,6 +176,9 @@ function railStatusBorderClassName(status: RailHealthSnapshot["status"]) {
     case "nominal":
       return "border-l-transparent";
   }
+
+  const exhaustive: never = status;
+  return exhaustive;
 }
 
 function streamPressure(snapshot: OpsStreamSnapshot): {
