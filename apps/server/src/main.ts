@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import websocket from "@fastify/websocket";
 import Fastify from "fastify";
 
+import { registerAuditApi } from "./audit-api.js";
 import { startOpsStreamSession } from "./ops-stream.js";
 
 const DEFAULT_PORT = 8787;
@@ -23,19 +24,7 @@ export async function buildServer(logger = true) {
     uptimeSec: Math.round(process.uptime()),
   }));
 
-  app.get("/api/audit", async () => ({
-    rows: [],
-    nextCursor: undefined,
-    prevCursor: undefined,
-    totalMatched: 0,
-    queryMs: 0,
-  }));
-
-  app.get("/api/audit/facets", async () => ({
-    severity: {},
-    rail: {},
-    status: {},
-  }));
+  registerAuditApi(app);
 
   app.get("/stream", { websocket: true }, (socket) => {
     startOpsStreamSession(socket);

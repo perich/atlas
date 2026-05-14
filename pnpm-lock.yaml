@@ -44,6 +44,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@bankops/audit-log-model':
+        specifier: workspace:*
+        version: link:../../packages/audit-log-model
       '@bankops/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
