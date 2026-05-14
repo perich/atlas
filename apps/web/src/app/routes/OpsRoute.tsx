@@ -341,7 +341,10 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const isActive = cell.intensity > 0;
   const isElevatedException = cell.exceptionRate >= elevatedExceptionRate;
   const sideRgb = cell.skew >= 0 ? "34,197,94" : "244,63,94";
-  const sideAlpha = isActive ? 0.045 + cell.intensity * 0.2 : 0.018;
+  const heat = isActive ? Math.pow(cell.intensity, 1.55) : 0;
+  const primaryAlpha = isActive ? 0.02 + heat * 0.5 : 0.018;
+  const secondaryAlpha = isActive ? 0.01 + heat * 0.26 : 0.01;
+  const edgeAlpha = isActive ? 0.004 + heat * 0.08 : 0.004;
   const amountLabel = isActive ? formatMinorUsdNumber(cell.amountPerSecMinor) : "$0";
   const rateLabel = isActive ? `${formatHeatmapRate(cell.movementRate)}/s` : "0/s";
 
@@ -349,7 +352,7 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
     <div
       className="relative min-h-[64px] bg-[#101315] px-2.5 py-2.5"
       style={{
-        background: `linear-gradient(135deg, rgba(${sideRgb},${sideAlpha}) 0%, rgba(${sideRgb},${Math.max(0.012, sideAlpha * 0.18)}) 46%, rgba(16,19,21,0.96) 100%)`,
+        background: `linear-gradient(135deg, rgba(${sideRgb},${primaryAlpha}) 0%, rgba(${sideRgb},${secondaryAlpha}) 52%, rgba(${sideRgb},${edgeAlpha}) 100%), #101315`,
       }}
     >
       <div className="flex items-start justify-between gap-2 text-xs">
