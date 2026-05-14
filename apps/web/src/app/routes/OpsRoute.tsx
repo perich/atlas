@@ -43,6 +43,7 @@ const streamRateLabels: Record<StreamRate, string> = {
   10_000: "10k/s",
 };
 const tapeCanvasCssHeight = 620;
+const elevatedExceptionRate = 0.05;
 
 export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
@@ -286,7 +287,8 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
         {railLabel(cell.rail)} / {bucketLabel(cell.bucket)}
       </p>
       <p className="mt-0.5 text-xs text-bankops-muted">
-        {formatMinorUsdNumber(cell.amountPerSecMinor)}/s · {dominanceLabel(cell)}
+        {formatMinorUsdNumber(cell.amountPerSecMinor)}/s · {formatHeatmapRate(cell.movementRate)}{" "}
+        movements/s
       </p>
     </div>
   );
@@ -295,11 +297,9 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
 function HeatmapLegend() {
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-bankops-muted">
-      <LegendItem color="rgba(34,197,94,0.9)" label="Credit-dominant" />
-      <LegendItem color="rgba(244,63,94,0.9)" label="Debit-dominant" />
-      <LegendItem color="rgba(251,191,36,0.95)" label="Pending / held / failed" />
-      <span className="ml-auto hidden text-[11px] text-bankops-muted/80 xl:inline">
-        Brighter cells carry more amount/sec within this 5s window.
+      <LegendItem color="rgba(251,191,36,0.95)" label="Yellow border: 5%+ exceptions" />
+      <span className="hidden text-[11px] text-bankops-muted/80 xl:inline">
+        Rolling 5s window. Cells show amount/sec and movement count/sec.
       </span>
     </div>
   );
@@ -330,7 +330,8 @@ function HeatmapTooltip() {
       >
         Each cell summarizes the same stream as the tape. Rows are payment rails; columns are
         balance-sheet buckets. The dollar value is movement amount per second, /s is movement count,
-        green/red shows credit vs debit dominance, and yellow marks pending, held, or failed share.
+        and the green/red tint shows the dominant side. A yellow border appears only when pending,
+        held, or failed movements reach at least 5% of that cell's flow.
       </span>
     </span>
   );
@@ -338,10 +339,9 @@ function HeatmapTooltip() {
 
 function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const isActive = cell.intensity > 0;
+  const isElevatedException = cell.exceptionRate >= elevatedExceptionRate;
   const sideRgb = cell.skew >= 0 ? "34,197,94" : "244,63,94";
-  const exceptionRing = cell.exceptionRate > 0 ? "inset 0 0 0 1px rgba(251,191,36,0.82)" : "none";
   const sideAlpha = isActive ? 0.045 + cell.intensity * 0.2 : 0.018;
-  const sideTrack = isActive ? `${Math.max(4, cell.intensity * 100)}%` : "0%";
   const amountLabel = isActive ? formatMinorUsdNumber(cell.amountPerSecMinor) : "$0";
   const rateLabel = isActive ? `${formatHeatmapRate(cell.movementRate)}/s` : "0/s";
 
@@ -350,7 +350,6 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
       className="relative min-h-[64px] bg-[#101315] px-2.5 py-2.5"
       style={{
         background: `linear-gradient(135deg, rgba(${sideRgb},${sideAlpha}) 0%, rgba(${sideRgb},${Math.max(0.012, sideAlpha * 0.18)}) 46%, rgba(16,19,21,0.96) 100%)`,
-        boxShadow: exceptionRing,
       }}
     >
       <div className="flex items-start justify-between gap-2 text-xs">
@@ -360,30 +359,19 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
         <span className="text-bankops-muted">{rateLabel}</span>
       </div>
 
-      <div className="mt-3 h-1.5 overflow-hidden bg-black/35">
-        <div
-          className="h-full"
-          style={{
-            backgroundColor: `rgba(${sideRgb},0.92)`,
-            width: sideTrack,
-          }}
-        />
-      </div>
-
-      {isActive ? (
-        <div className="mt-2 flex items-center justify-between gap-2 text-[10px]">
-          <span className="text-bankops-muted">{dominanceLabel(cell)}</span>
-          {cell.exceptionRate > 0 ? (
-            <span className="font-medium text-amber-300">
-              {formatPercent(cell.exceptionRate)} exception
-            </span>
-          ) : (
-            <span className="text-bankops-muted/60">normal</span>
-          )}
+      {isElevatedException ? (
+        <div className="mt-2 text-[10px] font-medium text-amber-300">
+          {formatPercent(cell.exceptionRate)} exceptions
         </div>
+      ) : isActive ? (
+        <div className="mt-2 h-4" />
       ) : (
         <div className="mt-2 text-[10px] text-bankops-muted/45">No flow</div>
       )}
+
+      {isElevatedException ? (
+        <div className="pointer-events-none absolute inset-0 border border-amber-300/90" />
+      ) : null}
     </div>
   );
 }
@@ -416,14 +404,6 @@ function formatHeatmapRate(value: number) {
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
-}
-
-function dominanceLabel(cell: RailBucketHeatmapCell) {
-  if (cell.intensity === 0) {
-    return "no flow";
-  }
-
-  return cell.skew >= 0 ? "credit flow" : "debit flow";
 }
 
 function railLabel(rail: Rail) {
