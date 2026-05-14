@@ -29,13 +29,14 @@ import type {
   TapeCanvasLayout,
 } from "../ops/ops-stream-messages";
 import { Button, InfoTooltip, PageHeader, Panel } from "../../design/components";
-
-const usdCompact = new Intl.NumberFormat("en-US", {
-  currency: "USD",
-  maximumFractionDigits: 1,
-  notation: "compact",
-  style: "currency",
-});
+import {
+  formatCount,
+  formatMilliseconds,
+  formatMinorUsd,
+  formatMinorUsdString,
+  formatPercent,
+  formatSecondsFromMs,
+} from "../../design/format";
 const statusLabels: Record<OpsConnectionStatus, string> = {
   connecting: "Connecting",
   degraded: "Backend unavailable",
@@ -61,6 +62,21 @@ const pressureClassNames = {
   watch: "text-amber-300",
   strained: "text-rose-300",
 } as const;
+const railHealthClassNames: Record<RailHealthSnapshot["status"], string> = {
+  degraded: "text-amber-300",
+  incident: "text-rose-300",
+  nominal: "text-emerald-300",
+};
+const railHealthLabels: Record<RailHealthSnapshot["status"], string> = {
+  degraded: "Degraded",
+  incident: "Incident",
+  nominal: "Nominal",
+};
+const railHealthSeverity: Record<RailHealthSnapshot["status"], number> = {
+  degraded: 1,
+  incident: 2,
+  nominal: 0,
+};
 
 export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
@@ -96,7 +112,16 @@ export function OpsRoute() {
 }
 
 function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
-  const worstRail = mostSevereRail(snapshot.railHealth);
+  const worstRail = snapshot.railHealth.reduce<RailHealthSnapshot | undefined>((current, rail) => {
+    if (
+      current === undefined ||
+      railHealthSeverity[rail.status] > railHealthSeverity[current.status]
+    ) {
+      return rail;
+    }
+
+    return current;
+  }, undefined);
 
   return (
     <section className="grid gap-3 xl:grid-cols-6">
@@ -110,19 +135,19 @@ function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
         icon={BanknoteArrowUp}
         label="Credits"
         tooltip="Cumulative inbound balance-sheet movement in the current simulator session, counted from synthetic credit entries."
-        value={formatMinorString(snapshot.cumulativeCreditsMinor)}
+        value={formatMinorUsdString(snapshot.cumulativeCreditsMinor)}
       />
       <OpsMetricCard
         icon={BanknoteArrowDown}
         label="Debits"
         tooltip="Cumulative outbound balance-sheet movement in the current simulator session, counted from synthetic debit entries."
-        value={formatMinorString(snapshot.cumulativeDebitsMinor)}
+        value={formatMinorUsdString(snapshot.cumulativeDebitsMinor)}
       />
       <OpsMetricCard
         icon={Wallet}
         label="Liquidity"
         tooltip="Current simulated reserve-cash balance after applying raw balance-sheet movements. This is bank liquidity in the model, not browser memory or app health."
-        value={formatMinorString(snapshot.liquidityReserveMinor)}
+        value={formatMinorUsdString(snapshot.liquidityReserveMinor)}
       />
       <OpsMetricCard
         icon={ShieldAlert}
@@ -162,7 +187,7 @@ function OpsMetricCard({
         <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
       </div>
       <p
-        className={`truncate text-[1.35rem] font-semibold leading-none tracking-tight ${tone === undefined ? "text-white" : railHealthClassName(tone)}`}
+        className={`truncate text-[1.35rem] font-semibold leading-none tracking-tight ${tone === undefined ? "text-white" : railHealthClassNames[tone]}`}
       >
         {value}
       </p>
@@ -351,13 +376,13 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
           key={rail.rail}
         >
           <div>
-            <p className="text-xs font-medium text-white">{railLabel(rail.rail)}</p>
+            <p className="text-xs font-medium text-white">{titleize(rail.rail)}</p>
             <p className="mt-0.5 text-[11px] text-bankops-muted">
-              {formatCount(rail.eventsPerSec)}/s · p95 {formatLatency(rail.p95LatencyMs)}
+              {formatCount(rail.eventsPerSec)}/s · p95 {formatMilliseconds(rail.p95LatencyMs)}
             </p>
           </div>
-          <span className={`text-[11px] font-semibold ${railHealthClassName(rail.status)}`}>
-            {statusLabel(rail.status)}
+          <span className={`text-[11px] font-semibold ${railHealthClassNames[rail.status]}`}>
+            {railHealthLabels[rail.status]}
           </span>
         </div>
       ))}
@@ -380,9 +405,9 @@ function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
         icon={Timer}
         label="Movement p95"
         tooltip="Simulated bank-core movement latency at p95 for the rolling chart window. This is rail/settlement latency, not UI or canvas render latency."
-        value={formatLatencySeconds(lastChartPoint(snapshot.chart)?.latencyP95Ms ?? 0)}
+        value={formatSecondsFromMs(lastChartPoint(snapshot.chart)?.p95LatencyMs ?? 0)}
         points={snapshot.chart}
-        valueForPoint={(point) => point.latencyP95Ms}
+        valueForPoint={(point) => point.p95LatencyMs}
       />
       <SparklinePanel
         icon={AlertTriangle}
@@ -532,14 +557,14 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
               className="bg-[#101315] px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-bankops-muted"
               key={bucket}
             >
-              {bucketLabel(bucket)}
+              {titleize(bucket)}
             </div>
           ))}
 
           {RAILS.map((rail) => (
             <React.Fragment key={rail}>
               <div className="bg-[#0c0e10] px-2.5 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
-                {railLabel(rail)}
+                {titleize(rail)}
               </div>
               {BALANCE_SHEET_BUCKETS.map((bucket) => (
                 <HeatmapCell
@@ -570,10 +595,10 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
         Highest amount/sec
       </p>
       <p className="mt-1 text-sm font-medium text-white">
-        {railLabel(cell.rail)} / {bucketLabel(cell.bucket)}
+        {titleize(cell.rail)} / {titleize(cell.bucket)}
       </p>
       <p className="mt-0.5 text-xs text-bankops-muted">
-        {formatMinorUsdNumber(cell.amountPerSecMinor)}/s · {formatHeatmapRate(cell.movementRate)}{" "}
+        {formatMinorUsd(cell.amountPerSecMinor)}/s · {formatHeatmapRate(cell.movementRate)}{" "}
         movements/s
       </p>
     </div>
@@ -608,7 +633,7 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const primaryAlpha = isActive ? 0.02 + heat * 0.5 : 0.018;
   const secondaryAlpha = isActive ? 0.01 + heat * 0.26 : 0.01;
   const edgeAlpha = isActive ? 0.004 + heat * 0.08 : 0.004;
-  const amountLabel = isActive ? formatMinorUsdNumber(cell.amountPerSecMinor) : "$0";
+  const amountLabel = isActive ? formatMinorUsd(cell.amountPerSecMinor) : "$0";
   const rateLabel = isActive ? `${formatHeatmapRate(cell.movementRate)}/s` : "0/s";
 
   return (
@@ -656,26 +681,6 @@ function emptyHeatmapCell(rail: Rail, bucket: BalanceSheetBucket): RailBucketHea
   };
 }
 
-function formatMinorUsdNumber(value: number) {
-  return usdCompact.format(value / 100);
-}
-
-function formatMinorString(value: string) {
-  return formatMinorUsdNumber(Number.parseFloat(value));
-}
-
-function formatCount(value: number) {
-  return Math.round(value).toLocaleString("en-US");
-}
-
-function formatLatency(value: number) {
-  return `${Math.round(value).toLocaleString("en-US")}ms`;
-}
-
-function formatLatencySeconds(value: number) {
-  return `${(value / 1_000).toFixed(1)}s`;
-}
-
 function formatHeatmapRate(value: number) {
   if (value > 0 && value < 10) {
     return value.toFixed(1);
@@ -683,57 +688,12 @@ function formatHeatmapRate(value: number) {
 
   return Math.round(value).toString();
 }
-
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
 function lastChartPoint(points: OpsChartPoint[]) {
   return points.at(-1);
 }
 
-function mostSevereRail(rails: RailHealthSnapshot[]) {
-  return rails.reduce<RailHealthSnapshot | undefined>((current, rail) => {
-    if (current === undefined || railSeverity(rail.status) > railSeverity(current.status)) {
-      return rail;
-    }
-
-    return current;
-  }, undefined);
-}
-
-function railSeverity(status: RailHealthSnapshot["status"]) {
-  switch (status) {
-    case "incident":
-      return 2;
-    case "degraded":
-      return 1;
-    case "nominal":
-      return 0;
-  }
-
-  return 0;
-}
-
 function railStatusLabel(rail: RailHealthSnapshot) {
-  return `${railLabel(rail.rail)} ${statusLabel(rail.status)}`;
-}
-
-function statusLabel(status: RailHealthSnapshot["status"]) {
-  return status[0].toUpperCase() + status.slice(1);
-}
-
-function railHealthClassName(status: RailHealthSnapshot["status"]) {
-  switch (status) {
-    case "incident":
-      return "text-rose-300";
-    case "degraded":
-      return "text-amber-300";
-    case "nominal":
-      return "text-emerald-300";
-  }
-
-  return "text-bankops-muted";
+  return `${titleize(rail.rail)} ${railHealthLabels[rail.status]}`;
 }
 
 function streamPressure(snapshot: OpsStreamSnapshot): {
@@ -760,14 +720,6 @@ function streamPressure(snapshot: OpsStreamSnapshot): {
   }
 
   return { label: "Nominal", level: "nominal" };
-}
-
-function railLabel(rail: Rail) {
-  return titleize(rail);
-}
-
-function bucketLabel(bucket: BalanceSheetBucket) {
-  return titleize(bucket);
 }
 
 function heatmapKey(rail: Rail, bucket: BalanceSheetBucket) {

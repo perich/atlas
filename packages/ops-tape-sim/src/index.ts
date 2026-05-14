@@ -81,7 +81,7 @@ export type OpsTapeChartPoint = {
   ts: number;
   eventCount: number;
   eventRate: number;
-  latencyP95Ms: number;
+  p95LatencyMs: number;
   failureRate: number;
   exceptionQueueDepth: number;
   liquidityReserveMinor: bigint;
@@ -343,7 +343,7 @@ export class OpsTapeSimulator {
       ts: serverTsMs,
       eventCount: movements.length,
       eventRate: 0,
-      latencyP95Ms: percentile95(latencies),
+      p95LatencyMs: percentile95(latencies),
       failureRate: movements.length === 0 ? 0 : failures / movements.length,
       exceptionQueueDepth: this.exceptionQueueDepth,
       liquidityReserveMinor: this.liquidityReserveMinor,
