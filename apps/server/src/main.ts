@@ -73,6 +73,7 @@ async function start() {
   await app.listen({ host, port });
 }
 
+// ESM version of "only start the server if this file is run directly".
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   void start();
 }

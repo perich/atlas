@@ -5,7 +5,16 @@ import type { RawData } from "ws";
 
 const HOT_TICK_MS = 1_000 / 60;
 const WARM_TICK_MS = 250;
-const DEFAULT_STREAM_RATE = 2_000 satisfies StreamRate;
+const STREAM_RATE_LOW = 50 satisfies StreamRate;
+const STREAM_RATE_NORMAL = 2_000 satisfies StreamRate;
+const STREAM_RATE_STRESS = 10_000 satisfies StreamRate;
+const VALID_STREAM_RATES = [
+  STREAM_RATE_LOW,
+  STREAM_RATE_NORMAL,
+  STREAM_RATE_STRESS,
+] as const satisfies readonly StreamRate[];
+const VALID_STREAM_RATE_VALUES: readonly unknown[] = VALID_STREAM_RATES;
+const DEFAULT_STREAM_RATE = STREAM_RATE_NORMAL;
 
 export type WarmOpsSnapshotMessage = {
   channel: typeof StreamChannel.AggregateSnapshot;
@@ -97,9 +106,13 @@ function assertStreamRateMessage(value: unknown): asserts value is StreamRateMes
     throw new Error(`Unknown stream control message: ${String(value.type)}`);
   }
 
-  if (value.targetRate !== 50 && value.targetRate !== 2_000 && value.targetRate !== 10_000) {
+  if (!isStreamRate(value.targetRate)) {
     throw new Error(`Unsupported stream rate: ${String(value.targetRate)}`);
   }
+}
+
+function isStreamRate(value: unknown): value is StreamRate {
+  return VALID_STREAM_RATE_VALUES.includes(value);
 }
 
 function toWarmMessage(snapshot: OpsTapeAggregateSnapshot): WarmOpsSnapshotMessage {
