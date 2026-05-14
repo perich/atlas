@@ -1,0 +1,146 @@
+import React, { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { OpsRoute } from "../routes/OpsRoute";
+import type { OpsWorkerCommand, OpsWorkerMessage } from "./ops-stream-messages";
+import { createOpsStreamStore, initialOpsStreamSnapshot } from "./ops-stream-store";
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
+class MockWorker {
+  static instances: MockWorker[] = [];
+
+  commands: OpsWorkerCommand[] = [];
+  onmessage: ((event: { data: OpsWorkerMessage }) => void) | null = null;
+  terminated = false;
+
+  constructor() {
+    MockWorker.instances.push(this);
+  }
+
+  postMessage(command: OpsWorkerCommand) {
+    this.commands.push(command);
+  }
+
+  terminate() {
+    this.terminated = true;
+  }
+
+  emit(message: OpsWorkerMessage) {
+    this.onmessage?.({ data: message });
+  }
+}
+
+describe("ops stream store", () => {
+  beforeEach(() => {
+    MockWorker.instances = [];
+    vi.stubGlobal("Worker", MockWorker);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("starts the worker and publishes compact snapshots", () => {
+    const store = createOpsStreamStore(() => new Worker("mock"));
+    const listener = vi.fn();
+    const unsubscribe = store.subscribe(listener);
+    const worker = latestWorker();
+
+    expect(worker.commands).toEqual([{ type: "connect" }]);
+
+    worker.emit({
+      snapshot: { ...initialOpsStreamSnapshot, connectionStatus: "open", seq: "42" },
+      type: "snapshot",
+    });
+
+    expect(listener).toHaveBeenCalledOnce();
+    expect(store.getSnapshot().seq).toBe("42");
+
+    store.setStreamRate(10_000);
+
+    expect(store.getSnapshot().streamRate).toBe(10_000);
+    expect(worker.commands).toContainEqual({ type: "stream.rate.set", targetRate: 10_000 });
+
+    unsubscribe();
+
+    expect(worker.commands).toContainEqual({ type: "disconnect" });
+    expect(worker.terminated).toBe(true);
+  });
+});
+
+describe("OpsRoute", () => {
+  let root: Root | undefined;
+  let host: HTMLDivElement | undefined;
+
+  beforeEach(() => {
+    MockWorker.instances = [];
+    vi.stubGlobal("Worker", MockWorker);
+    host = document.createElement("div");
+    document.body.append(host);
+    root = createRoot(host);
+  });
+
+  afterEach(() => {
+    act(() => root?.unmount());
+    host?.remove();
+    vi.unstubAllGlobals();
+  });
+
+  it("renders worker snapshots and sends stream-rate commands", () => {
+    act(() => root?.render(<OpsRoute />));
+
+    const worker = latestWorker();
+
+    expect(worker.commands).toEqual([{ type: "connect" }]);
+
+    act(() => {
+      worker.emit({
+        snapshot: {
+          ...initialOpsStreamSnapshot,
+          connectionStatus: "open",
+          eventRate: 2_000,
+          liquidityReserveMinor: "81240000000",
+          movementRate: 1_900,
+          seq: "84",
+        },
+        type: "snapshot",
+      });
+    });
+
+    expect(host?.textContent).toContain("Open");
+    expect(host?.textContent).toContain("2000/s");
+    expect(host?.textContent).toContain("SettlementStream seq 84");
+
+    const stressButton = findButton("10k/s");
+
+    act(() => {
+      stressButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(worker.commands).toContainEqual({ type: "stream.rate.set", targetRate: 10_000 });
+  });
+});
+
+function latestWorker() {
+  const worker = MockWorker.instances.at(-1);
+
+  if (worker === undefined) {
+    throw new Error("Expected mock worker");
+  }
+
+  return worker;
+}
+
+function findButton(text: string) {
+  const button = [...document.querySelectorAll("button")].find(
+    (element) => element.textContent === text,
+  );
+
+  if (button === undefined) {
+    throw new Error(`Expected ${text} button`);
+  }
+
+  return button;
+}
