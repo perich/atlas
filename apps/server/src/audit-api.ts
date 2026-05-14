@@ -4,13 +4,14 @@ import {
   queryAuditEntries,
   type AuditFilters,
 } from "@bankops/audit-log-model";
-import type { AuditQuery } from "@bankops/contracts";
+import type { AuditQuery, AuditSort } from "@bankops/contracts";
 import { RAILS } from "@bankops/contracts";
 import type { FastifyInstance, FastifyReply } from "fastify";
 
 type AuditQueryParams = Record<string, string | string[] | undefined>;
 type QueryParam = string | string[] | undefined;
 
+const DEFAULT_AUDIT_SORT = { field: "ts", dir: "desc" } satisfies AuditSort;
 const DEFAULT_AUDIT_LIMIT = 100;
 const MAX_AUDIT_LIMIT = 500;
 const AUDIT_SEVERITIES = ["info", "notice", "warning", "critical"] as const;
@@ -53,21 +54,13 @@ function parseAuditQuery(params: AuditQueryParams): AuditQuery {
     throw new Error("Use either after or before, not both");
   }
 
-  const filters = parseAuditFilters(params);
-  const query: AuditQuery = { limit };
-  query.filters = filters;
+  const field = sortField ?? DEFAULT_AUDIT_SORT.field;
+  const dir = sortDir ?? DEFAULT_AUDIT_SORT.dir;
 
-  if (sortField !== undefined || sortDir !== undefined) {
-    const field = sortField ?? "ts";
-    const dir = sortDir ?? "desc";
+  assertOneOf(field, "sortField", AUDIT_SORT_FIELDS);
+  assertOneOf(dir, "sortDir", AUDIT_SORT_DIRECTIONS);
 
-    assertOneOf(field, "sortField", AUDIT_SORT_FIELDS);
-    assertOneOf(dir, "sortDir", AUDIT_SORT_DIRECTIONS);
-
-    query.sort = { field, dir };
-  } else {
-    query.sort = { field: "ts", dir: "desc" };
-  }
+  const query: AuditQuery = { filters: parseAuditFilters(params), limit, sort: { field, dir } };
 
   if (after !== undefined) {
     query.after = after;
