@@ -5,7 +5,13 @@ import {
   type AuditFilters,
 } from "@bankops/audit-log-model";
 import type { AuditQuery, AuditSort } from "@bankops/contracts";
-import { RAILS } from "@bankops/contracts";
+import {
+  AUDIT_SEVERITIES,
+  AUDIT_SORT_DIRECTIONS,
+  AUDIT_SORT_FIELDS,
+  AUDIT_STATUSES,
+  RAILS,
+} from "@bankops/contracts";
 import type { FastifyInstance, FastifyReply } from "fastify";
 
 type AuditQueryParams = Record<string, string | string[] | undefined>;
@@ -14,10 +20,6 @@ type QueryParam = string | string[] | undefined;
 const DEFAULT_AUDIT_SORT = { field: "ts", dir: "desc" } satisfies AuditSort;
 const DEFAULT_AUDIT_LIMIT = 100;
 const MAX_AUDIT_LIMIT = 500;
-const AUDIT_SEVERITIES = ["info", "notice", "warning", "critical"] as const;
-const AUDIT_STATUSES = ["accepted", "pending", "posted", "settled", "failed", "reversed"] as const;
-const AUDIT_SORT_FIELDS = ["ts", "severity", "rail", "status", "kind"] as const;
-const AUDIT_SORT_DIRECTIONS = ["asc", "desc"] as const;
 
 export function registerAuditApi(app: FastifyInstance) {
   app.get<{ Querystring: AuditQueryParams }>("/api/audit", async (request, reply) => {

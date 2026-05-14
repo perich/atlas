@@ -18,6 +18,18 @@ export type AuditEntryKind =
   | "configuration"
   | "operator_action";
 
+export const AUDIT_SEVERITIES = ["info", "notice", "warning", "critical"] as const;
+export const AUDIT_STATUSES = [
+  "accepted",
+  "pending",
+  "posted",
+  "settled",
+  "failed",
+  "reversed",
+] as const;
+export const AUDIT_SORT_FIELDS = ["ts", "severity", "rail", "status", "kind"] as const;
+export const AUDIT_SORT_DIRECTIONS = ["asc", "desc"] as const;
+
 export type AuditSubjectType =
   | "payment"
   | "journal"
@@ -33,7 +45,7 @@ export type AuditSubjectType =
 export type AuditEntry = {
   id: string;
   ts: number;
-  severity: "info" | "notice" | "warning" | "critical";
+  severity: (typeof AUDIT_SEVERITIES)[number];
   kind: AuditEntryKind;
   actor: "system" | "operator" | "rail" | "api" | "scheduler" | "risk_engine";
   action: string;
@@ -44,7 +56,7 @@ export type AuditEntry = {
   rail?: Rail;
   asset?: Asset;
   amountMinor?: bigint;
-  status: "accepted" | "pending" | "posted" | "settled" | "failed" | "reversed";
+  status: (typeof AUDIT_STATUSES)[number];
   riskTier?: 0 | 1 | 2 | 3;
   traceId: string;
   idempotencyKey?: string;
@@ -52,11 +64,11 @@ export type AuditEntry = {
   detail: Record<string, unknown>;
 };
 
-export type AuditSortField = "ts" | "severity" | "rail" | "status" | "kind";
+export type AuditSortField = (typeof AUDIT_SORT_FIELDS)[number];
 
 export type AuditSort = {
   field: AuditSortField;
-  dir: "asc" | "desc";
+  dir: (typeof AUDIT_SORT_DIRECTIONS)[number];
 };
 
 export type AuditQuery = {
