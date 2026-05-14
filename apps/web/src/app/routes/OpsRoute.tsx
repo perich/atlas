@@ -35,7 +35,7 @@ const streamRateLabels: Record<StreamRate, string> = {
   2_000: "2k/s",
   10_000: "10k/s",
 };
-const tapeCanvasCssHeight = 460;
+const tapeCanvasCssHeight = 620;
 
 export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
@@ -46,7 +46,7 @@ export function OpsRoute() {
       <PageHeader eyebrow="God Mode" title="Operations control plane" />
 
       <Panel className="overflow-hidden p-0">
-        <div className="border-b border-white/[0.075] px-4 py-3">
+        <div className="border-b border-white/[0.075] bg-black/20 px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
@@ -63,29 +63,29 @@ export function OpsRoute() {
               </span>
             </div>
           </div>
-        </div>
 
-        <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} resizeTapeCanvas={resizeTapeCanvas} />
+          <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_auto] xl:items-end">
+            <RendererMetrics snapshot={snapshot} />
 
-        <div className="grid gap-3 border-t border-white/[0.075] bg-black/20 px-4 py-3 xl:grid-cols-[1fr_auto] xl:items-end">
-          <RendererMetrics snapshot={snapshot} />
-
-          <div className="flex items-center justify-between gap-3 xl:justify-end">
-            <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
-            <div className="flex gap-2">
-              {STREAM_RATES.map((streamRate) => (
-                <Button
-                  className="min-h-8 px-3 text-xs"
-                  key={streamRate}
-                  onClick={() => setStreamRate(streamRate)}
-                  variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
-                >
-                  {streamRateLabels[streamRate]}
-                </Button>
-              ))}
+            <div className="flex items-center justify-between gap-3 xl:justify-end">
+              <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
+              <div className="flex gap-2">
+                {STREAM_RATES.map((streamRate) => (
+                  <Button
+                    className="min-h-8 px-3 text-xs"
+                    key={streamRate}
+                    onClick={() => setStreamRate(streamRate)}
+                    variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
+                  >
+                    {streamRateLabels[streamRate]}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
+
+        <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} resizeTapeCanvas={resizeTapeCanvas} />
       </Panel>
 
       <section className="grid gap-3 xl:grid-cols-4">
