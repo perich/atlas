@@ -50,6 +50,21 @@ const STATUS_OPTIONS = [
   { label: "All", value: "all" },
   ...STATUSES.map((value) => ({ label: value, value })),
 ] satisfies FilterOption<"all" | AuditEntry["status"]>[];
+// Width classes for loading skeleton bars, tuned to resemble each column's real content.
+// Each array is cycled by row so placeholder rows do not look mechanically duplicated.
+const LOADING_CELL_WIDTH_CLASSES_BY_COLUMN: Record<AuditColumnId, readonly string[]> = {
+  action: ["w-2/3", "w-3/4", "w-4/5"],
+  actor: ["w-2/5", "w-1/2", "w-3/5"],
+  amountMinor: ["w-2/3", "w-3/4", "w-4/5"],
+  customerId: ["w-1/2", "w-3/5", "w-2/3"],
+  kind: ["w-1/2", "w-3/5", "w-2/3"],
+  rail: ["w-2/5", "w-1/2", "w-3/5"],
+  severity: ["w-1/2", "w-3/5", "w-2/3"],
+  status: ["w-1/2", "w-3/5", "w-2/3"],
+  subject: ["w-2/3", "w-3/4", "w-4/5"],
+  traceId: ["w-2/3", "w-3/4", "w-4/5"],
+  ts: ["w-3/4", "w-4/5", "w-11/12"],
+};
 
 export type TimeRangeValue = (typeof TIME_RANGES)[number]["value"];
 
@@ -304,7 +319,8 @@ function AuditVirtualRow({
   if (row === undefined) {
     return (
       <div
-        className="absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.04] px-4 text-xs text-bankops-muted/55"
+        aria-label="Loading audit row"
+        className="absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.045] bg-[linear-gradient(90deg,rgba(56,189,248,0.025),rgba(255,255,255,0.012)_36%,rgba(255,255,255,0))] px-4"
         data-testid="audit-row-placeholder"
         style={{
           height: `${virtualRow.size}px`,
@@ -314,7 +330,7 @@ function AuditVirtualRow({
       >
         {visibleColumns.map((column) => (
           <AuditRowCell column={column} key={column.id}>
-            Loading
+            <AuditLoadingCell columnId={column.id} rowIndex={virtualRow.index} />
           </AuditRowCell>
         ))}
       </div>
@@ -337,6 +353,18 @@ function AuditVirtualRow({
         </AuditRowCell>
       ))}
     </div>
+  );
+}
+
+function AuditLoadingCell({ columnId, rowIndex }: { columnId: AuditColumnId; rowIndex: number }) {
+  const widthClasses = LOADING_CELL_WIDTH_CLASSES_BY_COLUMN[columnId];
+  const widthClass = widthClasses[rowIndex % widthClasses.length];
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`h-2.5 rounded-full bg-[linear-gradient(90deg,rgba(148,163,184,0.12),rgba(226,232,240,0.24),rgba(148,163,184,0.12))] shadow-[0_0_18px_rgba(125,211,252,0.05)] motion-safe:animate-pulse ${widthClass}`}
+    />
   );
 }
 
