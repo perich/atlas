@@ -2,26 +2,39 @@ import React from "react";
 import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 
 import { AppShell } from "./AppShell";
-import { AboutRoute } from "./routes/AboutRoute";
-import { HomeRoute } from "./routes/HomeRoute";
+import { AnalystRoute } from "./routes/AnalystRoute";
+import { AuditRoute } from "./routes/AuditRoute";
+import { OpsRoute } from "./routes/OpsRoute";
 
 const rootRoute = createRootRoute({
   component: AppShell,
 });
 
 const indexRoute = createRoute({
-  component: HomeRoute,
+  component: OpsRoute,
   getParentRoute: () => rootRoute,
   path: "/",
 });
 
-const aboutRoute = createRoute({
-  component: AboutRoute,
+const opsRoute = createRoute({
+  component: OpsRoute,
   getParentRoute: () => rootRoute,
-  path: "/about",
+  path: "/ops",
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, aboutRoute]);
+const auditRoute = createRoute({
+  component: AuditRoute,
+  getParentRoute: () => rootRoute,
+  path: "/audit",
+});
+
+const analystRoute = createRoute({
+  component: AnalystRoute,
+  getParentRoute: () => rootRoute,
+  path: "/analyst",
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, opsRoute, auditRoute, analystRoute]);
 
 const router = createRouter({
   defaultPreload: "intent",
