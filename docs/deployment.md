@@ -30,7 +30,7 @@ The web worker derives the stream URL from `self.location`, so local `http` uses
 `render.yaml` is the deploy contract:
 
 ```txt
-buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+buildCommand: npm install -g pnpm@11.1.0 && pnpm install --frozen-lockfile && pnpm build
 startCommand: pnpm start
 healthCheckPath: /healthz
 ```
