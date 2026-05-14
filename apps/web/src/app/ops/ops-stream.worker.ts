@@ -35,6 +35,10 @@ type HeatmapBin = {
   startedAt: number;
   cells: Map<string, HeatmapDelta>;
 };
+type AmountScaleBin = {
+  startedAt: number;
+  maxAmountMinor: number;
+};
 
 let socket: WebSocket | undefined;
 let reconnectTimer: number | undefined;
@@ -56,6 +60,15 @@ const heatmapBins: HeatmapBin[] = Array.from({ length: heatmapWindowMs / heatmap
   cells: new Map(),
   startedAt: 0,
 }));
+const amountScaleWindowMs = 5_000;
+const amountScaleBinMs = 250;
+const amountScaleBins: AmountScaleBin[] = Array.from(
+  { length: amountScaleWindowMs / amountScaleBinMs },
+  () => ({
+    maxAmountMinor: 0,
+    startedAt: 0,
+  }),
+);
 const columns = [
   ["time", 92],
   ["side", 68],
@@ -143,6 +156,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
       decodedCount += batch.movements.length;
       latestSeq = batch.toSeq;
       pushRows(batch.movements);
+      recordAmountScaleMovements(batch.movements);
       recordHeatmapMovements(batch.movements);
       return;
     }
@@ -224,16 +238,10 @@ function draw() {
   drawHeader(canvasContext);
 
   const visibleMovements = rows.slice(0, visibleRows);
-  const maxVisibleAmountMinor = maxAmountMinor(visibleMovements);
+  const amountScaleMinor = rollingAmountScaleMinor();
 
   visibleMovements.forEach((movement, index) => {
-    drawRow(
-      canvasContext!,
-      movement,
-      headerHeight + index * rowHeight,
-      index,
-      maxVisibleAmountMinor,
-    );
+    drawRow(canvasContext!, movement, headerHeight + index * rowHeight, index, amountScaleMinor);
   });
 
   frameCount += 1;
@@ -284,7 +292,7 @@ function drawRow(
   movement: BalanceSheetMovement,
   y: number,
   index: number,
-  maxVisibleAmountMinor: number,
+  amountScaleMinor: number,
 ) {
   const color = movement.side === "credit" ? "#86efac" : "#fda4af";
   const tint = movement.side === "credit" ? "rgba(34,197,94," : "rgba(244,63,94,";
@@ -295,7 +303,7 @@ function drawRow(
   context.fillStyle = `${tint}${alpha})`;
   context.fillRect(0, y, tapeLayout.width, rowHeight);
 
-  drawMagnitudeBar(context, movement, y, maxVisibleAmountMinor, color);
+  drawMagnitudeBar(context, movement, y, amountScaleMinor, color);
   drawMovementCells(context, movement, y + 10, color);
 }
 
@@ -332,14 +340,13 @@ function drawMagnitudeBar(
   context: OffscreenCanvasRenderingContext2D,
   movement: BalanceSheetMovement,
   y: number,
-  maxVisibleAmountMinor: number,
+  amountScaleMinor: number,
   color: string,
 ) {
   const x = magnitudeBarInsetX;
   const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
   const amountMinor = Math.abs(Number(movement.amountMinor));
-  const intensity =
-    maxVisibleAmountMinor === 0 ? 0 : Math.sqrt(amountMinor / maxVisibleAmountMinor);
+  const intensity = amountScaleMinor === 0 ? 0 : amountMinor / amountScaleMinor;
   const width = Math.max(3, maxWidth * Math.min(1, intensity));
   const height = rowHeight - magnitudeBarInsetY * 2;
 
@@ -359,10 +366,6 @@ function drawColumnRules(context: OffscreenCanvasRenderingContext2D) {
 function movementCellColor(movement: BalanceSheetMovement, index: number, sideColor: string) {
   if (index === 1 || index === 2) {
     return sideColor;
-  }
-
-  if (index === 3 || index === 4 || index === 6) {
-    return "#b9f6c8";
   }
 
   if (index === 7 && (movement.status === "failed" || movement.status === "held")) {
@@ -386,12 +389,6 @@ function columnX(index: number) {
   );
 }
 
-function maxAmountMinor(movements: BalanceSheetMovement[]) {
-  return movements.reduce((max, movement) => {
-    return Math.max(max, Math.abs(Number(movement.amountMinor)));
-  }, 0);
-}
-
 function pushRows(movements: BalanceSheetMovement[]) {
   renderedRowCount += movements.length;
 
@@ -400,6 +397,15 @@ function pushRows(movements: BalanceSheetMovement[]) {
   }
 
   rows.length = Math.min(rows.length, 128);
+}
+
+function recordAmountScaleMovements(movements: BalanceSheetMovement[]) {
+  for (const movement of movements) {
+    const bin = amountScaleBinFor(movement.serverTs);
+    const amountMinor = Math.abs(Number(movement.amountMinor));
+
+    bin.maxAmountMinor = Math.max(bin.maxAmountMinor, amountMinor);
+  }
 }
 
 function recordHeatmapMovements(movements: BalanceSheetMovement[]) {
@@ -438,6 +444,19 @@ function recordHeatmapMovements(movements: BalanceSheetMovement[]) {
 
     bin.cells.set(key, cell);
   }
+}
+
+function rollingAmountScaleMinor() {
+  const now = latestMovementTs === 0 ? Date.now() : latestMovementTs;
+  const cutoff = now - amountScaleWindowMs;
+
+  return amountScaleBins.reduce((max, bin) => {
+    if (bin.startedAt <= cutoff) {
+      return max;
+    }
+
+    return Math.max(max, bin.maxAmountMinor);
+  }, 0);
 }
 
 function buildHeatmapSnapshot(): RailBucketHeatmapCell[] {
@@ -500,6 +519,18 @@ function heatmapBinFor(ts: number) {
   if (bin.startedAt !== startedAt) {
     bin.startedAt = startedAt;
     bin.cells.clear();
+  }
+
+  return bin;
+}
+
+function amountScaleBinFor(ts: number) {
+  const startedAt = Math.floor(ts / amountScaleBinMs) * amountScaleBinMs;
+  const bin = amountScaleBins[Math.floor(startedAt / amountScaleBinMs) % amountScaleBins.length];
+
+  if (bin.startedAt !== startedAt) {
+    bin.startedAt = startedAt;
+    bin.maxAmountMinor = 0;
   }
 
   return bin;
