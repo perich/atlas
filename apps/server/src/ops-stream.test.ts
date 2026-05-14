@@ -37,7 +37,7 @@ describe("/stream", () => {
   it("changes stream rate without reconnecting", async () => {
     const socket = await connect();
 
-    socket.send(JSON.stringify({ type: "stream.rate.set", targetRate: 50 }));
+    socket.send(JSON.stringify({ type: "stream.rate.set", targetRate: 1 }));
 
     const slowBatch = decodeMovementBatch(
       await nextBinary(socket, (data) => decodeMovementBatch(data).movements.length <= 1),
