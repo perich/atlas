@@ -1,20 +1,13 @@
 import React from "react";
-import type { AuditEntry, AuditSort } from "@bankops/contracts";
-import { RAILS } from "@bankops/contracts";
+import type { AuditSort } from "@bankops/contracts";
 
-import {
-  AuditCellValue,
-  AuditColumnLayoutMenu,
-  AuditHeaderCell,
-  AuditRowCell,
-  type ColumnLayoutUpdate,
-} from "./AuditColumnControls";
+import { AuditCellValue, AuditHeaderCell, AuditRowCell } from "./AuditTableCells";
+import type { ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditEntry } from "./audit-api";
 import {
   moveAuditColumn,
   resizeAuditColumn,
   type AuditColumnId,
-  type AuditColumnLayout,
   type SizedAuditColumn,
 } from "./audit-column-layout";
 import type { AuditWindowCache } from "./audit-window";
@@ -29,27 +22,6 @@ const SORT_FIELD_BY_COLUMN_ID: Partial<Record<AuditColumnId, AuditSort["field"]>
   status: "status",
   ts: "ts",
 };
-const SEVERITIES = ["info", "notice", "warning", "critical"] as const;
-const STATUSES = ["accepted", "pending", "posted", "settled", "failed", "reversed"] as const;
-const TIME_RANGES = [
-  { label: "All time", value: "all", durationMs: undefined },
-  { label: "Newest 15m", value: "15m", durationMs: 15 * 60_000 },
-  { label: "Newest 1h", value: "1h", durationMs: 60 * 60_000 },
-  { label: "Newest 4h", value: "4h", durationMs: 4 * 60 * 60_000 },
-] as const;
-const TIME_OPTIONS = TIME_RANGES.map((range) => ({ label: range.label, value: range.value }));
-const SEVERITY_OPTIONS = [
-  { label: "All", value: "all" },
-  ...SEVERITIES.map((value) => ({ label: value, value })),
-] satisfies FilterOption<"all" | AuditEntry["severity"]>[];
-const RAIL_OPTIONS = [
-  { label: "All", value: "all" },
-  ...RAILS.map((value) => ({ label: value, value })),
-] satisfies FilterOption<"all" | NonNullable<AuditEntry["rail"]>>[];
-const STATUS_OPTIONS = [
-  { label: "All", value: "all" },
-  ...STATUSES.map((value) => ({ label: value, value })),
-] satisfies FilterOption<"all" | AuditEntry["status"]>[];
 // Width classes for loading skeleton bars, tuned to resemble each column's real content.
 // Each array is cycled by row so placeholder rows do not look mechanically duplicated.
 const LOADING_CELL_WIDTH_CLASSES_BY_COLUMN: Record<AuditColumnId, readonly string[]> = {
@@ -66,111 +38,12 @@ const LOADING_CELL_WIDTH_CLASSES_BY_COLUMN: Record<AuditColumnId, readonly strin
   ts: ["w-3/4", "w-4/5", "w-11/12"],
 };
 
-export type TimeRangeValue = (typeof TIME_RANGES)[number]["value"];
-
 type AuditVirtualItem = {
   index: number;
   key: React.Key;
   size: number;
   start: number;
 };
-
-type FilterOption<T extends string> = {
-  label: string;
-  value: T;
-};
-
-export function AuditFilterPanel({
-  columnLayout,
-  newestRowTs,
-  onColumnLayoutChange,
-  queryState,
-  renderTrace,
-  selectedTimeRange,
-  setQueryState,
-}: {
-  columnLayout: AuditColumnLayout;
-  newestRowTs: number | undefined;
-  onColumnLayoutChange: (update: ColumnLayoutUpdate) => void;
-  queryState: AuditQueryState;
-  renderTrace: React.ReactNode;
-  selectedTimeRange: TimeRangeValue;
-  setQueryState: (state: AuditQueryState) => void;
-}) {
-  return (
-    <Panel className="flex flex-wrap items-end gap-4">
-      {renderTrace}
-
-      <div className="flex flex-wrap items-end gap-3">
-        <FilterSelect
-          label="Time"
-          onChange={(value) => {
-            const range = TIME_RANGES.find((item) => item.value === value);
-            const nextFilters = { ...queryState.filters };
-
-            delete nextFilters.tsFrom;
-            delete nextFilters.tsTo;
-
-            if (range?.durationMs !== undefined && newestRowTs !== undefined) {
-              nextFilters.tsFrom = newestRowTs - range.durationMs;
-            }
-
-            setQueryState({ filters: nextFilters, sort: queryState.sort });
-          }}
-          options={TIME_OPTIONS}
-          value={selectedTimeRange}
-        />
-
-        <FilterSelect
-          label="Severity"
-          onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                severity: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
-          }
-          options={SEVERITY_OPTIONS}
-          value={queryState.filters.severity?.[0] ?? "all"}
-        />
-
-        <FilterSelect
-          label="Rail"
-          onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                rail: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
-          }
-          options={RAIL_OPTIONS}
-          value={queryState.filters.rail?.[0] ?? "all"}
-        />
-
-        <FilterSelect
-          label="Status"
-          onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                status: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
-          }
-          options={STATUS_OPTIONS}
-          value={queryState.filters.status?.[0] ?? "all"}
-        />
-
-        <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
-      </div>
-    </Panel>
-  );
-}
 
 export function AuditTablePanel({
   cache,
@@ -291,20 +164,6 @@ export function AuditTablePanel({
   );
 }
 
-export function timeRangeValue(
-  tsFrom: number | undefined,
-  newestTs: number | undefined,
-): TimeRangeValue {
-  if (tsFrom === undefined || newestTs === undefined) {
-    return "all";
-  }
-
-  const durationMs = newestTs - tsFrom;
-  const range = TIME_RANGES.find((item) => item.durationMs === durationMs);
-
-  return range?.value ?? "all";
-}
-
 function AuditVirtualRow({
   row,
   tableWidth,
@@ -365,45 +224,5 @@ function AuditLoadingCell({ columnId, rowIndex }: { columnId: AuditColumnId; row
       aria-hidden="true"
       className={`h-2.5 rounded-full bg-[linear-gradient(90deg,rgba(148,163,184,0.12),rgba(226,232,240,0.24),rgba(148,163,184,0.12))] shadow-[0_0_18px_rgba(125,211,252,0.05)] motion-safe:animate-pulse ${widthClass}`}
     />
-  );
-}
-
-function FilterSelect<T extends string>({
-  ariaLabel,
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  ariaLabel?: string;
-  label: string;
-  onChange: (value: T) => void;
-  options: readonly FilterOption<T>[];
-  value: T;
-}) {
-  const select = (
-    <select
-      aria-label={ariaLabel}
-      className="h-9 rounded-md border border-white/10 bg-black/30 px-2 text-xs normal-case tracking-normal text-white"
-      onChange={(event) => onChange(options[event.currentTarget.selectedIndex]?.value ?? value)}
-      value={value}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-
-  if (label === "") {
-    return select;
-  }
-
-  return (
-    <label className="grid gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-bankops-muted">
-      {label}
-      {select}
-    </label>
   );
 }
