@@ -11,9 +11,16 @@ import { startOpsStreamSession } from "./ops-stream.js";
 const DEFAULT_PORT = 8787;
 const DEFAULT_HOST = "0.0.0.0";
 
-export async function buildServer(logger = true) {
+type BuildServerOptions = {
+  logger?: boolean;
+  serveStatic?: boolean;
+  staticRoot?: string;
+};
+
+export async function buildServer(options: boolean | BuildServerOptions = true) {
+  const resolvedOptions = typeof options === "boolean" ? { logger: options } : options;
   const app = Fastify({
-    logger,
+    logger: resolvedOptions.logger ?? true,
   });
 
   await app.register(websocket);
@@ -30,9 +37,8 @@ export async function buildServer(logger = true) {
     startOpsStreamSession(socket);
   });
 
-  if (process.env.NODE_ENV === "production") {
-    const currentDir = path.dirname(fileURLToPath(import.meta.url));
-    const webDistDir = path.resolve(currentDir, "../../web/dist");
+  if (resolvedOptions.serveStatic ?? process.env.NODE_ENV === "production") {
+    const webDistDir = resolvedOptions.staticRoot ?? defaultWebDistDir();
 
     await app.register(fastifyStatic, {
       root: webDistDir,
@@ -42,7 +48,7 @@ export async function buildServer(logger = true) {
     app.setNotFoundHandler((request, reply) => {
       const url = request.raw.url ?? "";
 
-      if (url.startsWith("/api/") || url === "/stream") {
+      if (url.startsWith("/api/") || url === "/stream" || url.startsWith("/stream?")) {
         void reply.code(404).send({ error: "not_found" });
         return;
       }
@@ -54,12 +60,25 @@ export async function buildServer(logger = true) {
   return app;
 }
 
+export function resolveListenOptions(env: NodeJS.ProcessEnv = process.env) {
+  const port = Number(env.PORT ?? DEFAULT_PORT);
+
+  return {
+    host: env.HOST ?? DEFAULT_HOST,
+    port: Number.isFinite(port) ? port : DEFAULT_PORT,
+  };
+}
+
 async function start() {
   const app = await buildServer();
-  const port = Number(process.env.PORT ?? DEFAULT_PORT);
-  const host = process.env.HOST ?? DEFAULT_HOST;
 
-  await app.listen({ host, port });
+  await app.listen(resolveListenOptions());
+}
+
+function defaultWebDistDir() {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+
+  return path.resolve(currentDir, "../../web/dist");
 }
 
 // ESM version of "only start the server if this file is run directly".
