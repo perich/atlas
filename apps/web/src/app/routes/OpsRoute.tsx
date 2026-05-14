@@ -7,7 +7,7 @@ import {
   type Rail,
   type StreamRate,
 } from "@bankops/contracts";
-import { Activity, Gauge, Landmark, RadioTower } from "lucide-react";
+import { Activity, Gauge, Info, Landmark, RadioTower } from "lucide-react";
 
 import { useOpsStream } from "../ops/ops-stream-store";
 import type {
@@ -237,11 +237,14 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
   return (
     <Panel className="overflow-hidden p-0">
       <div className="border-b border-white/[0.075] px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-          Rail x Balance Sheet Pressure
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+            Live Flow Concentration
+          </p>
+          <HeatmapTooltip />
+        </div>
         <p className="mt-1 text-sm text-white">
-          Rolling 5s volume by payment rail and balance-sheet bucket
+          Rolling 5s pressure across rails and balance-sheet buckets
         </p>
       </div>
 
@@ -280,6 +283,28 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
         </div>
       </div>
     </Panel>
+  );
+}
+
+function HeatmapTooltip() {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        aria-label="Explain live flow concentration"
+        className="inline-flex size-4 items-center justify-center rounded-full border border-white/[0.12] text-bankops-muted transition-colors hover:border-white/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-300/35"
+        type="button"
+      >
+        <Info aria-hidden="true" className="size-3" />
+      </button>
+      <span
+        className="pointer-events-none absolute left-1/2 top-6 z-30 w-80 -translate-x-1/2 border border-white/[0.12] bg-[#111315] p-3 text-left text-xs leading-5 text-bankops-muted opacity-0 shadow-xl shadow-black/35 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+        role="tooltip"
+      >
+        Each cell summarizes the same stream as the tape. Rows are payment rails; columns are
+        balance-sheet buckets. The dollar value is movement amount per second, /s is movement count,
+        green/red shows credit vs debit dominance, and yellow marks pending, held, or failed share.
+      </span>
+    </span>
   );
 }
 
