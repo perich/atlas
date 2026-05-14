@@ -3,9 +3,11 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { auditSearchToQueryState, queryStateToAuditSearch } from "../audit/audit-query-state";
-import type { ColumnLayoutUpdate } from "../audit/AuditColumnControls";
+import type { ColumnLayoutUpdate } from "../audit/AuditColumnLayoutMenu";
+import { AuditFilterPanel } from "../audit/AuditFilterPanel";
 import { AuditRenderTracePanel, useMainThreadBlockingP95 } from "../audit/AuditRenderTracePanel";
-import { AuditFilterPanel, AuditTablePanel, timeRangeValue } from "../audit/AuditTableSurface";
+import { AuditTablePanel } from "../audit/AuditTablePanel";
+import { timeRangeValue } from "../audit/audit-time-range";
 import {
   readAuditColumnLayout,
   visibleAuditColumns,
