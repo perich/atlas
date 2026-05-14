@@ -43,16 +43,7 @@ export function startOpsStreamSession(socket: WebSocket) {
   const sendHotBatch = () => {
     const batch = simulator.nextBatch(targetRate, Date.now());
 
-    socket.send(
-      Buffer.from(
-        encodeMovementBatch({
-          fromSeq: batch.fromSeq,
-          toSeq: batch.toSeq,
-          serverTsMs: batch.serverTsMs,
-          movements: batch.movements,
-        }),
-      ),
-    );
+    socket.send(Buffer.from(encodeMovementBatch(batch)));
   };
 
   const sendWarmSnapshot = () => {
@@ -65,11 +56,7 @@ export function startOpsStreamSession(socket: WebSocket) {
   const warmTimer = setInterval(sendWarmSnapshot, WARM_TICK_MS);
 
   socket.on("message", (data) => {
-    const message = readControlMessage(data);
-
-    if (message !== null) {
-      targetRate = message.targetRate;
-    }
+    targetRate = readControlMessage(data).targetRate;
   });
 
   socket.on("close", () => {
@@ -78,14 +65,11 @@ export function startOpsStreamSession(socket: WebSocket) {
   });
 }
 
-function readControlMessage(data: RawData): StreamRateMessage | null {
+function readControlMessage(data: RawData): StreamRateMessage {
   const parsed: unknown = JSON.parse(rawDataToText(data));
+  assertStreamRateMessage(parsed);
 
-  if (isStreamRateMessage(parsed)) {
-    return parsed;
-  }
-
-  return null;
+  return parsed;
 }
 
 function rawDataToText(data: RawData): string {
@@ -100,19 +84,22 @@ function rawDataToText(data: RawData): string {
   return Buffer.concat(data).toString("utf8");
 }
 
-function isStreamRateMessage(value: unknown): value is StreamRateMessage {
+function assertStreamRateMessage(value: unknown): asserts value is StreamRateMessage {
   if (typeof value !== "object" || value === null) {
-    return false;
+    throw new Error("Expected stream rate control message");
   }
 
   if (!("type" in value) || !("targetRate" in value)) {
-    return false;
+    throw new Error("Expected stream rate control message");
   }
 
-  return (
-    value.type === "stream.rate.set" &&
-    (value.targetRate === 50 || value.targetRate === 2_000 || value.targetRate === 10_000)
-  );
+  if (value.type !== "stream.rate.set") {
+    throw new Error(`Unknown stream control message: ${String(value.type)}`);
+  }
+
+  if (value.targetRate !== 50 && value.targetRate !== 2_000 && value.targetRate !== 10_000) {
+    throw new Error(`Unsupported stream rate: ${String(value.targetRate)}`);
+  }
 }
 
 function toWarmMessage(snapshot: OpsTapeAggregateSnapshot): WarmOpsSnapshotMessage {
