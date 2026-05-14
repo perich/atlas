@@ -3,7 +3,8 @@ import type { AuditEntry, AuditFacets, AuditPage, AuditQuery, AuditSort } from "
 export type AuditFilters = NonNullable<AuditQuery["filters"]>;
 
 type Cursor = {
-  sort: AuditSort;
+  dir: AuditSort["dir"];
+  field: AuditSort["field"];
   id: string;
 };
 
@@ -103,7 +104,7 @@ function pageStart(entries: readonly AuditEntry[], query: AuditQuery, sort: Audi
 function cursorIndex(entries: readonly AuditEntry[], cursor: string, sort: AuditSort): number {
   const decoded = decodeCursor(cursor);
 
-  if (decoded.sort.field !== sort.field || decoded.sort.dir !== sort.dir) {
+  if (decoded.field !== sort.field || decoded.dir !== sort.dir) {
     throw new Error("Cursor sort does not match query sort");
   }
 
@@ -156,7 +157,8 @@ function compareValues(left: string | number, right: string | number): number {
 
 function encodeCursor(entry: AuditEntry, sort: AuditSort): string {
   const cursor: Cursor = {
-    sort,
+    dir: sort.dir,
+    field: sort.field,
     id: entry.id,
   };
 
@@ -175,7 +177,7 @@ function assertCursor(value: unknown): asserts value is Cursor {
     throw new Error("Invalid audit cursor");
   }
 
-  if (!("sort" in value) || !("id" in value)) {
+  if (!("dir" in value) || !("field" in value) || !("id" in value)) {
     throw new Error("Invalid audit cursor");
   }
 
@@ -183,15 +185,7 @@ function assertCursor(value: unknown): asserts value is Cursor {
     throw new Error("Invalid audit cursor");
   }
 
-  if (typeof value.sort !== "object" || value.sort === null) {
-    throw new Error("Invalid audit cursor");
-  }
-
-  if (!("field" in value.sort) || !("dir" in value.sort)) {
-    throw new Error("Invalid audit cursor");
-  }
-
-  if (typeof value.sort.field !== "string" || typeof value.sort.dir !== "string") {
+  if (typeof value.field !== "string" || typeof value.dir !== "string") {
     throw new Error("Invalid audit cursor");
   }
 }
