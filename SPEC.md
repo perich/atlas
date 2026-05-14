@@ -131,9 +131,8 @@ Required surfaces:
 - `/audit` is a table-only demo. Do not add summary charts above or around the table in the first
   cut.
 - TanStack Virtual table.
-- Sorting, column resize, column visibility, and column pinning.
+- Sorting, column resize, and column visibility.
 - Drag-and-drop column reordering.
-- First-cut pinning should support at least left-pinning `ts` and `severity`.
 - Column visibility should use a simple dropdown with checkboxes, not a full management modal.
 - Server-backed cursor windowing so the browser does not need to hold every row in memory at once.
 - Client-side pruning or cache-window management as the user scrolls.
@@ -182,8 +181,8 @@ Audit query semantics:
 - URL query params persist shareable investigation state: filters and sort.
 - URL query params do not preserve scroll position, cursor anchors, or row cache state. Reloading or
   opening a shared URL starts at the top of the filtered result set.
-- Local browser storage persists personal table layout preferences: column order, column width,
-  column visibility, and pinned columns.
+- Local browser storage persists personal table layout preferences: column order, column width, and
+  column visibility.
 - Column layout preferences are not encoded in URLs and are not persisted on the server.
 - Use TanStack Query for `/api/audit` and `/api/audit/facets` request lifecycle, cancellation,
   retries, stale timing, and cache keys.
