@@ -33,7 +33,7 @@ export function AuditHeaderCell({
     <div
       aria-sort={ariaSort}
       className={cn(
-        "group relative flex shrink-0 select-none items-center gap-2 overflow-hidden border-r border-white/[0.06] py-2 pr-3 transition-colors hover:bg-white/[0.035]",
+        "group relative flex shrink-0 select-none items-center gap-1 overflow-hidden py-2 pr-3 transition-colors hover:text-bankops-text",
         sortable ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
         draggedColumnId === column.id && "opacity-50",
       )}
@@ -75,14 +75,14 @@ export function AuditHeaderCell({
     >
       <GripVertical
         aria-hidden="true"
-        className="size-3 shrink-0 cursor-grab text-bankops-muted/70 transition-colors group-hover:text-sky-300/85"
+        className="size-3 shrink-0 cursor-grab text-[#5a6272]/70 transition-colors group-hover:text-bankops-muted"
       />
       <span className="min-w-0 truncate">{column.label}</span>
       {sortable ? (
         <span
           className={cn(
-            "ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-[3px] text-bankops-muted/45 opacity-0 transition-colors group-hover:bg-white/[0.055] group-hover:text-bankops-muted group-hover:opacity-100",
-            sorted && "bg-sky-300/10 text-sky-200 opacity-100",
+            "ml-auto inline-flex size-4 shrink-0 items-center justify-center text-bankops-muted/45 opacity-0 transition-colors group-hover:text-bankops-muted group-hover:opacity-100",
+            sorted && "text-bankops-text opacity-100",
           )}
         >
           {sortDir === "asc" ? (
@@ -128,7 +128,7 @@ export function AuditCellValue({
       return <TextCell title={timestamp}>{timestamp}</TextCell>;
     }
     case "severity":
-      return <TextCell className={severityClass(row.severity)}>{row.severity}</TextCell>;
+      return <SeverityChip severity={row.severity} />;
     case "kind":
       return <TextCell>{row.kind}</TextCell>;
     case "actor":
@@ -144,11 +144,13 @@ export function AuditCellValue({
     case "customerId":
       return <TextCell>{row.customerId ?? "-"}</TextCell>;
     case "rail":
-      return <TextCell>{row.rail ?? "-"}</TextCell>;
+      return <RailChip rail={row.rail} />;
     case "status":
-      return <TextCell>{row.status}</TextCell>;
+      return <TextCell className={statusClass(row.status)}>{row.status}</TextCell>;
     case "amountMinor":
-      return <TextCell className="text-white">{formatMinor(row.amountMinor)}</TextCell>;
+      return (
+        <TextCell className={amountClass(row.amountMinor)}>{formatMinor(row.amountMinor)}</TextCell>
+      );
     case "traceId":
       return (
         <span className="flex min-w-0 items-center gap-2">
@@ -157,7 +159,7 @@ export function AuditCellValue({
           </span>
           <button
             aria-label={`Copy trace ID ${row.traceId}`}
-            className="inline-flex size-5 shrink-0 items-center justify-center rounded-[3px] border border-white/[0.08] text-bankops-muted opacity-70 transition-colors hover:border-white/18 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/25"
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
             onClick={() => void navigator.clipboard?.writeText(row.traceId)}
             type="button"
           >
@@ -222,6 +224,27 @@ function TextCell({
   );
 }
 
+function SeverityChip({ severity }: { severity: JsonAuditEntry["severity"] }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-medium lowercase leading-none tracking-wide",
+        severityChipClass(severity),
+      )}
+    >
+      {severity}
+    </span>
+  );
+}
+
+function RailChip({ rail }: { rail: JsonAuditEntry["rail"] }) {
+  return (
+    <span className="inline-flex max-w-full items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-sm border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-wider text-[#5a6272]">
+      {rail ?? "-"}
+    </span>
+  );
+}
+
 function columnStyle(column: SizedAuditColumn): React.CSSProperties {
   return {
     maxWidth: `${column.width}px`,
@@ -252,17 +275,40 @@ function formatTimestamp(timestamp: number) {
   ].join("");
 }
 
-function severityClass(severity: JsonAuditEntry["severity"]) {
+function severityChipClass(severity: JsonAuditEntry["severity"]) {
   switch (severity) {
     case "critical":
-      return "text-rose-300";
+      return "border-rose-300/20 bg-rose-400/[0.12] text-rose-300";
     case "warning":
-      return "text-amber-200";
+      return "border-amber-300/20 bg-amber-300/[0.12] text-amber-200";
     case "notice":
-      return "text-sky-200";
+      return "border-sky-300/20 bg-sky-300/[0.12] text-sky-300";
+    default:
+      return "border-white/[0.08] bg-white/[0.04] text-bankops-muted";
+  }
+}
+
+function statusClass(status: JsonAuditEntry["status"]) {
+  switch (status) {
+    case "failed":
+    case "reversed":
+      return "text-rose-300";
+    case "pending":
+      return "text-amber-300";
+    case "posted":
+    case "settled":
+      return "text-emerald-300";
     default:
       return "text-bankops-muted";
   }
+}
+
+function amountClass(value: string | undefined) {
+  if (value === undefined) {
+    return "text-bankops-muted";
+  }
+
+  return Number(value) < 0 ? "font-medium text-rose-300" : "font-medium text-bankops-text";
 }
 
 function formatMinor(value: string | undefined) {

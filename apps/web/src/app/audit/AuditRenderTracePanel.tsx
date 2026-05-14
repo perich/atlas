@@ -34,12 +34,12 @@ export function AuditRenderTracePanel({
   return (
     <section
       aria-label="Render trace"
-      className="flex min-w-[280px] flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-xs text-bankops-muted"
+      className="flex h-10 items-center gap-0 overflow-x-auto border-b border-white/[0.08] bg-bankops-sidebar px-4 text-xs text-bankops-muted"
     >
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted/75">
+      <div className="mr-4 shrink-0 text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
         Render trace
       </div>
-      <dl className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <dl className="flex items-center gap-0">
         <TraceMetric
           label="Visible range"
           value={
@@ -66,12 +66,12 @@ export function AuditRenderTracePanel({
 
 function TraceMetric({ label, testId, value }: { label: string; testId?: string; value: string }) {
   return (
-    <div>
-      <dt className="text-[9px] font-semibold uppercase tracking-[0.12em] text-bankops-muted/60">
+    <div className="border-l border-white/[0.08] px-3 first:border-l-0 first:pl-0">
+      <dt className="text-[9px] font-semibold uppercase leading-none tracking-widest text-[#5a6272]">
         {label}
       </dt>
       <dd
-        className="mt-0.5 max-w-32 truncate font-mono text-[11px] leading-none text-bankops-text"
+        className="mt-1 max-w-36 truncate font-mono text-[11px] leading-none text-bankops-text"
         data-testid={testId}
         title={value}
       >
