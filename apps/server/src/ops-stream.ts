@@ -22,7 +22,6 @@ export type WarmOpsSnapshotMessage = {
   cumulativeDebitsMinor: string;
   liquidityReserveMinor: string;
   exceptionQueueDepth: number;
-  bucketTotals: Record<string, string>;
   railHealth: OpsTapeAggregateSnapshot["railHealth"];
   chart: Array<{
     ts: number;
@@ -122,9 +121,6 @@ function toWarmMessage(snapshot: OpsTapeAggregateSnapshot): WarmOpsSnapshotMessa
     cumulativeDebitsMinor: snapshot.cumulativeDebitsMinor.toString(),
     liquidityReserveMinor: snapshot.liquidityReserveMinor.toString(),
     exceptionQueueDepth: snapshot.exceptionQueueDepth,
-    bucketTotals: Object.fromEntries(
-      Object.entries(snapshot.bucketTotals).map(([bucket, total]) => [bucket, total.toString()]),
-    ),
     railHealth: snapshot.railHealth,
     chart: snapshot.chart.map((point) => ({
       ...point,
