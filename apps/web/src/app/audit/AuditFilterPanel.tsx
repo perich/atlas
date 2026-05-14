@@ -121,13 +121,11 @@ export function AuditFilterPanel({
 }
 
 function FilterSelect<T extends string>({
-  ariaLabel,
   label,
   onChange,
   options,
   value,
 }: {
-  ariaLabel?: string;
   label: string;
   onChange: (value: T) => void;
   options: readonly FilterOption<T>[];
@@ -135,9 +133,8 @@ function FilterSelect<T extends string>({
 }) {
   const select = (
     <select
-      aria-label={ariaLabel}
       className="h-8 min-w-28 appearance-none rounded-md border border-white/[0.08] bg-[#1a1c1f] px-3 font-mono text-xs normal-case tracking-normal text-bankops-text outline-none transition-colors focus:ring-1 focus:ring-white/20"
-      onChange={(event) => onChange(options[event.currentTarget.selectedIndex]?.value ?? value)}
+      onChange={(event) => onChange(event.currentTarget.value as T)}
       value={value}
     >
       {options.map((option) => (
@@ -147,10 +144,6 @@ function FilterSelect<T extends string>({
       ))}
     </select>
   );
-
-  if (label === "") {
-    return select;
-  }
 
   return (
     <label className="grid gap-1 text-[10px] font-semibold uppercase leading-none tracking-widest text-[#5a6272]">

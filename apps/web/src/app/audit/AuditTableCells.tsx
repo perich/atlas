@@ -279,27 +279,28 @@ function severityChipClass(severity: JsonAuditEntry["severity"]) {
   switch (severity) {
     case "critical":
       return "border-rose-300/20 bg-rose-400/[0.12] text-rose-300";
-    case "warning":
-      return "border-amber-300/20 bg-amber-300/[0.12] text-amber-200";
+    case "info":
+      return "border-white/[0.08] bg-white/[0.04] text-bankops-muted";
     case "notice":
       return "border-sky-300/20 bg-sky-300/[0.12] text-sky-300";
-    default:
-      return "border-white/[0.08] bg-white/[0.04] text-bankops-muted";
+    case "warning":
+      return "border-amber-300/20 bg-amber-300/[0.12] text-amber-200";
   }
 }
 
 function statusClass(status: JsonAuditEntry["status"]) {
   switch (status) {
     case "failed":
-    case "reversed":
       return "text-rose-300";
     case "pending":
       return "text-amber-300";
     case "posted":
     case "settled":
       return "text-emerald-300";
-    default:
+    case "accepted":
       return "text-bankops-muted";
+    case "reversed":
+      return "text-rose-300";
   }
 }
 

@@ -143,24 +143,39 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
 
   return (
     <div className="space-y-2">
-      {rails.map((rail) => (
-        <div
-          className={`grid grid-cols-[1fr_auto] gap-3 border-l-2 bg-bankops-panel p-3 ${rail.status === "incident" ? "border-l-rose-400" : rail.status === "degraded" ? "border-l-amber-300" : "border-l-transparent"}`}
-          key={rail.rail}
-        >
-          <div>
-            <p className="text-xs font-medium text-white">{titleize(rail.rail)}</p>
-            <p className="mt-0.5 font-mono text-[10px] text-[#5a6272]">
-              {formatCount(rail.eventsPerSec)}/s · p95 {formatMilliseconds(rail.p95LatencyMs)}
-            </p>
+      {rails.map((rail) => {
+        const borderClassName = railStatusBorderClassName(rail.status);
+
+        return (
+          <div
+            className={`grid grid-cols-[1fr_auto] gap-3 border-l-2 bg-bankops-panel p-3 ${borderClassName}`}
+            key={rail.rail}
+          >
+            <div>
+              <p className="text-xs font-medium text-white">{titleize(rail.rail)}</p>
+              <p className="mt-0.5 font-mono text-[10px] text-[#5a6272]">
+                {formatCount(rail.eventsPerSec)}/s · p95 {formatMilliseconds(rail.p95LatencyMs)}
+              </p>
+            </div>
+            <span className={`text-[11px] font-semibold ${railHealthClassNames[rail.status]}`}>
+              {railHealthLabels[rail.status]}
+            </span>
           </div>
-          <span className={`text-[11px] font-semibold ${railHealthClassNames[rail.status]}`}>
-            {railHealthLabels[rail.status]}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+function railStatusBorderClassName(status: RailHealthSnapshot["status"]) {
+  switch (status) {
+    case "degraded":
+      return "border-l-amber-300";
+    case "incident":
+      return "border-l-rose-400";
+    case "nominal":
+      return "border-l-transparent";
+  }
 }
 
 function streamPressure(snapshot: OpsStreamSnapshot): {
