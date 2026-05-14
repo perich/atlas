@@ -39,10 +39,13 @@ class MockWorker {
 describe("ops stream store", () => {
   beforeEach(() => {
     MockWorker.instances = [];
+    vi.useFakeTimers();
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("OffscreenCanvas", function MockOffscreenCanvas() {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -69,8 +72,41 @@ describe("ops stream store", () => {
 
     unsubscribe();
 
+    vi.advanceTimersByTime(100);
+
     expect(worker.commands).toContainEqual({ type: "disconnect" });
     expect(worker.terminated).toBe(true);
+  });
+
+  it("transfers the tape canvas to the worker", () => {
+    const store = createOpsStreamStore(() => new Worker("mock"));
+    const unsubscribe = store.subscribe(vi.fn());
+    const worker = latestWorker();
+    const canvas = new OffscreenCanvas(1, 1);
+    const layout = { dpr: 2, height: 236, width: 1_100 };
+
+    store.attachTapeCanvas(canvas, layout);
+
+    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas, layout });
+
+    unsubscribe();
+    vi.advanceTimersByTime(100);
+  });
+
+  it("keeps a transferred tape canvas until the worker starts", () => {
+    const store = createOpsStreamStore(() => new Worker("mock"));
+    const canvas = new OffscreenCanvas(1, 1);
+    const layout = { dpr: 2, height: 236, width: 1_100 };
+
+    store.attachTapeCanvas(canvas, layout);
+
+    const unsubscribe = store.subscribe(vi.fn());
+    const worker = latestWorker();
+
+    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas, layout });
+
+    unsubscribe();
+    vi.advanceTimersByTime(100);
   });
 });
 
@@ -80,7 +116,13 @@ describe("OpsRoute", () => {
 
   beforeEach(() => {
     MockWorker.instances = [];
+    vi.useFakeTimers();
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("OffscreenCanvas", function MockOffscreenCanvas() {});
+    Object.defineProperty(HTMLCanvasElement.prototype, "transferControlToOffscreen", {
+      configurable: true,
+      value: vi.fn(() => new OffscreenCanvas(1, 1)),
+    });
     host = document.createElement("div");
     document.body.append(host);
     root = createRoot(host);
@@ -88,7 +130,11 @@ describe("OpsRoute", () => {
 
   afterEach(() => {
     act(() => root?.unmount());
+    vi.advanceTimersByTime(100);
     host?.remove();
+    delete (HTMLCanvasElement.prototype as { transferControlToOffscreen?: unknown })
+      .transferControlToOffscreen;
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -97,16 +143,13 @@ describe("OpsRoute", () => {
 
     const worker = latestWorker();
 
-    expect(worker.commands).toEqual([{ type: "connect" }]);
+    expect(worker.commands).toContainEqual({ type: "connect" });
 
     act(() => {
       worker.emit({
         snapshot: {
           ...INITIAL_OPS_STREAM_SNAPSHOT,
           connectionStatus: "open",
-          eventRate: 2_000,
-          liquidityReserveMinor: "81240000000",
-          movementRate: 1_900,
           seq: "84",
         },
         type: "snapshot",
@@ -114,7 +157,6 @@ describe("OpsRoute", () => {
     });
 
     expect(host?.textContent).toContain("Open");
-    expect(host?.textContent).toContain("2000/s");
     expect(host?.textContent).toContain("SettlementStream seq 84");
 
     const stressButton = findButton("10k/s");

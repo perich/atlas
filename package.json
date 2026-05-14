@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "husky",
     "dev": "concurrently -n web,server -c cyan,green \"pnpm dev:web\" \"pnpm dev:server\"",
     "dev:web": "pnpm --filter @bankops/web dev",
     "dev:server": "pnpm --filter @bankops/server dev",
@@ -13,6 +14,8 @@
     "lint": "oxlint --type-aware .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
+    "precommit": "pnpm lint-staged && pnpm typecheck && pnpm lint && pnpm test:run && pnpm format:check",
+    "lint-staged": "lint-staged",
     "test": "pnpm -r --if-present test",
     "test:run": "pnpm -r --if-present test:run",
     "test:e2e": "playwright test"
@@ -23,10 +26,15 @@
     "concurrently": "9.2.1",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-you-might-not-need-an-effect": "0.10.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "oxfmt": "0.48.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "typescript": "6.0.3"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,md,mdx}": "oxfmt --write --no-error-on-unmatched-pattern"
   },
   "engines": {
     "node": ">=22.13"
