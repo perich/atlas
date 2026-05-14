@@ -40,8 +40,6 @@ self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
       socket?.send(JSON.stringify(command));
       publish({ ...snapshot, streamRate });
       return;
-    default:
-      assertNever(command);
   }
 };
 
@@ -128,8 +126,4 @@ function assertWarmSnapshot(value: unknown): asserts value is WarmOpsSnapshotMes
   if (value.type !== "ops.snapshot" || value.channel !== StreamChannel.AggregateSnapshot) {
     throw new Error("Unknown SettlementStream warm message");
   }
-}
-
-function assertNever(_: never): never {
-  throw new Error("Unexpected worker command");
 }
