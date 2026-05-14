@@ -13,6 +13,23 @@ const usdCompact = new Intl.NumberFormat("en-US", {
   notation: "compact",
   style: "currency",
 });
+const statusLabels: Record<OpsConnectionStatus, string> = {
+  connecting: "Connecting",
+  degraded: "Backend unavailable",
+  open: "Open",
+  reconnecting: "Reconnecting",
+};
+const statusClassNames: Record<OpsConnectionStatus, string> = {
+  connecting: "font-medium text-sky-300",
+  degraded: "font-medium text-amber-300",
+  open: "font-medium text-emerald-300",
+  reconnecting: "font-medium text-sky-300",
+};
+const streamRateLabels: Record<StreamRate, string> = {
+  50: "50/s",
+  2_000: "2k/s",
+  10_000: "10k/s",
+};
 
 export function OpsRoute() {
   const { setStreamRate, snapshot } = useOpsStream();
@@ -26,7 +43,7 @@ export function OpsRoute() {
         <StatCard
           icon={RadioTower}
           label="Connection"
-          value={statusLabel(snapshot.connectionStatus)}
+          value={statusLabels[snapshot.connectionStatus]}
         />
         <StatCard icon={Activity} label="Warm rate" value={`${Math.round(snapshot.eventRate)}/s`} />
         <StatCard
@@ -42,8 +59,8 @@ export function OpsRoute() {
           <div className="flex h-[360px] flex-col justify-between border border-dashed border-white/[0.1] bg-black/20 p-4">
             <div className="flex items-center justify-between text-xs text-bankops-muted">
               <span>SettlementStream seq {snapshot.seq}</span>
-              <span className={statusClassName(snapshot.connectionStatus)}>
-                {statusLabel(snapshot.connectionStatus)}
+              <span className={statusClassNames[snapshot.connectionStatus]}>
+                {statusLabels[snapshot.connectionStatus]}
               </span>
             </div>
 
@@ -64,7 +81,7 @@ export function OpsRoute() {
                     onClick={() => setStreamRate(streamRate)}
                     variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
                   >
-                    {streamRateLabel(streamRate)}
+                    {streamRateLabels[streamRate]}
                   </Button>
                 ))}
               </div>
@@ -101,56 +118,4 @@ function HealthRow({ label, value }: { label: string; value: string }) {
 
 function formatMinorUsd(value: string) {
   return usdCompact.format(Number(BigInt(value) / 100n));
-}
-
-function statusLabel(status: OpsConnectionStatus): string {
-  if (status === "open") {
-    return "Open";
-  }
-
-  if (status === "connecting") {
-    return "Connecting";
-  }
-
-  if (status === "reconnecting") {
-    return "Reconnecting";
-  }
-
-  if (status === "degraded") {
-    return "Backend unavailable";
-  }
-
-  return assertNever(status);
-}
-
-function statusClassName(status: OpsConnectionStatus) {
-  if (status === "open") {
-    return "font-medium text-emerald-300";
-  }
-
-  if (status === "degraded") {
-    return "font-medium text-amber-300";
-  }
-
-  return "font-medium text-sky-300";
-}
-
-function streamRateLabel(streamRate: StreamRate): string {
-  if (streamRate === 50) {
-    return "50/s";
-  }
-
-  if (streamRate === 2_000) {
-    return "2k/s";
-  }
-
-  if (streamRate === 10_000) {
-    return "10k/s";
-  }
-
-  return assertNever(streamRate);
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unexpected value: ${String(value)}`);
 }
