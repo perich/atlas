@@ -11,6 +11,9 @@ import {
 
 import { randomInt } from "./random.js";
 
+export { getAuditFacets, queryAuditEntries } from "./query.js";
+export type { AuditFilters } from "./query.js";
+
 export const DEFAULT_AUDIT_ENTRY_COUNT = 100_000;
 export const AUDIT_LOG_TARGET_COUNT = 250_000;
 
