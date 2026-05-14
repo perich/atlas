@@ -31,13 +31,10 @@ type HeatmapDelta = {
   debitMinor: number;
   exceptionCount: number;
 };
-type HeatmapBin = {
-  startedAt: number;
-  cells: Map<string, HeatmapDelta>;
-};
-type AmountScaleBin = {
+type MovementBin = {
   startedAt: number;
   maxAmountMinor: number;
+  cells: Map<string, HeatmapDelta>;
 };
 
 let socket: WebSocket | undefined;
@@ -54,17 +51,12 @@ let renderedRowCount = 0;
 let latestSeq = 0n;
 let latestMovementTs = 0;
 const rows: BalanceSheetMovement[] = [];
-const heatmapWindowMs = 5_000;
-const heatmapBinMs = 250;
-const heatmapBins: HeatmapBin[] = Array.from({ length: heatmapWindowMs / heatmapBinMs }, () => ({
-  cells: new Map(),
-  startedAt: 0,
-}));
-const amountScaleWindowMs = 5_000;
-const amountScaleBinMs = 250;
-const amountScaleBins: AmountScaleBin[] = Array.from(
-  { length: amountScaleWindowMs / amountScaleBinMs },
+const movementWindowMs = 5_000;
+const movementBinMs = 250;
+const movementBins: MovementBin[] = Array.from(
+  { length: movementWindowMs / movementBinMs },
   () => ({
+    cells: new Map(),
     maxAmountMinor: 0,
     startedAt: 0,
   }),
@@ -156,8 +148,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
       decodedCount += batch.movements.length;
       latestSeq = batch.toSeq;
       pushRows(batch.movements);
-      recordAmountScaleMovements(batch.movements);
-      recordHeatmapMovements(batch.movements);
+      recordMovementStats(batch.movements);
       return;
     }
 
@@ -294,7 +285,7 @@ function drawRow(
   index: number,
   amountScaleMinor: number,
 ) {
-  const color = movement.side === "credit" ? "#86efac" : "#fda4af";
+  const color = movementSideColor(movement);
   const tint = movement.side === "credit" ? "rgba(34,197,94," : "rgba(244,63,94,";
   const alpha = Math.max(0.02, 0.075 - index * 0.0015);
 
@@ -303,7 +294,7 @@ function drawRow(
   context.fillStyle = `${tint}${alpha})`;
   context.fillRect(0, y, tapeLayout.width, rowHeight);
 
-  drawMagnitudeBar(context, movement, y, amountScaleMinor, color);
+  drawMagnitudeBar(context, movement, y, amountScaleMinor);
   drawMovementCells(context, movement, y + 10, color);
 }
 
@@ -341,7 +332,6 @@ function drawMagnitudeBar(
   movement: BalanceSheetMovement,
   y: number,
   amountScaleMinor: number,
-  color: string,
 ) {
   const x = magnitudeBarInsetX;
   const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
@@ -350,7 +340,7 @@ function drawMagnitudeBar(
   const width = Math.max(3, maxWidth * Math.min(1, intensity));
   const height = rowHeight - magnitudeBarInsetY * 2;
 
-  context.fillStyle = color;
+  context.fillStyle = movementSideColor(movement);
   context.fillRect(x, y + magnitudeBarInsetY, width, height);
 }
 
@@ -379,6 +369,10 @@ function movementCellColor(movement: BalanceSheetMovement, index: number, sideCo
   return "#d7dee8";
 }
 
+function movementSideColor(movement: BalanceSheetMovement) {
+  return movement.side === "credit" ? "#86efac" : "#fda4af";
+}
+
 function columnX(index: number) {
   return (
     cellPaddingX +
@@ -399,20 +393,11 @@ function pushRows(movements: BalanceSheetMovement[]) {
   rows.length = Math.min(rows.length, 128);
 }
 
-function recordAmountScaleMovements(movements: BalanceSheetMovement[]) {
-  for (const movement of movements) {
-    const bin = amountScaleBinFor(movement.serverTs);
-    const amountMinor = Math.abs(Number(movement.amountMinor));
-
-    bin.maxAmountMinor = Math.max(bin.maxAmountMinor, amountMinor);
-  }
-}
-
-function recordHeatmapMovements(movements: BalanceSheetMovement[]) {
+function recordMovementStats(movements: BalanceSheetMovement[]) {
   for (const movement of movements) {
     latestMovementTs = Math.max(latestMovementTs, movement.serverTs);
 
-    const bin = heatmapBinFor(movement.serverTs);
+    const bin = movementBinFor(movement.serverTs);
     const key = heatmapKey(movement.rail, movement.bucket);
     const cell =
       bin.cells.get(key) ??
@@ -426,6 +411,7 @@ function recordHeatmapMovements(movements: BalanceSheetMovement[]) {
       } satisfies HeatmapDelta);
     const amountMinor = Math.abs(Number(movement.amountMinor));
 
+    bin.maxAmountMinor = Math.max(bin.maxAmountMinor, amountMinor);
     cell.movementCount += 1;
 
     if (movement.side === "credit") {
@@ -448,9 +434,9 @@ function recordHeatmapMovements(movements: BalanceSheetMovement[]) {
 
 function rollingAmountScaleMinor() {
   const now = latestMovementTs === 0 ? Date.now() : latestMovementTs;
-  const cutoff = now - amountScaleWindowMs;
+  const cutoff = now - movementWindowMs;
 
-  return amountScaleBins.reduce((max, bin) => {
+  return movementBins.reduce((max, bin) => {
     if (bin.startedAt <= cutoff) {
       return max;
     }
@@ -461,10 +447,10 @@ function rollingAmountScaleMinor() {
 
 function buildHeatmapSnapshot(): RailBucketHeatmapCell[] {
   const now = latestMovementTs === 0 ? Date.now() : latestMovementTs;
-  const cutoff = now - heatmapWindowMs;
+  const cutoff = now - movementWindowMs;
   const totals = new Map<string, HeatmapDelta>();
 
-  for (const bin of heatmapBins) {
+  for (const bin of movementBins) {
     if (bin.startedAt <= cutoff) {
       continue;
     }
@@ -493,13 +479,13 @@ function buildHeatmapSnapshot(): RailBucketHeatmapCell[] {
     const amountMinor = cell.creditMinor + cell.debitMinor;
 
     return {
-      amountPerSecMinor: amountMinor / (heatmapWindowMs / 1_000),
+      amountPerSecMinor: amountMinor / (movementWindowMs / 1_000),
       bucket: cell.bucket,
       creditMinor: cell.creditMinor,
       debitMinor: cell.debitMinor,
       exceptionRate: cell.movementCount === 0 ? 0 : cell.exceptionCount / cell.movementCount,
       intensity: 0,
-      movementRate: cell.movementCount / (heatmapWindowMs / 1_000),
+      movementRate: cell.movementCount / (movementWindowMs / 1_000),
       rail: cell.rail,
       skew: amountMinor === 0 ? 0 : (cell.creditMinor - cell.debitMinor) / amountMinor,
     } satisfies RailBucketHeatmapCell;
@@ -512,25 +498,14 @@ function buildHeatmapSnapshot(): RailBucketHeatmapCell[] {
   }));
 }
 
-function heatmapBinFor(ts: number) {
-  const startedAt = Math.floor(ts / heatmapBinMs) * heatmapBinMs;
-  const bin = heatmapBins[Math.floor(startedAt / heatmapBinMs) % heatmapBins.length];
-
-  if (bin.startedAt !== startedAt) {
-    bin.startedAt = startedAt;
-    bin.cells.clear();
-  }
-
-  return bin;
-}
-
-function amountScaleBinFor(ts: number) {
-  const startedAt = Math.floor(ts / amountScaleBinMs) * amountScaleBinMs;
-  const bin = amountScaleBins[Math.floor(startedAt / amountScaleBinMs) % amountScaleBins.length];
+function movementBinFor(ts: number) {
+  const startedAt = Math.floor(ts / movementBinMs) * movementBinMs;
+  const bin = movementBins[Math.floor(startedAt / movementBinMs) % movementBins.length];
 
   if (bin.startedAt !== startedAt) {
     bin.startedAt = startedAt;
     bin.maxAmountMinor = 0;
+    bin.cells.clear();
   }
 
   return bin;
