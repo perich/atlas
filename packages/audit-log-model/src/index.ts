@@ -11,11 +11,11 @@ import {
 
 export const DEFAULT_AUDIT_ENTRY_COUNT = 100_000;
 export const AUDIT_LOG_TARGET_COUNT = 250_000;
-export const DEFAULT_AUDIT_LOG_SEED = 0xa_0d17;
 
 const BASE_TS_MS = 1_778_500_800_000;
 const CUSTOMER_COUNT = 160;
 const ACCOUNT_COUNT = 640;
+const DEFAULT_AUDIT_LOG_SEED = 0xa_0d17;
 
 type AuditActor = AuditEntry["actor"];
 type AuditSeverity = AuditEntry["severity"];
@@ -32,6 +32,16 @@ type AuditProfile = {
 
 type RandomState = {
   value: number;
+};
+
+type AuditContext = {
+  index: number;
+  profile: AuditProfile;
+  rail: Rail;
+  asset: Asset;
+  amountMinor: bigint | undefined;
+  riskTier: RiskTier | undefined;
+  customerId: string;
 };
 
 const PROFILES: readonly AuditProfile[] = [
@@ -133,34 +143,6 @@ const PROFILES: readonly AuditProfile[] = [
   },
 ];
 
-const CUSTOMER_NAMES = [
-  "Northstar AI",
-  "Vector Defense",
-  "Orbital Systems",
-  "Acme Robotics",
-  "Helios Hardware",
-  "Keystone Crypto",
-  "Riverbank Fintech",
-  "Foundry Ventures",
-  "Apex Autonomy",
-  "Sentry Dynamics",
-  "Atlas Compute",
-  "Forge Labs",
-  "Cobalt Robotics",
-  "Nova Devices",
-  "Meridian Capital",
-  "Frontier Payments",
-] as const;
-
-const INDUSTRIES = [
-  "ai",
-  "defense",
-  "robotics",
-  "hardware",
-  "crypto",
-  "fintech",
-  "venture",
-] as const;
 const RISK_TIERS = [0, 1, 2, 3] as const;
 
 let defaultAuditEntries: AuditEntry[] | undefined;
@@ -185,8 +167,8 @@ function createAuditEntry(index: number, random: RandomState): AuditEntry {
   const amountMinor = amountFor(profile.kind, random);
   const riskTier = riskTierFor(profile.kind, index, random);
   const customerId = customerIdFor(customerNumber);
-  const subjectId = subjectIdFor(profile.subjectType, index, rail, customerId);
   const traceId = traceIdFor(index, customerNumber);
+  const context = { amountMinor, asset, customerId, index, profile, rail, riskTier };
 
   return {
     action: profile.action,
@@ -195,7 +177,7 @@ function createAuditEntry(index: number, random: RandomState): AuditEntry {
     asset,
     customerId,
     accountId: accountIdFor(accountNumber),
-    detail: detailFor(profile.kind, index, rail, asset, amountMinor, riskTier),
+    detail: detailFor(context),
     id: `aud_${index.toString(36).padStart(8, "0")}`,
     idempotencyKey: idempotencyKeyFor(profile.kind, index, customerNumber),
     kind: profile.kind,
@@ -203,7 +185,7 @@ function createAuditEntry(index: number, random: RandomState): AuditEntry {
     riskTier,
     severity: severityFor(profile, index),
     status: statusFor(profile, index),
-    subjectId,
+    subjectId: subjectIdFor(context),
     subjectType: profile.subjectType,
     summary: summaryFor(profile, rail, customerId),
     traceId,
@@ -256,117 +238,105 @@ function statusFor(profile: AuditProfile, index: number): AuditStatus {
   return profile.status;
 }
 
-function detailFor(
-  kind: AuditEntryKind,
-  index: number,
-  rail: Rail,
-  asset: Asset,
-  amountMinor: bigint | undefined,
-  riskTier: RiskTier | undefined,
-): Record<string, unknown> {
-  switch (kind) {
+function detailFor(context: AuditContext): Record<string, unknown> {
+  switch (context.profile.kind) {
     case "payment":
       return {
-        paymentId: `pay_${index.toString(36)}`,
-        amountMinor,
-        rail,
-        asset,
-        direction: index % 2 === 0 ? "inbound" : "outbound",
+        paymentId: `pay_${context.index.toString(36)}`,
+        amountMinor: context.amountMinor,
+        rail: context.rail,
+        asset: context.asset,
+        direction: context.index % 2 === 0 ? "inbound" : "outbound",
       };
     case "journal":
       return {
-        journalId: `jrnl_${index.toString(36)}`,
-        debitLineCount: 2 + (index % 3),
-        creditLineCount: 2 + ((index + 1) % 3),
-        balanced: index % 431 !== 0,
+        journalId: `jrnl_${context.index.toString(36)}`,
+        debitLineCount: 2 + (context.index % 3),
+        creditLineCount: 2 + ((context.index + 1) % 3),
+        balanced: context.index % 431 !== 0,
       };
     case "settlement":
       return {
-        settlementBatchId: `set_${Math.floor(index / 48).toString(36)}`,
-        finality: rail === "stablecoin" ? "onchain_confirmed" : "rail_acknowledged",
-        observedBlock: rail === "stablecoin" ? 25_000_000 + index : undefined,
+        settlementBatchId: `set_${Math.floor(context.index / 48).toString(36)}`,
+        finality: context.rail === "stablecoin" ? "onchain_confirmed" : "rail_acknowledged",
+        observedBlock: context.rail === "stablecoin" ? 25_000_000 + context.index : undefined,
       };
     case "reconciliation":
       return {
-        reconciliationRunId: `rec_${Math.floor(index / 96).toString(36)}`,
-        matchedCount: 40 + (index % 600),
-        unmatchedCount: index % 17,
+        reconciliationRunId: `rec_${Math.floor(context.index / 96).toString(36)}`,
+        matchedCount: 40 + (context.index % 600),
+        unmatchedCount: context.index % 17,
       };
     case "risk":
       return {
-        riskTier,
-        ruleId: `risk_rule_${index % 12}`,
-        reviewReason: index % 2 === 0 ? "velocity_spike" : "counterparty_watch",
+        riskTier: context.riskTier,
+        ruleId: `risk_rule_${context.index % 12}`,
+        reviewReason: context.index % 2 === 0 ? "velocity_spike" : "counterparty_watch",
       };
     case "liquidity":
       return {
         reserveTargetMinor: 2_500_000_000_00n,
-        reserveAfterMinor: 2_500_000_000_00n + BigInt((index % 1_000) * 1_000_00),
-        stressScenario: index % 3 === 0 ? "startup_outflow" : "normal",
+        reserveAfterMinor: 2_500_000_000_00n + BigInt((context.index % 1_000) * 1_000_00),
+        stressScenario: context.index % 3 === 0 ? "startup_outflow" : "normal",
       };
     case "rail_health":
       return {
-        rail,
-        p95LatencyMs: 250 + (index % 4_000),
-        errorRateBps: index % 250,
+        rail: context.rail,
+        p95LatencyMs: 250 + (context.index % 4_000),
+        errorRateBps: context.index % 250,
       };
     case "cutoff":
       return {
-        cutoffId: `cut_${Math.floor(index / 1_000).toString(36)}`,
+        cutoffId: `cut_${Math.floor(context.index / 1_000).toString(36)}`,
         effectiveTs: BASE_TS_MS - 86_400_000,
-        quarantineMode: index % 2 === 0,
+        quarantineMode: context.index % 2 === 0,
       };
     case "configuration":
       return {
-        configKey: index % 2 === 0 ? "stablecoin.daily_limit" : "wire.approval_threshold",
-        previousValue: index % 2 === 0 ? "250000000000" : "5000000000",
-        nextValue: index % 2 === 0 ? "300000000000" : "7500000000",
+        configKey: context.index % 2 === 0 ? "stablecoin.daily_limit" : "wire.approval_threshold",
+        previousValue: context.index % 2 === 0 ? "250000000000" : "5000000000",
+        nextValue: context.index % 2 === 0 ? "300000000000" : "7500000000",
       };
     case "operator_action":
       return {
-        operatorId: `op_${(index % 24).toString(36).padStart(3, "0")}`,
-        workspaceAction: index % 2 === 0 ? "saved_view.created" : "incident_note.added",
+        operatorId: `op_${(context.index % 24).toString(36).padStart(3, "0")}`,
+        workspaceAction: context.index % 2 === 0 ? "saved_view.created" : "incident_note.added",
         reasonCode: "operator_context",
       };
   }
 
-  return assertNever(kind);
+  return assertNever(context.profile.kind);
 }
 
 function summaryFor(profile: AuditProfile, rail: Rail, customerId: string): string {
   return `${profile.action} on ${rail} for ${customerId}`;
 }
 
-function subjectIdFor(
-  subjectType: AuditSubjectType,
-  index: number,
-  rail: Rail,
-  customerId: string,
-): string {
-  switch (subjectType) {
+function subjectIdFor(context: AuditContext): string {
+  switch (context.profile.subjectType) {
     case "payment":
-      return `pay_${index.toString(36)}`;
+      return `pay_${context.index.toString(36)}`;
     case "journal":
-      return `jrnl_${index.toString(36)}`;
+      return `jrnl_${context.index.toString(36)}`;
     case "customer":
-      return customerId;
+      return context.customerId;
     case "account":
-      return accountIdFor(index % ACCOUNT_COUNT);
+      return accountIdFor(context.index % ACCOUNT_COUNT);
     case "rail":
-      return rail;
+      return context.rail;
     case "settlement":
-      return `set_${Math.floor(index / 48).toString(36)}`;
+      return `set_${Math.floor(context.index / 48).toString(36)}`;
     case "exception":
-      return `exc_${index.toString(36)}`;
+      return `exc_${context.index.toString(36)}`;
     case "configuration":
-      return index % 2 === 0 ? "stablecoin.daily_limit" : "wire.approval_threshold";
+      return context.index % 2 === 0 ? "stablecoin.daily_limit" : "wire.approval_threshold";
     case "cutoff":
-      return `cut_${Math.floor(index / 1_000).toString(36)}`;
+      return `cut_${Math.floor(context.index / 1_000).toString(36)}`;
     case "operator":
-      return `op_${(index % 24).toString(36).padStart(3, "0")}`;
+      return `op_${(context.index % 24).toString(36).padStart(3, "0")}`;
   }
 
-  return assertNever(subjectType);
+  return assertNever(context.profile.subjectType);
 }
 
 function idempotencyKeyFor(
@@ -400,14 +370,4 @@ function randomInt(state: RandomState, min: number, max: number): number {
 
 function assertNever(value: never): never {
   throw new Error(`Unexpected audit value: ${String(value)}`);
-}
-
-export function customerNameFor(customerId: string): string {
-  const index = Number.parseInt(customerId.slice(4), 36) % CUSTOMER_NAMES.length;
-  return CUSTOMER_NAMES[index];
-}
-
-export function customerIndustryFor(customerId: string): (typeof INDUSTRIES)[number] {
-  const index = Number.parseInt(customerId.slice(4), 36) % INDUSTRIES.length;
-  return INDUSTRIES[index];
 }
