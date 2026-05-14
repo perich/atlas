@@ -1,5 +1,11 @@
 import type { AuditQuery, AuditSort } from "@bankops/contracts";
-import { RAILS } from "@bankops/contracts";
+import {
+  AUDIT_SEVERITIES,
+  AUDIT_SORT_DIRECTIONS,
+  AUDIT_SORT_FIELDS,
+  AUDIT_STATUSES,
+  RAILS,
+} from "@bankops/contracts";
 
 type AuditSearchValue = string | string[] | number | undefined;
 type AuditSearchInput = Record<string, AuditSearchValue>;
@@ -24,19 +30,14 @@ export const DEFAULT_AUDIT_QUERY_STATE = {
   sort: { field: "ts", dir: "desc" },
 } satisfies AuditQueryState;
 
-const SEVERITIES = ["info", "notice", "warning", "critical"] as const;
-const STATUSES = ["accepted", "pending", "posted", "settled", "failed", "reversed"] as const;
-const SORT_FIELDS = ["ts", "severity", "rail", "status", "kind"] as const;
-const SORT_DIRS = ["asc", "desc"] as const;
-
 export function validateAuditSearch(search: AuditSearchInput): AuditSearch {
   const tsFrom = parseNumber(search.tsFrom);
   const tsTo = parseNumber(search.tsTo);
-  const severity = enumList(search.severity, SEVERITIES);
+  const severity = enumList(search.severity, AUDIT_SEVERITIES);
   const rail = enumList(search.rail, RAILS);
-  const status = enumList(search.status, STATUSES);
-  const sortField = enumList(search.sortField, SORT_FIELDS)[0];
-  const sortDir = enumList(search.sortDir, SORT_DIRS)[0];
+  const status = enumList(search.status, AUDIT_STATUSES);
+  const sortField = enumList(search.sortField, AUDIT_SORT_FIELDS)[0];
+  const sortDir = enumList(search.sortDir, AUDIT_SORT_DIRECTIONS)[0];
 
   return {
     ...(severity.length > 0 ? { severity: severity.join(",") } : {}),
@@ -52,9 +53,11 @@ export function validateAuditSearch(search: AuditSearchInput): AuditSearch {
 export function auditSearchToQueryState(search: AuditSearch): AuditQueryState {
   return {
     filters: {
-      ...(search.severity === undefined ? {} : { severity: enumList(search.severity, SEVERITIES) }),
+      ...(search.severity === undefined
+        ? {}
+        : { severity: enumList(search.severity, AUDIT_SEVERITIES) }),
       ...(search.rail === undefined ? {} : { rail: enumList(search.rail, RAILS) }),
-      ...(search.status === undefined ? {} : { status: enumList(search.status, STATUSES) }),
+      ...(search.status === undefined ? {} : { status: enumList(search.status, AUDIT_STATUSES) }),
       ...(search.tsFrom === undefined ? {} : { tsFrom: search.tsFrom }),
       ...(search.tsTo === undefined ? {} : { tsTo: search.tsTo }),
     },
@@ -82,11 +85,11 @@ export function queryStateToAuditSearch(state: AuditQueryState): Partial<AuditSe
 export function readAuditQueryState(search = window.location.search): AuditQueryState {
   const params = new URLSearchParams(search);
   const filters: AuditQueryState["filters"] = {};
-  const severity = enumList(params.getAll("severity"), SEVERITIES);
+  const severity = enumList(params.getAll("severity"), AUDIT_SEVERITIES);
   const rail = enumList(params.getAll("rail"), RAILS);
-  const status = enumList(params.getAll("status"), STATUSES);
-  const sortField = enumList(params.getAll("sortField"), SORT_FIELDS)[0];
-  const sortDir = enumList(params.getAll("sortDir"), SORT_DIRS)[0];
+  const status = enumList(params.getAll("status"), AUDIT_STATUSES);
+  const sortField = enumList(params.getAll("sortField"), AUDIT_SORT_FIELDS)[0];
+  const sortDir = enumList(params.getAll("sortDir"), AUDIT_SORT_DIRECTIONS)[0];
   const tsFrom = params.get("tsFrom");
   const tsTo = params.get("tsTo");
 

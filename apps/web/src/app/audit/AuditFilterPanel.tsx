@@ -1,6 +1,6 @@
 import React from "react";
 import type { AuditEntry } from "@bankops/contracts";
-import { RAILS } from "@bankops/contracts";
+import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { AuditColumnLayout } from "./audit-column-layout";
@@ -8,12 +8,10 @@ import { TIME_RANGES, type TimeRangeValue } from "./audit-time-range";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
 
-const SEVERITIES = ["info", "notice", "warning", "critical"] as const;
-const STATUSES = ["accepted", "pending", "posted", "settled", "failed", "reversed"] as const;
 const TIME_OPTIONS = TIME_RANGES.map((range) => ({ label: range.label, value: range.value }));
 const SEVERITY_OPTIONS = [
   { label: "All", value: "all" },
-  ...SEVERITIES.map((value) => ({ label: value, value })),
+  ...AUDIT_SEVERITIES.map((value) => ({ label: value, value })),
 ] satisfies FilterOption<"all" | AuditEntry["severity"]>[];
 const RAIL_OPTIONS = [
   { label: "All", value: "all" },
@@ -21,7 +19,7 @@ const RAIL_OPTIONS = [
 ] satisfies FilterOption<"all" | NonNullable<AuditEntry["rail"]>>[];
 const STATUS_OPTIONS = [
   { label: "All", value: "all" },
-  ...STATUSES.map((value) => ({ label: value, value })),
+  ...AUDIT_STATUSES.map((value) => ({ label: value, value })),
 ] satisfies FilterOption<"all" | AuditEntry["status"]>[];
 
 type FilterOption<T extends string> = {

@@ -9,3 +9,4 @@ test-results/
 .env.*
 !.env.example
 GOALS.md
+HELPER_GLOSSARY.md
