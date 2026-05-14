@@ -1,20 +1,17 @@
-import { encodeMovementBatch, StreamChannel, type StreamRate } from "@bankops/contracts";
+import {
+  DEFAULT_STREAM_RATE,
+  encodeMovementBatch,
+  StreamChannel,
+  STREAM_RATES,
+  type StreamRate,
+} from "@bankops/contracts";
 import { createOpsTapeSimulator, type OpsTapeAggregateSnapshot } from "@bankops/ops-tape-sim";
 import type { WebSocket } from "@fastify/websocket";
 import type { RawData } from "ws";
 
 const HOT_TICK_MS = 1_000 / 60;
 const WARM_TICK_MS = 250;
-const STREAM_RATE_LOW = 50 satisfies StreamRate;
-const STREAM_RATE_NORMAL = 2_000 satisfies StreamRate;
-const STREAM_RATE_STRESS = 10_000 satisfies StreamRate;
-const VALID_STREAM_RATES = [
-  STREAM_RATE_LOW,
-  STREAM_RATE_NORMAL,
-  STREAM_RATE_STRESS,
-] as const satisfies readonly StreamRate[];
-const VALID_STREAM_RATE_VALUES: readonly unknown[] = VALID_STREAM_RATES;
-const DEFAULT_STREAM_RATE = STREAM_RATE_NORMAL;
+const VALID_STREAM_RATE_VALUES: readonly unknown[] = STREAM_RATES;
 
 export type WarmOpsSnapshotMessage = {
   channel: typeof StreamChannel.AggregateSnapshot;
