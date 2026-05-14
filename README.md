@@ -104,12 +104,22 @@ Still to implement as the product surfaces require them:
 ```txt
 pnpm dev
 pnpm build
+pnpm start
 pnpm typecheck
 pnpm lint
 pnpm format
 pnpm test:run
 pnpm test:e2e
 ```
+
+## Deployment
+
+The first public deploy target is one Render Web Service running `@bankops/server`. In production,
+the Node service serves the built SPA, `/api/audit`, `/stream`, and `/healthz` from one origin.
+Render terminates TLS, so clients use same-origin `https` for HTTP and `wss` for the ops stream.
+
+The deploy contract is captured in [`render.yaml`](./render.yaml), with operational notes and local
+smoke commands in [`docs/deployment.md`](./docs/deployment.md).
 
 ## Baseline Health
 

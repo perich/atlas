@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: bankops-mission-control
+    runtime: node
+    plan: starter
+    buildCommand: npm install -g pnpm@11.1.0 && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.13.0
