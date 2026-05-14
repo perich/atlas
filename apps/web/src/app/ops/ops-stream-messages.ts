@@ -39,6 +39,12 @@ export type OpsRendererMetrics = {
   renderedRowRate: number;
 };
 
+export type TapeCanvasLayout = {
+  width: number;
+  height: number;
+  dpr: number;
+};
+
 export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
   connectionStatus: "connecting",
   streamRate: DEFAULT_STREAM_RATE,
@@ -62,7 +68,8 @@ export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
 };
 
 export type OpsWorkerCommand =
-  | { type: "canvas.attach"; canvas: OffscreenCanvas }
+  | { type: "canvas.attach"; canvas: OffscreenCanvas; layout: TapeCanvasLayout }
+  | { type: "canvas.resize"; layout: TapeCanvasLayout }
   | { type: "connect" }
   | { type: "disconnect" }
   | { type: "stream.rate.set"; targetRate: StreamRate };

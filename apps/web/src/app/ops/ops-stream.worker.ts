@@ -9,6 +9,7 @@ import {
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
   type OpsStreamSnapshot,
+  type TapeCanvasLayout,
   type OpsWorkerCommand,
 } from "./ops-stream-messages";
 
@@ -25,6 +26,7 @@ let reconnectTimer: number | undefined;
 let streamRate: StreamRate = DEFAULT_STREAM_RATE;
 let snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
 let canvasContext: OffscreenCanvasRenderingContext2D | null = null;
+let tapeLayout: TapeCanvasLayout = { dpr: 1, height: 236, width: 1_100 };
 let renderTimer: number | undefined;
 let frameCount = 0;
 let frameCostTotal = 0;
@@ -48,7 +50,10 @@ self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
 
   switch (command.type) {
     case "canvas.attach":
-      attachCanvas(command.canvas);
+      attachCanvas(command.canvas, command.layout);
+      return;
+    case "canvas.resize":
+      resizeCanvas(command.layout);
       return;
     case "connect":
       connect("connecting");
@@ -137,15 +142,40 @@ function disconnect() {
   socket = undefined;
 }
 
-function attachCanvas(canvas: OffscreenCanvas) {
+function attachCanvas(canvas: OffscreenCanvas, layout: TapeCanvasLayout) {
   canvasContext = canvas.getContext("2d");
 
   if (canvasContext === null) {
     throw new Error("Expected 2D canvas context");
   }
 
+  resizeCanvas(layout);
   publish({ ...snapshot, renderer: { ...snapshot.renderer, supported: true } });
   scheduleDraw();
+}
+
+function resizeCanvas(layout: TapeCanvasLayout) {
+  tapeLayout = {
+    dpr: Math.max(1, layout.dpr),
+    height: Math.max(1, layout.height),
+    width: Math.max(1, layout.width),
+  };
+
+  if (canvasContext === null) {
+    return;
+  }
+
+  const pixelWidth = Math.round(tapeLayout.width * tapeLayout.dpr);
+  const pixelHeight = Math.round(tapeLayout.height * tapeLayout.dpr);
+  const canvas = canvasContext.canvas;
+
+  if (canvas.width !== pixelWidth) {
+    canvas.width = pixelWidth;
+  }
+
+  if (canvas.height !== pixelHeight) {
+    canvas.height = pixelHeight;
+  }
 }
 
 function draw() {
@@ -156,10 +186,11 @@ function draw() {
   const startedAt = performance.now();
   const rowHeight = 20;
   const headerHeight = 28;
-  const visibleRows = Math.floor((canvasContext.canvas.height - headerHeight) / rowHeight);
+  const visibleRows = Math.floor((tapeLayout.height - headerHeight) / rowHeight);
 
+  canvasContext.setTransform(tapeLayout.dpr, 0, 0, tapeLayout.dpr, 0, 0);
   canvasContext.fillStyle = "#070809";
-  canvasContext.fillRect(0, 0, canvasContext.canvas.width, canvasContext.canvas.height);
+  canvasContext.fillRect(0, 0, tapeLayout.width, tapeLayout.height);
   canvasContext.font = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
   canvasContext.textBaseline = "middle";
 
@@ -181,7 +212,7 @@ function scheduleDraw() {
 
 function drawHeader(context: OffscreenCanvasRenderingContext2D) {
   context.fillStyle = "#111315";
-  context.fillRect(0, 0, context.canvas.width, 28);
+  context.fillRect(0, 0, tapeLayout.width, 28);
   context.fillStyle = "#89929c";
   drawCells(
     context,
@@ -197,7 +228,7 @@ function drawRow(
   index: number,
 ) {
   context.fillStyle = index % 2 === 0 ? "#0b0d0f" : "#090a0b";
-  context.fillRect(0, y, context.canvas.width, 20);
+  context.fillRect(0, y, tapeLayout.width, 20);
   context.fillStyle = movement.side === "credit" ? "#86efac" : "#fda4af";
   drawCells(context, movementCells(movement), y + 10);
 }

@@ -1,9 +1,13 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { STREAM_RATES, type StreamRate } from "@bankops/contracts";
 import { Activity, Gauge, Landmark, RadioTower } from "lucide-react";
 
 import { useOpsStream } from "../ops/ops-stream-store";
-import type { OpsConnectionStatus, OpsStreamSnapshot } from "../ops/ops-stream-messages";
+import type {
+  OpsConnectionStatus,
+  OpsStreamSnapshot,
+  TapeCanvasLayout,
+} from "../ops/ops-stream-messages";
 import { Button, PageHeader, Panel, StatCard } from "../../design/components";
 
 const healthChecks = ["Core ledger", "Wire rail", "Stablecoin settlement", "Audit writer"];
@@ -32,7 +36,7 @@ const streamRateLabels: Record<StreamRate, string> = {
 };
 
 export function OpsRoute() {
-  const { attachTapeCanvas, setStreamRate, snapshot } = useOpsStream();
+  const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
   const railHealth = snapshot.railHealth.length > 0 ? snapshot.railHealth : undefined;
 
   return (
@@ -64,7 +68,10 @@ export function OpsRoute() {
               </span>
             </div>
 
-            <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} />
+            <BalanceSheetTape
+              attachTapeCanvas={attachTapeCanvas}
+              resizeTapeCanvas={resizeTapeCanvas}
+            />
 
             <div className="grid gap-3">
               <RendererMetrics snapshot={snapshot} />
@@ -108,21 +115,45 @@ export function OpsRoute() {
 
 function BalanceSheetTape({
   attachTapeCanvas,
+  resizeTapeCanvas,
 }: {
-  attachTapeCanvas: (canvas: OffscreenCanvas) => void;
+  attachTapeCanvas: (canvas: OffscreenCanvas, layout: TapeCanvasLayout) => void;
+  resizeTapeCanvas: (layout: TapeCanvasLayout) => void;
 }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const transferredRef = useRef(false);
   const attachCanvasRef = useCallback(
     (canvas: HTMLCanvasElement | null) => {
+      canvasRef.current = canvas;
+
       if (canvas === null || transferredRef.current || !("transferControlToOffscreen" in canvas)) {
         return;
       }
 
+      const layout = readTapeCanvasLayout(canvas);
+
+      sizeCanvasElement(canvas, layout);
       transferredRef.current = true;
-      attachTapeCanvas(canvas.transferControlToOffscreen());
+      attachTapeCanvas(canvas.transferControlToOffscreen(), layout);
     },
     [attachTapeCanvas],
   );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (canvas === null || !("ResizeObserver" in window)) {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      resizeTapeCanvas(readTapeCanvasLayout(canvas));
+    });
+
+    observer.observe(canvas);
+
+    return () => observer.disconnect();
+  }, [resizeTapeCanvas]);
 
   return (
     <div className="relative overflow-hidden border border-white/[0.075] bg-[#070809]">
@@ -141,6 +172,21 @@ function BalanceSheetTape({
       )}
     </div>
   );
+}
+
+function readTapeCanvasLayout(canvas: HTMLCanvasElement): TapeCanvasLayout {
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    dpr: Math.max(1, window.devicePixelRatio || 1),
+    height: Math.max(1, Math.round(rect.height || canvas.clientHeight || 236)),
+    width: Math.max(1, Math.round(rect.width || canvas.clientWidth || 1_100)),
+  };
+}
+
+function sizeCanvasElement(canvas: HTMLCanvasElement, layout: TapeCanvasLayout) {
+  canvas.height = Math.round(layout.height * layout.dpr);
+  canvas.width = Math.round(layout.width * layout.dpr);
 }
 
 function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {

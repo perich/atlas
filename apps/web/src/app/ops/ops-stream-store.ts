@@ -4,13 +4,14 @@ import type { StreamRate } from "@bankops/contracts";
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
   type OpsStreamSnapshot,
+  type TapeCanvasLayout,
   type OpsWorkerCommand,
   type OpsWorkerMessage,
 } from "./ops-stream-messages";
 
 export function createOpsStreamStore(createWorker: () => Worker) {
   let worker: Worker | undefined;
-  let pendingTapeCanvas: OffscreenCanvas | undefined;
+  let pendingTapeCanvas: { canvas: OffscreenCanvas; layout: TapeCanvasLayout } | undefined;
   let stopTimer: number | undefined;
   let snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
   const listeners = new Set<() => void>();
@@ -43,11 +44,18 @@ export function createOpsStreamStore(createWorker: () => Worker) {
   }
 
   return {
-    attachTapeCanvas: (canvas: OffscreenCanvas) => {
-      pendingTapeCanvas = canvas;
+    attachTapeCanvas: (canvas: OffscreenCanvas, layout: TapeCanvasLayout) => {
+      pendingTapeCanvas = { canvas, layout };
       attachPendingTapeCanvas();
     },
     getSnapshot: () => snapshot,
+    resizeTapeCanvas: (layout: TapeCanvasLayout) => {
+      if (pendingTapeCanvas !== undefined) {
+        pendingTapeCanvas = { ...pendingTapeCanvas, layout };
+      }
+
+      post({ type: "canvas.resize", layout });
+    },
     setStreamRate: (streamRate: StreamRate) => {
       emit({ ...snapshot, streamRate });
       post({ type: "stream.rate.set", targetRate: streamRate });
@@ -75,7 +83,10 @@ export function createOpsStreamStore(createWorker: () => Worker) {
       return;
     }
 
-    worker.postMessage({ type: "canvas.attach", canvas: pendingTapeCanvas }, [pendingTapeCanvas]);
+    worker.postMessage(
+      { type: "canvas.attach", canvas: pendingTapeCanvas.canvas, layout: pendingTapeCanvas.layout },
+      [pendingTapeCanvas.canvas],
+    );
     pendingTapeCanvas = undefined;
   }
 }
@@ -94,6 +105,7 @@ export function useOpsStream() {
 
   return {
     attachTapeCanvas: opsStreamStore.attachTapeCanvas,
+    resizeTapeCanvas: opsStreamStore.resizeTapeCanvas,
     setStreamRate: opsStreamStore.setStreamRate,
     snapshot,
   };

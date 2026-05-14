@@ -83,10 +83,11 @@ describe("ops stream store", () => {
     const unsubscribe = store.subscribe(vi.fn());
     const worker = latestWorker();
     const canvas = new OffscreenCanvas(1, 1);
+    const layout = { dpr: 2, height: 236, width: 1_100 };
 
-    store.attachTapeCanvas(canvas);
+    store.attachTapeCanvas(canvas, layout);
 
-    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas });
+    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas, layout });
 
     unsubscribe();
     vi.advanceTimersByTime(100);
@@ -95,13 +96,14 @@ describe("ops stream store", () => {
   it("keeps a transferred tape canvas until the worker starts", () => {
     const store = createOpsStreamStore(() => new Worker("mock"));
     const canvas = new OffscreenCanvas(1, 1);
+    const layout = { dpr: 2, height: 236, width: 1_100 };
 
-    store.attachTapeCanvas(canvas);
+    store.attachTapeCanvas(canvas, layout);
 
     const unsubscribe = store.subscribe(vi.fn());
     const worker = latestWorker();
 
-    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas });
+    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas, layout });
 
     unsubscribe();
     vi.advanceTimersByTime(100);
