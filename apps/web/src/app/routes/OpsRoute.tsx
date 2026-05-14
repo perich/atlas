@@ -27,20 +27,6 @@ export function OpsRoute() {
             </div>
             <PageHeader eyebrow="Operations" title="Operations Control Plane" />
           </div>
-          <div className="flex gap-2">
-            <button
-              className="h-8 bg-[#f0f2f5] px-4 text-[10px] font-bold uppercase tracking-[0.06em] text-[#0c0d0e]"
-              type="button"
-            >
-              System Report
-            </button>
-            <button
-              className="h-8 border border-white/[0.08] bg-[#1a1c1f] px-4 text-[10px] font-bold uppercase tracking-[0.06em] text-bankops-muted"
-              type="button"
-            >
-              Config
-            </button>
-          </div>
         </div>
       </div>
 
