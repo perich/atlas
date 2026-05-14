@@ -1,6 +1,7 @@
 import { decodeMovementBatch } from "@bankops/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
+import type { RawData } from "ws";
 
 import { buildServer } from "./main.js";
 import type { WarmOpsSnapshotMessage } from "./ops-stream.js";
@@ -77,7 +78,7 @@ function nextBinary(
   predicate: (data: Buffer) => boolean = () => true,
 ): Promise<Buffer> {
   return new Promise((resolve) => {
-    const onMessage = (data: WebSocket.RawData, isBinary: boolean) => {
+    const onMessage = (data: RawData, isBinary: boolean) => {
       if (!isBinary) {
         return;
       }
@@ -98,16 +99,13 @@ function nextBinary(
 
 function nextSnapshot(socket: WebSocket): Promise<WarmOpsSnapshotMessage> {
   return new Promise((resolve) => {
-    const onMessage = (data: WebSocket.RawData, isBinary: boolean) => {
+    const onMessage = (data: RawData, isBinary: boolean) => {
       if (isBinary) {
         return;
       }
 
       const parsed: unknown = JSON.parse(rawDataToText(data));
-
-      if (!isWarmOpsSnapshotMessage(parsed)) {
-        return;
-      }
+      assertWarmOpsSnapshotMessage(parsed);
 
       socket.off("message", onMessage);
       resolve(parsed);
@@ -117,7 +115,7 @@ function nextSnapshot(socket: WebSocket): Promise<WarmOpsSnapshotMessage> {
   });
 }
 
-function rawDataToBuffer(data: WebSocket.RawData): Buffer {
+function rawDataToBuffer(data: RawData): Buffer {
   if (Buffer.isBuffer(data)) {
     return data;
   }
@@ -129,18 +127,19 @@ function rawDataToBuffer(data: WebSocket.RawData): Buffer {
   return Buffer.concat(data);
 }
 
-function rawDataToText(data: WebSocket.RawData): string {
+function rawDataToText(data: RawData): string {
   return rawDataToBuffer(data).toString("utf8");
 }
 
-function isWarmOpsSnapshotMessage(value: unknown): value is WarmOpsSnapshotMessage {
+function assertWarmOpsSnapshotMessage(value: unknown): asserts value is WarmOpsSnapshotMessage {
   if (typeof value !== "object" || value === null) {
-    return false;
+    throw new Error("Expected warm ops snapshot message");
   }
 
   if (!("type" in value) || !("channel" in value)) {
-    return false;
+    throw new Error("Expected warm ops snapshot message");
   }
 
-  return value.type === "ops.snapshot" && value.channel === 2;
+  expect(value.type).toBe("ops.snapshot");
+  expect(value.channel).toBe(2);
 }
