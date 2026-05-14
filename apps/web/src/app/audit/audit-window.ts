@@ -24,7 +24,7 @@ export type AuditWindowRequest =
   | { direction: "after"; cursor: string }
   | { direction: "before"; cursor: string };
 
-export const AUDIT_PAGE_SIZE = 100;
+export const AUDIT_PAGE_SIZE = 200;
 export const AUDIT_MAX_WINDOWS = 5;
 export const EMPTY_AUDIT_WINDOW_CACHE = {
   windows: [],
@@ -32,7 +32,7 @@ export const EMPTY_AUDIT_WINDOW_CACHE = {
   queryMs: 0,
 } as AuditWindowCache;
 
-const PREFETCH_DISTANCE = 30;
+const PREFETCH_DISTANCE = 90;
 
 export function mergeAuditWindow(
   cache: AuditWindowCache,

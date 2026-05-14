@@ -48,7 +48,7 @@ describe("audit window cache", () => {
 
     expect(nextAuditWindowRequest(cache, { start: 100, end: 130 })).toEqual({
       direction: "offset",
-      offset: 70,
+      offset: 10,
     });
   });
 

@@ -1,0 +1,63 @@
+import { beforeEach, describe, expect, it } from "vitest";
+
+import {
+  AUDIT_COLUMN_LAYOUT_STORAGE_KEY,
+  defaultAuditColumnLayout,
+  moveAuditColumn,
+  readAuditColumnLayout,
+  resizeAuditColumn,
+  setAuditColumnVisible,
+  visibleAuditColumns,
+  writeAuditColumnLayout,
+} from "./audit-column-layout";
+
+describe("audit column layout", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("defaults to the configured column order", () => {
+    const layout = readAuditColumnLayout();
+
+    expect(visibleAuditColumns(layout).map((column) => column.id)).toEqual(
+      defaultAuditColumnLayout().order,
+    );
+  });
+
+  it("persists visibility, order, and widths in localStorage", () => {
+    const layout = setAuditColumnVisible(
+      resizeAuditColumn(
+        moveAuditColumn(defaultAuditColumnLayout(), "traceId", "ts"),
+        "traceId",
+        180,
+      ),
+      "actor",
+      false,
+    );
+
+    writeAuditColumnLayout(layout);
+
+    const stored = readAuditColumnLayout();
+
+    expect(localStorage.getItem(AUDIT_COLUMN_LAYOUT_STORAGE_KEY)).not.toBeNull();
+    expect(stored.hidden).toContain("actor");
+    expect(stored.widths.traceId).toBe(180);
+    expect(visibleAuditColumns(stored)[0].id).toBe("traceId");
+  });
+
+  it("normalizes stale saved columns without dropping known defaults", () => {
+    localStorage.setItem(
+      AUDIT_COLUMN_LAYOUT_STORAGE_KEY,
+      JSON.stringify({
+        hidden: ["missing", "rail"],
+        order: ["traceId", "missing", "ts"],
+        widths: { traceId: 1_000 },
+      }),
+    );
+
+    const layout = readAuditColumnLayout();
+
+    expect(layout.order.slice(0, 2)).toEqual(["traceId", "ts"]);
+    expect(layout.hidden).toEqual(["rail"]);
+    expect(layout.widths.traceId).toBe(210);
+    expect(layout.order).toHaveLength(defaultAuditColumnLayout().order.length);
+  });
+});

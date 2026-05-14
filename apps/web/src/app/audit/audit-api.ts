@@ -1,4 +1,4 @@
-import type { AuditEntry, AuditFacets } from "@bankops/contracts";
+import type { AuditEntry } from "@bankops/contracts";
 
 import type { AuditQueryState } from "./audit-query-state";
 import { serializeAuditQueryState } from "./audit-query-state";
@@ -52,23 +52,6 @@ export async function fetchAuditPage(input: {
   return page;
 }
 
-export async function fetchAuditFacets(input: {
-  state: AuditQueryState;
-  signal: AbortSignal;
-}): Promise<AuditFacets> {
-  const response = await fetch(`/api/audit/facets${serializeAuditQueryState(input.state)}`, {
-    signal: input.signal,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to load audit facets");
-  }
-
-  const facets: unknown = await response.json();
-  assertAuditFacets(facets);
-  return facets;
-}
-
 function assertAuditPage(value: unknown): asserts value is JsonAuditPage {
   if (typeof value !== "object" || value === null) {
     throw new Error("Invalid audit page");
@@ -80,15 +63,5 @@ function assertAuditPage(value: unknown): asserts value is JsonAuditPage {
 
   if (!("offset" in value) || !("totalMatched" in value) || !("queryMs" in value)) {
     throw new Error("Invalid audit page");
-  }
-}
-
-function assertAuditFacets(value: unknown): asserts value is AuditFacets {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Invalid audit facets");
-  }
-
-  if (!("severity" in value) || !("rail" in value) || !("status" in value)) {
-    throw new Error("Invalid audit facets");
   }
 }
