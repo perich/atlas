@@ -171,7 +171,6 @@ function draw() {
 
   frameCount += 1;
   frameCostTotal += performance.now() - startedAt;
-  renderedRowCount += Math.min(rows.length, visibleRows);
   scheduleDraw();
 }
 
@@ -213,6 +212,8 @@ function drawCells(context: OffscreenCanvasRenderingContext2D, cells: string[], 
 }
 
 function pushRows(movements: BalanceSheetMovement[]) {
+  renderedRowCount += movements.length;
+
   for (const movement of movements) {
     rows.unshift(movement);
   }
