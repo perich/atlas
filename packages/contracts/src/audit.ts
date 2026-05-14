@@ -70,11 +70,13 @@ export type AuditQuery = {
   sort?: AuditSort;
   after?: string;
   before?: string;
+  offset?: number;
   limit: number;
 };
 
 export type AuditPage = {
   rows: AuditEntry[];
+  offset: number;
   nextCursor?: string;
   prevCursor?: string;
   totalMatched: number;
