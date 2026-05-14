@@ -15,9 +15,10 @@ This document audits authored TypeScript and TSX files under `apps/` and `packag
 
 ### God-File Findings
 
-- `apps/web/src/app/ops/ops-stream.worker.ts` is still large, but rolling movement/heatmap aggregation has been extracted to `ops-movement-window.ts`.
-  - It now primarily owns worker connection state, canvas rendering, and warm snapshot validation.
-  - Recommended next extraction: `ops-tape-renderer.ts` for canvas drawing and `ops-worker-protocol.ts` for websocket message parsing.
+- `apps/web/src/app/ops/ops-stream.worker.ts` has been reduced to worker orchestration.
+  - Rolling movement/heatmap aggregation now lives in `ops-movement-window.ts`.
+  - Canvas drawing and render metrics now live in `ops-tape-renderer.ts`.
+  - Warm snapshot validation now lives in `ops-worker-protocol.ts`.
 - `packages/ops-tape-sim/src/index.ts` is ~553 lines.
   - It is a simulator engine with data generation, rolling aggregation, rail health, and random helpers.
   - Recommended next extraction: `random.ts`, `movement-flags.ts`, and `rail-counters.ts`.
@@ -410,6 +411,32 @@ Helpers should stay local when they encode one file's rendering mechanics, parse
 - `movementBinFor`: Finds or resets the rolling bin for a timestamp.
   - Classification: private class helper.
 
+### `apps/web/src/app/ops/ops-tape-renderer.ts`
+
+- `OpsTapeRenderer`: Owns `OffscreenCanvas` state, tape row buffering, draw scheduling, and renderer metrics.
+  - Classification: keep exported within ops feature. Extracted from `ops-stream.worker.ts` so the worker shell no longer owns drawing details.
+- `attach`: Attaches a transferred canvas and starts drawing.
+  - Classification: class method, cohesive with renderer lifecycle.
+- `resize`: Applies CSS/device-pixel layout to the canvas backing store.
+  - Classification: class method, cohesive with renderer lifecycle.
+- `pushRows`: Adds decoded movements to the visible tape row buffer.
+  - Classification: class method, cohesive with renderer row state.
+- `metrics`: Reads renderer telemetry for the warm React snapshot.
+  - Classification: class method, cohesive with renderer telemetry.
+- `resetMetrics`: Resets per-warm-window renderer counters.
+  - Classification: class method, cohesive with renderer telemetry.
+- `draw`, `scheduleDraw`, `drawBackdrop`, `drawHeader`, `drawRow`, `drawCells`, `drawMovementCells`, `drawMagnitudeBar`, `drawColumnRules`: Canvas draw pipeline.
+  - Classification: private renderer helpers.
+- `movementCellColor`, `movementSideColor`, `columnX`, `movementCells`, `formatMinorUsd`: Tape-specific formatting/layout helpers.
+  - Classification: file-local renderer helpers.
+
+### `apps/web/src/app/ops/ops-worker-protocol.ts`
+
+- `readWarmSnapshot`: Parses and validates warm websocket snapshot JSON.
+  - Classification: keep exported within ops feature. Extracted from `ops-stream.worker.ts` so protocol validation is separate from worker orchestration.
+- `assertWarmSnapshot`: Runtime assertion for warm snapshot message shape.
+  - Classification: local protocol helper.
+
 ### `apps/web/src/app/ops/ops-stream-store.ts`
 
 - `createOpsStreamStore`: Creates the worker-backed external store.
@@ -451,47 +478,13 @@ Helpers should stay local when they encode one file's rendering mechanics, parse
 - `disconnect`: Closes websocket and clears reconnect state.
   - Classification: local worker lifecycle helper.
 - `attachCanvas`: Receives transferred `OffscreenCanvas`.
-  - Classification: local canvas lifecycle helper.
+  - Classification: local worker command adapter; delegates rendering to `OpsTapeRenderer`.
 - `resizeCanvas`: Applies new layout and schedules repaint.
-  - Classification: local canvas lifecycle helper.
-- `draw`: Main canvas render pass.
-  - Classification: local renderer function.
-- `scheduleDraw`: Coalesces repaint requests.
-  - Classification: local renderer function.
-- `drawBackdrop`: Draws canvas background.
-  - Classification: local renderer function.
-- `drawHeader`: Draws tape header row.
-  - Classification: local renderer function.
-- `drawRow`: Draws one movement row.
-  - Classification: local renderer function.
-- `drawCells`: Draws text cells for one row.
-  - Classification: local renderer function.
-- `drawMovementCells`: Draws amount and side-specific movement cells.
-  - Classification: local renderer function.
-- `drawMagnitudeBar`: Draws relative amount bar.
-  - Classification: local renderer function.
-- `drawColumnRules`: Draws column separators.
-  - Classification: local renderer function.
-- `movementCellColor`: Computes row/cell text colors.
-  - Classification: local renderer policy.
-- `movementSideColor`: Maps debit/credit side to color.
-  - Classification: local renderer policy.
-- `columnX`: Computes tape column x-position.
-  - Classification: local renderer helper.
-- `pushRows`: Adds decoded movements to visible tape buffer.
-  - Classification: local state helper.
-- `movementCells`: Converts one movement into fixed tape cell strings.
-  - Classification: local renderer helper.
-- `formatMinorUsd`: Worker-local money formatter for bigint minor units.
-  - Classification: keep local. It avoids importing UI formatters into worker hot path and uses bigint.
+  - Classification: local worker command adapter; delegates rendering to `OpsTapeRenderer`.
 - `publish`: Posts snapshot to main thread.
   - Classification: local worker messaging helper.
 - `streamUrl`: Resolves websocket URL.
   - Classification: local environment helper.
-- `readWarmSnapshot`: Parses warm snapshot JSON.
-  - Classification: local worker protocol parser.
-- `assertWarmSnapshot`: Runtime assertion for warm snapshot.
-  - Classification: local worker protocol parser.
 
 ### `apps/web/src/design/components.tsx`
 
