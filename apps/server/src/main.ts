@@ -5,12 +5,14 @@ import fastifyStatic from "@fastify/static";
 import websocket from "@fastify/websocket";
 import Fastify from "fastify";
 
+import { startOpsStreamSession } from "./ops-stream.js";
+
 const DEFAULT_PORT = 8787;
 const DEFAULT_HOST = "0.0.0.0";
 
-export async function buildServer() {
+export async function buildServer(logger = true) {
   const app = Fastify({
-    logger: true,
+    logger,
   });
 
   await app.register(websocket);
@@ -36,13 +38,7 @@ export async function buildServer() {
   }));
 
   app.get("/stream", { websocket: true }, (socket) => {
-    socket.send(
-      JSON.stringify({
-        channel: 2,
-        type: "ops.placeholder",
-        message: "SettlementStream scaffold connected",
-      }),
-    );
+    startOpsStreamSession(socket);
   });
 
   if (process.env.NODE_ENV === "production") {
@@ -77,4 +73,6 @@ async function start() {
   await app.listen({ host, port });
 }
 
-void start();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  void start();
+}
