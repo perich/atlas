@@ -30,6 +30,7 @@ const statusClassNames: Record<OpsConnectionStatus, string> = {
   reconnecting: "font-medium text-sky-300",
 };
 const streamRateLabels: Record<StreamRate, string> = {
+  1: "1/s",
   50: "50/s",
   2_000: "2k/s",
   10_000: "10k/s",

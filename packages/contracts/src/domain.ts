@@ -1,4 +1,4 @@
-export const STREAM_RATES = [50, 2_000, 10_000] as const;
+export const STREAM_RATES = [1, 50, 2_000, 10_000] as const;
 
 export type StreamRate = (typeof STREAM_RATES)[number];
 
