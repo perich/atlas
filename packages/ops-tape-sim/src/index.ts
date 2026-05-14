@@ -2,7 +2,6 @@ import {
   ASSETS,
   RAILS,
   type Asset,
-  type BalanceSheetBucket,
   type BalanceSheetMovement,
   type MovementStatus,
   type Rail,
@@ -97,7 +96,6 @@ export type OpsTapeAggregateSnapshot = {
   cumulativeDebitsMinor: bigint;
   liquidityReserveMinor: bigint;
   exceptionQueueDepth: number;
-  bucketTotals: Record<BalanceSheetBucket, bigint>;
   railHealth: RailHealthSnapshot[];
   chart: OpsTapeChartPoint[];
 };
@@ -125,7 +123,6 @@ export class OpsTapeSimulator {
 
   private readonly random: RandomState = { value: DEFAULT_OPS_TAPE_SEED };
   private readonly railCounters = createRailCounters();
-  private readonly bucketTotals = createBucketTotals();
   private readonly recentTicks: RecentTick[] = [];
 
   private nextSeq = 1n;
@@ -176,7 +173,6 @@ export class OpsTapeSimulator {
       cumulativeDebitsMinor: this.cumulativeDebitsMinor,
       liquidityReserveMinor: this.liquidityReserveMinor,
       exceptionQueueDepth: this.exceptionQueueDepth,
-      bucketTotals: { ...this.bucketTotals },
       railHealth: RAILS.map((rail) => this.getRailHealth(rail)),
       chart: this.recentTicks.map(({ railCounts: _railCounts, ...point }) => point),
     };
@@ -259,8 +255,6 @@ export class OpsTapeSimulator {
     } else {
       this.cumulativeDebitsMinor += amountAbs;
     }
-
-    this.bucketTotals[movement.bucket] += movement.amountMinor;
 
     if (movement.bucket === "reserve_cash") {
       const nextLiquidityReserve = this.liquidityReserveMinor + movement.amountMinor;
@@ -497,18 +491,6 @@ function percentile95(values: number[]): number {
   const sorted = [...values].sort((left, right) => left - right);
   const index = Math.ceil(sorted.length * 0.95) - 1;
   return sorted[index];
-}
-
-function createBucketTotals(): Record<BalanceSheetBucket, bigint> {
-  return {
-    customer_deposits: 0n,
-    settlement_cash: 0n,
-    reserve_cash: 0n,
-    rail_clearing: 0n,
-    stablecoin_treasury: 0n,
-    fee_income: 0n,
-    exception_queue: 0n,
-  };
 }
 
 function createRailCounters(): Record<Rail, RailCounters> {

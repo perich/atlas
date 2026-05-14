@@ -235,15 +235,6 @@ function opsSnapshot(overrides: Partial<OpsStreamSnapshot>): OpsStreamSnapshot {
     cumulativeDebitsMinor: "621100000000",
     liquidityReserveMinor: "250000000000",
     exceptionQueueDepth: 12,
-    bucketTotals: {
-      customer_deposits: "180000000000",
-      exception_queue: "-1200000000",
-      fee_income: "140000000",
-      rail_clearing: "-7200000000",
-      reserve_cash: "50000000000",
-      settlement_cash: "82000000000",
-      stablecoin_treasury: "36000000000",
-    },
     chart: [
       {
         creditMinor: "100000000",
