@@ -1,6 +1,7 @@
 import React from "react";
 import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 
+import { validateAuditSearch } from "./audit/audit-query-state";
 import { AppShell } from "./AppShell";
 import { AnalystRoute } from "./routes/AnalystRoute";
 import { AuditRoute } from "./routes/AuditRoute";
@@ -26,6 +27,7 @@ const auditRoute = createRoute({
   component: AuditRoute,
   getParentRoute: () => rootRoute,
   path: "/audit",
+  validateSearch: validateAuditSearch,
 });
 
 const analystRoute = createRoute({

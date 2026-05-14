@@ -1,13 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import {
-  readAuditQueryState,
-  serializeAuditQueryState,
-  writeAuditQueryState,
-} from "./audit-query-state";
+import { serializeAuditQueryState } from "./audit-query-state";
 import type { AuditQueryState } from "./audit-query-state";
-import { fetchAuditFacets, fetchAuditPage } from "./audit-api";
+import { fetchAuditPage } from "./audit-api";
 import {
   EMPTY_AUDIT_WINDOW_CACHE,
   mergeAuditWindow,
@@ -21,10 +17,9 @@ type ExtraWindowCache = {
   cache: AuditWindowCache;
 };
 
-export function useAuditWindow() {
+export function useAuditWindow(queryState: AuditQueryState) {
   const queryClient = useQueryClient();
   const requestIdRef = useRef(0);
-  const [queryState, setQueryStateValue] = useState(() => readAuditQueryState());
   const [extraCache, setExtraCache] = useState<ExtraWindowCache>();
   const queryKey = serializeAuditQueryState(queryState);
 
@@ -32,16 +27,10 @@ export function useAuditWindow() {
     queryKey: ["audit-window", queryKey, "initial"],
     queryFn: ({ signal }) =>
       fetchAuditPage({ request: { direction: "initial" }, signal, state: queryState }),
+    placeholderData: (previousData) => previousData,
     retry: 1,
     staleTime: 30_000,
   });
-  const facetsQuery = useQuery({
-    queryKey: ["audit-facets", queryKey],
-    queryFn: ({ signal }) => fetchAuditFacets({ signal, state: queryState }),
-    retry: 1,
-    staleTime: 30_000,
-  });
-
   const initialCache = useMemo(() => {
     if (!firstPageQuery.data) {
       return EMPTY_AUDIT_WINDOW_CACHE;
@@ -83,22 +72,18 @@ export function useAuditWindow() {
     [cache, queryClient, queryKey, queryState],
   );
 
-  const setQueryState = useCallback((nextState: AuditQueryState) => {
+  const resetWindowCache = useCallback(() => {
     requestIdRef.current += 1;
-    writeAuditQueryState(nextState);
-    setQueryStateValue(nextState);
     setExtraCache(undefined);
   }, []);
 
   return {
     cache,
-    facets: facetsQuery.data,
-    hasError: firstPageQuery.isError || facetsQuery.isError,
-    isFetching: firstPageQuery.isFetching || facetsQuery.isFetching,
-    queryState,
+    hasError: firstPageQuery.isError,
+    isFetching: firstPageQuery.isFetching,
     rows,
     loadVisibleRange,
-    setQueryState,
+    resetWindowCache,
   };
 }
 
