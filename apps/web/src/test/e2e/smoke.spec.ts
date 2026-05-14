@@ -30,7 +30,8 @@ test("bankops app renders a nonblank balance sheet tape canvas", async ({ page }
 
   const tape = page.getByTestId("balance-sheet-tape");
   await expect(tape).toBeVisible();
-  await page.waitForTimeout(500);
+  await expect(page.getByTestId("ops-connection-status")).toHaveText("Open");
+  await expect(page.getByTestId("renderer-metric-new-rows")).not.toHaveText("0/s");
 
   expect(hasVariedPngBytes(await tape.screenshot())).toBe(true);
 });
