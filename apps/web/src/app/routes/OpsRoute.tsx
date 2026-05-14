@@ -43,6 +43,7 @@ const streamRateLabels: Record<StreamRate, string> = {
   10_000: "10k/s",
 };
 const tapeCanvasCssHeight = 620;
+const tapeCanvasStyle = { height: tapeCanvasCssHeight } satisfies React.CSSProperties;
 const elevatedExceptionRate = 0.05;
 
 export function OpsRoute() {
@@ -113,7 +114,7 @@ function BalanceSheetTape({
     (canvas: HTMLCanvasElement | null) => {
       canvasRef.current = canvas;
 
-      if (canvas === null || transferredRef.current || !("transferControlToOffscreen" in canvas)) {
+      if (canvas === null || transferredRef.current) {
         return;
       }
 
@@ -150,14 +151,9 @@ function BalanceSheetTape({
         data-testid="balance-sheet-tape"
         height={tapeCanvasCssHeight}
         ref={attachCanvasRef}
-        style={{ height: tapeCanvasCssHeight }}
+        style={tapeCanvasStyle}
         width={1100}
       />
-      {"transferControlToOffscreen" in HTMLCanvasElement.prototype ? null : (
-        <div className="absolute inset-0 grid place-items-center bg-black/80 text-xs text-bankops-muted">
-          OffscreenCanvas is not supported in this browser.
-        </div>
-      )}
     </div>
   );
 }

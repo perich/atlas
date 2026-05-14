@@ -77,6 +77,23 @@ const cellPaddingX = 14;
 const magnitudeGutterWidth = 142;
 const magnitudeBarInsetX = 16;
 const magnitudeBarInsetY = 3;
+const tapeColor = {
+  background: "#070809",
+  backgroundGlow: "#09100d",
+  debit: "#fda4af",
+  debitTint: "rgba(244,63,94,",
+  divider: "rgba(255,255,255,0.08)",
+  gutter: "rgba(255,255,255,0.035)",
+  header: "#111315",
+  headerGlow: "#101815",
+  headerText: "#89929c",
+  row: "#0b0d0f",
+  rowAlt: "#090a0b",
+  text: "#d7dee8",
+  time: "#a8b1bc",
+  credit: "#86efac",
+  creditTint: "rgba(34,197,94,",
+} as const;
 
 self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
   const command = event.data;
@@ -248,9 +265,9 @@ function scheduleDraw() {
 function drawBackdrop(context: OffscreenCanvasRenderingContext2D) {
   const gradient = context.createLinearGradient(0, 0, tapeLayout.width, tapeLayout.height);
 
-  gradient.addColorStop(0, "#070809");
-  gradient.addColorStop(0.45, "#09100d");
-  gradient.addColorStop(1, "#070809");
+  gradient.addColorStop(0, tapeColor.background);
+  gradient.addColorStop(0.45, tapeColor.backgroundGlow);
+  gradient.addColorStop(1, tapeColor.background);
 
   context.fillStyle = gradient;
   context.fillRect(0, 0, tapeLayout.width, tapeLayout.height);
@@ -259,21 +276,21 @@ function drawBackdrop(context: OffscreenCanvasRenderingContext2D) {
 function drawHeader(context: OffscreenCanvasRenderingContext2D) {
   const gradient = context.createLinearGradient(0, 0, tapeLayout.width, 0);
 
-  gradient.addColorStop(0, "#111315");
-  gradient.addColorStop(0.55, "#101815");
-  gradient.addColorStop(1, "#111315");
+  gradient.addColorStop(0, tapeColor.header);
+  gradient.addColorStop(0.55, tapeColor.headerGlow);
+  gradient.addColorStop(1, tapeColor.header);
 
   context.fillStyle = gradient;
   context.fillRect(0, 0, tapeLayout.width, headerHeight);
-  context.fillStyle = "rgba(255,255,255,0.08)";
+  context.fillStyle = tapeColor.divider;
   context.fillRect(0, headerHeight - 1, tapeLayout.width, 1);
-  context.fillStyle = "#89929c";
+  context.fillStyle = tapeColor.headerText;
   context.fillText("SIZE", cellPaddingX, 15, magnitudeGutterWidth - magnitudeBarInsetX);
   drawCells(
     context,
     columns.map(([label]) => label.toUpperCase()),
     15,
-    "#89929c",
+    tapeColor.headerText,
   );
   drawColumnRules(context);
 }
@@ -286,10 +303,10 @@ function drawRow(
   amountScaleMinor: number,
 ) {
   const color = movementSideColor(movement);
-  const tint = movement.side === "credit" ? "rgba(34,197,94," : "rgba(244,63,94,";
+  const tint = movement.side === "credit" ? tapeColor.creditTint : tapeColor.debitTint;
   const alpha = Math.max(0.02, 0.075 - index * 0.0015);
 
-  context.fillStyle = index % 2 === 0 ? "#0b0d0f" : "#090a0b";
+  context.fillStyle = index % 2 === 0 ? tapeColor.row : tapeColor.rowAlt;
   context.fillRect(0, y, tapeLayout.width, rowHeight);
   context.fillStyle = `${tint}${alpha})`;
   context.fillRect(0, y, tapeLayout.width, rowHeight);
@@ -302,7 +319,7 @@ function drawCells(
   context: OffscreenCanvasRenderingContext2D,
   cells: string[],
   y: number,
-  color = "#d7dee8",
+  color: string = tapeColor.text,
 ) {
   let x = cellPaddingX + magnitudeGutterWidth;
 
@@ -345,7 +362,7 @@ function drawMagnitudeBar(
 }
 
 function drawColumnRules(context: OffscreenCanvasRenderingContext2D) {
-  context.fillStyle = "rgba(255,255,255,0.035)";
+  context.fillStyle = tapeColor.gutter;
   context.fillRect(cellPaddingX + magnitudeGutterWidth - 10, 0, 1, tapeLayout.height);
 
   columns.slice(1).forEach((_, index) => {
@@ -359,18 +376,18 @@ function movementCellColor(movement: BalanceSheetMovement, index: number, sideCo
   }
 
   if (index === 7 && (movement.status === "failed" || movement.status === "held")) {
-    return "#fda4af";
+    return tapeColor.debit;
   }
 
   if (index === 0) {
-    return "#a8b1bc";
+    return tapeColor.time;
   }
 
-  return "#d7dee8";
+  return tapeColor.text;
 }
 
 function movementSideColor(movement: BalanceSheetMovement) {
-  return movement.side === "credit" ? "#86efac" : "#fda4af";
+  return movement.side === "credit" ? tapeColor.credit : tapeColor.debit;
 }
 
 function columnX(index: number) {
@@ -398,7 +415,7 @@ function recordMovementStats(movements: BalanceSheetMovement[]) {
     latestMovementTs = Math.max(latestMovementTs, movement.serverTs);
 
     const bin = movementBinFor(movement.serverTs);
-    const key = heatmapKey(movement.rail, movement.bucket);
+    const key = `${movement.rail}:${movement.bucket}`;
     const cell =
       bin.cells.get(key) ??
       ({
@@ -509,10 +526,6 @@ function movementBinFor(ts: number) {
   }
 
   return bin;
-}
-
-function heatmapKey(rail: Rail, bucket: BalanceSheetBucket) {
-  return `${rail}:${bucket}`;
 }
 
 function movementCells(movement: BalanceSheetMovement) {
