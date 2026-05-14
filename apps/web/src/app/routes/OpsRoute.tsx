@@ -14,7 +14,6 @@ import {
   BanknoteArrowUp,
   Gauge,
   Info,
-  Landmark,
   RadioTower,
   ShieldAlert,
   Timer,
@@ -360,7 +359,7 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
 
 function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   return (
-    <section className="grid gap-4" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+    <section className="grid gap-4 xl:grid-cols-4">
       <SparklinePanel
         icon={Activity}
         label="Throughput"
@@ -389,7 +388,6 @@ function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
         points={snapshot.chart}
         valueForPoint={(point) => point.exceptionQueueDepth}
       />
-      <BucketTotalsPanel bucketTotals={snapshot.bucketTotals} />
     </section>
   );
 }
@@ -463,36 +461,6 @@ function Sparkline({ values }: { values: number[] }) {
         vectorEffect="non-scaling-stroke"
       />
     </svg>
-  );
-}
-
-function BucketTotalsPanel({ bucketTotals }: { bucketTotals: Record<string, string> }) {
-  const buckets = BALANCE_SHEET_BUCKETS.map((bucket) => ({
-    bucket,
-    value: Number.parseFloat(bucketTotals[bucket] ?? "0"),
-  }));
-  const max = Math.max(1, ...buckets.map(({ value }) => Math.abs(value)));
-
-  return (
-    <Panel className="min-w-0 p-3 xl:col-span-4">
-      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
-        <Landmark aria-hidden="true" className="size-3.5" />
-        Bucket totals
-      </p>
-      <div className="mt-3 grid gap-x-5 gap-y-2 xl:grid-cols-4">
-        {buckets.map(({ bucket, value }) => (
-          <div className="grid grid-cols-[7.5rem_1fr] items-center gap-2" key={bucket}>
-            <span className="truncate text-[11px] text-bankops-muted">{bucketLabel(bucket)}</span>
-            <span className="h-2 bg-white/[0.045]">
-              <span
-                className={`block h-full ${value >= 0 ? "bg-emerald-300/75" : "bg-rose-300/75"}`}
-                style={{ width: `${Math.max(2, (Math.abs(value) / max) * 100)}%` }}
-              />
-            </span>
-          </div>
-        ))}
-      </div>
-    </Panel>
   );
 }
 

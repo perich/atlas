@@ -143,7 +143,6 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
         cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
         liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
         exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
-        bucketTotals: warmSnapshot.bucketTotals,
         railHealth: warmSnapshot.railHealth,
         chart: warmSnapshot.chart,
         seq: warmSnapshot.seq,

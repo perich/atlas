@@ -16,7 +16,6 @@ export type OpsStreamSnapshot = {
   cumulativeDebitsMinor: string;
   liquidityReserveMinor: string;
   exceptionQueueDepth: number;
-  bucketTotals: Record<string, string>;
   railHealth: RailHealthSnapshot[];
   chart: OpsChartPoint[];
   railBucketHeatmap: RailBucketHeatmapCell[];
@@ -85,7 +84,6 @@ export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
   cumulativeDebitsMinor: "0",
   liquidityReserveMinor: "0",
   exceptionQueueDepth: 0,
-  bucketTotals: {},
   railHealth: [],
   chart: [],
   railBucketHeatmap: [],
