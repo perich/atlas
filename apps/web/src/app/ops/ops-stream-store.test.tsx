@@ -39,10 +39,13 @@ class MockWorker {
 describe("ops stream store", () => {
   beforeEach(() => {
     MockWorker.instances = [];
+    vi.useFakeTimers();
     vi.stubGlobal("Worker", MockWorker);
+    vi.stubGlobal("OffscreenCanvas", function MockOffscreenCanvas() {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -69,8 +72,39 @@ describe("ops stream store", () => {
 
     unsubscribe();
 
+    vi.advanceTimersByTime(100);
+
     expect(worker.commands).toContainEqual({ type: "disconnect" });
     expect(worker.terminated).toBe(true);
+  });
+
+  it("transfers the tape canvas to the worker", () => {
+    const store = createOpsStreamStore(() => new Worker("mock"));
+    const unsubscribe = store.subscribe(vi.fn());
+    const worker = latestWorker();
+    const canvas = new OffscreenCanvas(1, 1);
+
+    store.attachTapeCanvas(canvas);
+
+    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas });
+
+    unsubscribe();
+    vi.advanceTimersByTime(100);
+  });
+
+  it("keeps a transferred tape canvas until the worker starts", () => {
+    const store = createOpsStreamStore(() => new Worker("mock"));
+    const canvas = new OffscreenCanvas(1, 1);
+
+    store.attachTapeCanvas(canvas);
+
+    const unsubscribe = store.subscribe(vi.fn());
+    const worker = latestWorker();
+
+    expect(worker.commands).toContainEqual({ type: "canvas.attach", canvas });
+
+    unsubscribe();
+    vi.advanceTimersByTime(100);
   });
 });
 
@@ -80,6 +114,7 @@ describe("OpsRoute", () => {
 
   beforeEach(() => {
     MockWorker.instances = [];
+    vi.useFakeTimers();
     vi.stubGlobal("Worker", MockWorker);
     host = document.createElement("div");
     document.body.append(host);
@@ -88,7 +123,9 @@ describe("OpsRoute", () => {
 
   afterEach(() => {
     act(() => root?.unmount());
+    vi.advanceTimersByTime(100);
     host?.remove();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 

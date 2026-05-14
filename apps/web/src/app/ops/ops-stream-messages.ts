@@ -26,6 +26,17 @@ export type OpsStreamSnapshot = {
   liquidityReserveMinor: string;
   exceptionQueueDepth: number;
   railHealth: RailHealthSnapshot[];
+  renderer: OpsRendererMetrics;
+};
+
+export type OpsRendererMetrics = {
+  supported: boolean;
+  fps: number;
+  frameCostMs: number;
+  backlog: number;
+  sequenceLag: number;
+  decodedRate: number;
+  renderedRowRate: number;
 };
 
 export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
@@ -39,9 +50,19 @@ export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
   liquidityReserveMinor: "0",
   exceptionQueueDepth: 0,
   railHealth: [],
+  renderer: {
+    supported: false,
+    fps: 0,
+    frameCostMs: 0,
+    backlog: 0,
+    sequenceLag: 0,
+    decodedRate: 0,
+    renderedRowRate: 0,
+  },
 };
 
 export type OpsWorkerCommand =
+  | { type: "canvas.attach"; canvas: OffscreenCanvas }
   | { type: "connect" }
   | { type: "disconnect" }
   | { type: "stream.rate.set"; targetRate: StreamRate };
