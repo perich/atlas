@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Bot, ClipboardList, Landmark, RadioTower } from "lucide-react";
 
@@ -19,46 +19,58 @@ export function AppShell() {
         </div>
 
         <div className="hidden lg:block">
-          <aside className="fixed inset-y-0 left-0 z-20 w-60 border-r border-white/[0.075] bg-bankops-sidebar px-3 py-4">
-            <div className="rounded-[5px] border border-white/[0.075] bg-white/[0.022] p-3">
+          <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-bankops-sidebar">
+            <div className="flex h-9 items-center justify-between px-6">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-[4px] border border-white/[0.075] bg-white/[0.022] text-bankops-text">
-                  <Landmark aria-hidden="true" className="size-5" />
+                <div className="flex items-center gap-2 text-xs text-bankops-muted">
+                  <Landmark aria-hidden="true" className="size-3.5 text-bankops-text" />
+                  <span className="font-medium text-bankops-text">Back Office</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-white">BankOps</p>
-                  <p className="text-xs text-bankops-muted">Mission Control</p>
-                </div>
+                <nav className="flex items-center gap-1">
+                  <NavLink icon={RadioTower} to="/ops">
+                    Ops
+                  </NavLink>
+                  <NavLink icon={ClipboardList} to="/audit">
+                    Audit
+                  </NavLink>
+                  <NavLink icon={Bot} to="/analyst">
+                    Analyst
+                  </NavLink>
+                </nav>
+              </div>
+              <div className="flex items-center gap-3 font-mono text-[11px] tracking-wide text-[#5a6272]">
+                <span className="uppercase tracking-widest">BankOps Mission Control</span>
+                <LiveClock />
               </div>
             </div>
+          </header>
 
-            <nav className="mt-4 space-y-1">
-              <NavLink icon={RadioTower} to="/ops">
-                Ops
-              </NavLink>
-              <NavLink icon={ClipboardList} to="/audit">
-                Audit
-              </NavLink>
-              <NavLink icon={Bot} to="/analyst">
-                Analyst
-              </NavLink>
-            </nav>
-          </aside>
-
-          <div className="pl-60">
-            <header className="sticky top-0 z-10 border-b border-white/[0.075] bg-bankops-bg/95 px-6 py-3 backdrop-blur-xl">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-sm font-medium text-white">BankOps Mission Control</p>
-                <p className="text-xs text-bankops-muted">Realtime rails · Audit · Analyst</p>
-              </div>
-            </header>
-
-            <main className="p-6">
-              <Outlet />
-            </main>
-          </div>
+          <main className="p-6">
+            <Outlet />
+          </main>
         </div>
       </div>
     </TooltipProvider>
+  );
+}
+
+function LiveClock() {
+  const [time, setTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTime(new Date()), 1_000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <time dateTime={time.toISOString()}>
+      {time.toLocaleTimeString([], {
+        hour: "2-digit",
+        hour12: false,
+        minute: "2-digit",
+        second: "2-digit",
+      })}
+    </time>
   );
 }

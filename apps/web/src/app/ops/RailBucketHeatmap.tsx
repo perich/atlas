@@ -24,12 +24,13 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
   }, undefined);
 
   return (
-    <Panel className="overflow-hidden p-0">
-      <div className="border-b border-white/[0.075] px-4 py-3">
+    <Panel className="overflow-hidden rounded-none border-0 border-t border-white/[0.08] p-0">
+      <div className="border-b border-white/[0.08] bg-bankops-panel px-4 py-3">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+              <span className="h-4 w-0.5 bg-bankops-text" />
+              <p className="text-xs font-bold uppercase tracking-widest text-bankops-muted">
                 Live Flow Concentration
               </p>
               <InfoTooltip label="Explain live flow concentration">
@@ -40,7 +41,7 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
                 failed movements are at least 5%.
               </InfoTooltip>
             </div>
-            <p className="mt-1 text-sm text-white">
+            <p className="mt-1 text-xs text-[#5a6272]">
               Rolling 5s amount/sec and movement rate by rail and balance-sheet bucket
             </p>
           </div>
@@ -51,19 +52,19 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
         <HeatmapLegend />
       </div>
 
-      <div className="px-4 pb-4 pt-3">
+      <div className="overflow-x-auto bg-bankops-bg p-4">
         <div
-          className="grid gap-px overflow-hidden border border-white/[0.075] bg-white/[0.065]"
+          className="grid gap-px overflow-hidden border border-white/[0.08] bg-white/[0.06]"
           style={{
             gridTemplateColumns: `112px repeat(${BALANCE_SHEET_BUCKETS.length}, minmax(92px, 1fr))`,
           }}
         >
-          <div className="bg-[#101315] px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted">
+          <div className="bg-[#0f1012] px-2.5 py-2 text-[9px] font-semibold uppercase tracking-widest text-[#5a6272]">
             Rail
           </div>
           {BALANCE_SHEET_BUCKETS.map((bucket) => (
             <div
-              className="bg-[#101315] px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-bankops-muted"
+              className="bg-[#0f1012] px-2.5 py-2 text-[9px] font-semibold uppercase tracking-widest text-[#5a6272]"
               key={bucket}
             >
               {titleize(bucket)}
@@ -72,7 +73,7 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
 
           {RAILS.map((rail) => (
             <React.Fragment key={rail}>
-              <div className="bg-[#0c0e10] px-2.5 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white">
+              <div className="bg-[#0c0d0e] px-2.5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-bankops-text">
                 {titleize(rail)}
               </div>
               {BALANCE_SHEET_BUCKETS.map((bucket) => (
@@ -100,13 +101,13 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
 
   return (
     <div className="hidden min-w-56 text-right xl:block">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
         Highest amount/sec
       </p>
-      <p className="mt-1 text-sm font-medium text-white">
+      <p className="mt-1 text-sm font-medium text-bankops-text">
         {titleize(cell.rail)} / {titleize(cell.bucket)}
       </p>
-      <p className="mt-0.5 text-xs text-bankops-muted">
+      <p className="mt-0.5 font-mono text-[11px] text-[#5a6272]">
         {formatMinorUsd(cell.amountPerSecMinor)}/s · {formatHeatmapRate(cell.movementRate)}{" "}
         movements/s
       </p>
@@ -152,11 +153,13 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
         background: `linear-gradient(135deg, rgba(${sideRgb},${primaryAlpha}) 0%, rgba(${sideRgb},${secondaryAlpha}) 52%, rgba(${sideRgb},${edgeAlpha}) 100%), #101315`,
       }}
     >
-      <div className="flex items-start justify-between gap-2 text-xs">
-        <span className={isActive ? "font-semibold text-white" : "font-medium text-bankops-muted"}>
+      <div className="flex items-start justify-between gap-2 font-mono text-[11px]">
+        <span
+          className={isActive ? "font-semibold text-bankops-text" : "font-medium text-[#5a6272]"}
+        >
           {amountLabel}
         </span>
-        <span className="text-bankops-muted">{rateLabel}</span>
+        <span className="text-[#5a6272]">{rateLabel}</span>
       </div>
 
       {isElevatedException ? (

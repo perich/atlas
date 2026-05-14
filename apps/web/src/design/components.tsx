@@ -23,10 +23,10 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-10 items-center justify-center gap-2 rounded-[4px] border px-4 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300/35 disabled:cursor-not-allowed disabled:opacity-45",
-        variant === "primary" && "border-white/18 bg-[#dce1e7] text-[#08090a] hover:bg-white",
+        "inline-flex min-h-8 items-center justify-center gap-2 rounded-none border px-3 text-xs font-semibold uppercase tracking-[0.06em] transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300/35 disabled:cursor-not-allowed disabled:opacity-45",
+        variant === "primary" && "border-white/18 bg-[#f0f2f5] text-[#0c0d0e] hover:bg-white",
         variant === "secondary" &&
-          "border-white/[0.1] bg-white/[0.035] text-bankops-text hover:border-white/18 hover:bg-white/[0.065]",
+          "border-white/[0.08] bg-[#1a1c1f] text-bankops-muted hover:border-white/18 hover:bg-white/[0.06] hover:text-bankops-text",
         variant === "ghost" &&
           "border-transparent text-bankops-muted hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-bankops-text",
         className,
@@ -52,7 +52,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-[5px] border border-white/[0.075] bg-bankops-panel p-4 shadow-[0_1px_0_rgba(255,255,255,0.018)_inset]",
+        "rounded-md border border-white/[0.08] bg-bankops-panel p-4 shadow-[0_1px_0_rgba(255,255,255,0.018)_inset]",
         className,
       )}
     >
@@ -68,11 +68,13 @@ export function Panel({
 
 export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
-    <header className="border-b border-white/[0.075] pb-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-bankops-muted">
+    <header>
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
         {eyebrow}
       </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">{title}</h1>
+      <h1 className="text-2xl font-semibold leading-tight tracking-tight text-bankops-text">
+        {title}
+      </h1>
     </header>
   );
 }
@@ -87,7 +89,7 @@ export function StatCard({
   value: React.ReactNode;
 }) {
   return (
-    <article className="rounded-[5px] border border-white/[0.075] bg-white/[0.022] p-3.5">
+    <article className="rounded-md border border-white/[0.08] bg-bankops-panel p-3.5">
       <div className="mb-3 flex items-center gap-2 text-bankops-muted">
         <Icon aria-hidden="true" className="size-4 text-sky-300/85" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em]">{label}</p>
@@ -108,8 +110,8 @@ export function NavLink({
 }) {
   return (
     <Link
-      activeProps={{ className: "border-white/[0.075] bg-white/[0.055] text-white" }}
-      className="flex items-center gap-3 rounded-[4px] border border-transparent px-3 py-2.5 text-sm text-bankops-muted transition-colors hover:border-white/[0.075] hover:bg-white/[0.04] hover:text-white"
+      activeProps={{ className: "border-white/[0.14] bg-white/[0.055] text-bankops-text" }}
+      className="inline-flex h-9 items-center gap-2 border border-transparent px-3 text-xs font-medium text-bankops-muted transition-colors hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-bankops-text"
       to={to}
     >
       <Icon aria-hidden="true" className="size-4 shrink-0" />

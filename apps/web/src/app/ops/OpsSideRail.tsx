@@ -49,8 +49,8 @@ export function OpsSideRail({
   const pressure = streamPressure(snapshot);
 
   return (
-    <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-      <Panel title="Stream Control">
+    <aside className="flex min-h-0 flex-col bg-bankops-sidebar">
+      <Panel className="rounded-none border-0 border-b border-white/[0.08]" title="Stream Control">
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs text-bankops-muted">Connection</span>
@@ -72,7 +72,7 @@ export function OpsSideRail({
             <div className="grid grid-cols-2 gap-2">
               {STREAM_RATES.map((streamRate) => (
                 <Button
-                  className="min-h-8 px-3 text-xs"
+                  className="min-h-10 px-3 text-[10px]"
                   key={streamRate}
                   onClick={() => setStreamRate(streamRate)}
                   variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
@@ -85,7 +85,7 @@ export function OpsSideRail({
         </div>
       </Panel>
 
-      <Panel title="Performance HUD">
+      <Panel className="rounded-none border-0 border-b border-white/[0.08]" title="Performance HUD">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 border-b border-white/[0.075] pb-3">
             <span className="inline-flex items-center gap-2 text-xs text-bankops-muted">
@@ -103,7 +103,7 @@ export function OpsSideRail({
         </div>
       </Panel>
 
-      <Panel title="Rail Health">
+      <Panel className="min-h-0 flex-1 overflow-y-auto rounded-none border-0" title="Rail Health">
         <RailHealthList rails={snapshot.railHealth} />
       </Panel>
     </aside>
@@ -121,10 +121,10 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 text-[11px]">
+    <div className="grid grid-cols-3 gap-px border border-white/[0.08] bg-white/[0.05] text-[11px]">
       {metrics.map(([label, value]) => (
         <div
-          className="border border-white/[0.06] bg-white/[0.025] px-2 py-1"
+          className="bg-[#0d0f10] p-2"
           data-testid={`renderer-metric-${label.replaceAll(" ", "-")}`}
           key={label}
         >
@@ -143,24 +143,42 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
 
   return (
     <div className="space-y-2">
-      {rails.map((rail) => (
-        <div
-          className="grid grid-cols-[1fr_auto] gap-3 border-b border-white/[0.055] pb-2 last:border-0 last:pb-0"
-          key={rail.rail}
-        >
-          <div>
-            <p className="text-xs font-medium text-white">{titleize(rail.rail)}</p>
-            <p className="mt-0.5 text-[11px] text-bankops-muted">
-              {formatCount(rail.eventsPerSec)}/s · p95 {formatMilliseconds(rail.p95LatencyMs)}
-            </p>
+      {rails.map((rail) => {
+        const borderClassName = railStatusBorderClassName(rail.status);
+
+        return (
+          <div
+            className={`grid grid-cols-[1fr_auto] gap-3 border-l-2 bg-bankops-panel p-3 ${borderClassName}`}
+            key={rail.rail}
+          >
+            <div>
+              <p className="text-xs font-medium text-white">{titleize(rail.rail)}</p>
+              <p className="mt-0.5 font-mono text-[10px] text-[#5a6272]">
+                {formatCount(rail.eventsPerSec)}/s · p95 {formatMilliseconds(rail.p95LatencyMs)}
+              </p>
+            </div>
+            <span className={`text-[11px] font-semibold ${railHealthClassNames[rail.status]}`}>
+              {railHealthLabels[rail.status]}
+            </span>
           </div>
-          <span className={`text-[11px] font-semibold ${railHealthClassNames[rail.status]}`}>
-            {railHealthLabels[rail.status]}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+function railStatusBorderClassName(status: RailHealthSnapshot["status"]) {
+  switch (status) {
+    case "degraded":
+      return "border-l-amber-300";
+    case "incident":
+      return "border-l-rose-400";
+    case "nominal":
+      return "border-l-transparent";
+  }
+
+  const exhaustive: never = status;
+  return exhaustive;
 }
 
 function streamPressure(snapshot: OpsStreamSnapshot): {

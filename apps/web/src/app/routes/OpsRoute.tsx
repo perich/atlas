@@ -12,30 +12,52 @@ export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
 
   return (
-    <div className="space-y-5">
-      <PageHeader eyebrow="God Mode" title="Operations control plane" />
+    <div className="min-h-[calc(100vh-5.25rem)] overflow-hidden rounded-md border border-white/[0.08] bg-bankops-bg">
+      <div className="border-b border-white/[0.08] bg-bankops-sidebar px-6 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 flex items-center gap-3">
+              <span className="border border-white/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-bankops-muted">
+                God Mode
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                <span className="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(74,222,128,0.7)]" />
+                Live
+              </span>
+            </div>
+            <PageHeader eyebrow="Operations" title="Operations Control Plane" />
+          </div>
+        </div>
+      </div>
 
       <OpsTopBand snapshot={snapshot} />
 
-      <div className="grid min-h-[calc(100vh-18rem)] items-stretch gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <Panel className="flex min-h-0 flex-col overflow-hidden p-0">
-          <div className="shrink-0 border-b border-white/[0.075] bg-black/20 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-              Balance Sheet Tape
-            </p>
-            <p className="mt-1 text-sm text-white">Global debit and credit movement stream</p>
+      <div className="grid min-h-[calc(100vh-22rem)] items-stretch xl:grid-cols-[minmax(0,3fr)_20rem]">
+        <Panel className="flex min-h-0 flex-col overflow-hidden rounded-none border-0 border-r border-white/[0.08] p-0">
+          <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-bankops-panel px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="h-4 w-0.5 bg-bankops-text" />
+              <p className="text-xs font-bold uppercase tracking-widest text-bankops-muted">
+                Live Tape Feed
+              </p>
+            </div>
+            <div className="flex items-center gap-4 font-mono text-[10px] uppercase text-[#5a6272]">
+              <span>Packet latency {snapshot.renderer.frameCostMs.toFixed(1)}ms</span>
+              <span>Backlog {snapshot.renderer.backlog}</span>
+            </div>
           </div>
 
           <BalanceSheetTape
             attachTapeCanvas={attachTapeCanvas}
             resizeTapeCanvas={resizeTapeCanvas}
           />
+
+          <OpsBottomBand snapshot={snapshot} />
         </Panel>
 
         <OpsSideRail setStreamRate={setStreamRate} snapshot={snapshot} />
       </div>
 
-      <OpsBottomBand snapshot={snapshot} />
       <RailBucketHeatmap cells={snapshot.railBucketHeatmap} />
     </div>
   );
