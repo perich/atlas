@@ -71,7 +71,7 @@ const rowHeight = 20;
 const cellPaddingX = 14;
 const magnitudeGutterWidth = 142;
 const magnitudeBarInsetX = 16;
-const magnitudeBarHeight = 6;
+const magnitudeBarInsetY = 3;
 
 self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
   const command = event.data;
@@ -295,10 +295,7 @@ function drawRow(
   context.fillStyle = `${tint}${alpha})`;
   context.fillRect(0, y, tapeLayout.width, rowHeight);
 
-  context.fillStyle = color;
-  context.fillRect(0, y + 3, 3, rowHeight - 6);
-
-  drawMagnitudeBar(context, movement, y, maxVisibleAmountMinor);
+  drawMagnitudeBar(context, movement, y, maxVisibleAmountMinor, color);
   drawMovementCells(context, movement, y + 10, color);
 }
 
@@ -336,6 +333,7 @@ function drawMagnitudeBar(
   movement: BalanceSheetMovement,
   y: number,
   maxVisibleAmountMinor: number,
+  color: string,
 ) {
   const x = magnitudeBarInsetX;
   const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
@@ -343,10 +341,10 @@ function drawMagnitudeBar(
   const intensity =
     maxVisibleAmountMinor === 0 ? 0 : Math.sqrt(amountMinor / maxVisibleAmountMinor);
   const width = Math.max(3, maxWidth * Math.min(1, intensity));
-  const barY = y + (rowHeight - magnitudeBarHeight) / 2;
+  const height = rowHeight - magnitudeBarInsetY * 2;
 
-  context.fillStyle = movement.side === "credit" ? "#22c55e" : "#f43f5e";
-  context.fillRect(x, barY, width, magnitudeBarHeight);
+  context.fillStyle = color;
+  context.fillRect(x, y + magnitudeBarInsetY, width, height);
 }
 
 function drawColumnRules(context: OffscreenCanvasRenderingContext2D) {
