@@ -1,7 +1,9 @@
 import {
+  type BalanceSheetBucket,
   type BalanceSheetMovement,
   decodeMovementBatch,
   DEFAULT_STREAM_RATE,
+  type Rail,
   StreamChannel,
   type StreamRate,
 } from "@bankops/contracts";
@@ -9,16 +11,29 @@ import {
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
   type OpsStreamSnapshot,
+  type RailBucketHeatmapCell,
   type TapeCanvasLayout,
   type OpsWorkerCommand,
 } from "./ops-stream-messages";
 
 type WarmOpsSnapshotMessage = Omit<
   OpsStreamSnapshot,
-  "connectionStatus" | "streamRate" | "movementRate"
+  "connectionStatus" | "streamRate" | "movementRate" | "railBucketHeatmap"
 > & {
   channel: typeof StreamChannel.AggregateSnapshot;
   type: "ops.snapshot";
+};
+type HeatmapDelta = {
+  rail: Rail;
+  bucket: BalanceSheetBucket;
+  movementCount: number;
+  creditMinor: number;
+  debitMinor: number;
+  exceptionCount: number;
+};
+type HeatmapBin = {
+  startedAt: number;
+  cells: Map<string, HeatmapDelta>;
 };
 
 let socket: WebSocket | undefined;
@@ -33,7 +48,14 @@ let frameCostTotal = 0;
 let decodedCount = 0;
 let renderedRowCount = 0;
 let latestSeq = 0n;
+let latestMovementTs = 0;
 const rows: BalanceSheetMovement[] = [];
+const heatmapWindowMs = 5_000;
+const heatmapBinMs = 250;
+const heatmapBins: HeatmapBin[] = Array.from({ length: heatmapWindowMs / heatmapBinMs }, () => ({
+  cells: new Map(),
+  startedAt: 0,
+}));
 const columns = [
   ["time", 92],
   ["side", 68],
@@ -94,6 +116,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
         connectionStatus: "open",
         streamRate,
         movementRate: decodedRate,
+        railBucketHeatmap: buildHeatmapSnapshot(),
         renderer: {
           supported: canvasContext !== null,
           fps: frameCount * 4,
@@ -118,6 +141,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
       decodedCount += batch.movements.length;
       latestSeq = batch.toSeq;
       pushRows(batch.movements);
+      recordHeatmapMovements(batch.movements);
       return;
     }
 
@@ -367,6 +391,113 @@ function pushRows(movements: BalanceSheetMovement[]) {
   }
 
   rows.length = Math.min(rows.length, 128);
+}
+
+function recordHeatmapMovements(movements: BalanceSheetMovement[]) {
+  for (const movement of movements) {
+    latestMovementTs = Math.max(latestMovementTs, movement.serverTs);
+
+    const bin = heatmapBinFor(movement.serverTs);
+    const key = heatmapKey(movement.rail, movement.bucket);
+    const cell =
+      bin.cells.get(key) ??
+      ({
+        bucket: movement.bucket,
+        creditMinor: 0,
+        debitMinor: 0,
+        exceptionCount: 0,
+        movementCount: 0,
+        rail: movement.rail,
+      } satisfies HeatmapDelta);
+    const amountMinor = Math.abs(Number(movement.amountMinor));
+
+    cell.movementCount += 1;
+
+    if (movement.side === "credit") {
+      cell.creditMinor += amountMinor;
+    } else {
+      cell.debitMinor += amountMinor;
+    }
+
+    if (
+      movement.status === "failed" ||
+      movement.status === "held" ||
+      movement.status === "pending"
+    ) {
+      cell.exceptionCount += 1;
+    }
+
+    bin.cells.set(key, cell);
+  }
+}
+
+function buildHeatmapSnapshot(): RailBucketHeatmapCell[] {
+  const now = latestMovementTs === 0 ? Date.now() : latestMovementTs;
+  const cutoff = now - heatmapWindowMs;
+  const totals = new Map<string, HeatmapDelta>();
+
+  for (const bin of heatmapBins) {
+    if (bin.startedAt <= cutoff) {
+      continue;
+    }
+
+    for (const [key, cell] of bin.cells) {
+      const total =
+        totals.get(key) ??
+        ({
+          bucket: cell.bucket,
+          creditMinor: 0,
+          debitMinor: 0,
+          exceptionCount: 0,
+          movementCount: 0,
+          rail: cell.rail,
+        } satisfies HeatmapDelta);
+
+      total.movementCount += cell.movementCount;
+      total.creditMinor += cell.creditMinor;
+      total.debitMinor += cell.debitMinor;
+      total.exceptionCount += cell.exceptionCount;
+      totals.set(key, total);
+    }
+  }
+
+  const cells = [...totals.values()].map((cell) => {
+    const amountMinor = cell.creditMinor + cell.debitMinor;
+
+    return {
+      amountPerSecMinor: amountMinor / (heatmapWindowMs / 1_000),
+      bucket: cell.bucket,
+      creditMinor: cell.creditMinor,
+      debitMinor: cell.debitMinor,
+      exceptionRate: cell.movementCount === 0 ? 0 : cell.exceptionCount / cell.movementCount,
+      intensity: 0,
+      movementRate: cell.movementCount / (heatmapWindowMs / 1_000),
+      rail: cell.rail,
+      skew: amountMinor === 0 ? 0 : (cell.creditMinor - cell.debitMinor) / amountMinor,
+    } satisfies RailBucketHeatmapCell;
+  });
+  const maxAmountPerSecMinor = Math.max(1, ...cells.map((cell) => cell.amountPerSecMinor));
+
+  return cells.map((cell) => ({
+    ...cell,
+    intensity: Math.sqrt(cell.amountPerSecMinor / maxAmountPerSecMinor),
+  }));
+}
+
+function heatmapBinFor(ts: number) {
+  const startedAt = Math.floor(ts / heatmapBinMs) * heatmapBinMs;
+  const bin = heatmapBins[Math.floor(startedAt / heatmapBinMs) % heatmapBins.length];
+
+  if (bin.startedAt !== startedAt) {
+    bin.startedAt = startedAt;
+    bin.cells.clear();
+  }
+
+  return bin;
+}
+
+function heatmapKey(rail: Rail, bucket: BalanceSheetBucket) {
+  return `${rail}:${bucket}`;
 }
 
 function movementCells(movement: BalanceSheetMovement) {
