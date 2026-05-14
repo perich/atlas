@@ -34,6 +34,7 @@ const streamRateLabels: Record<StreamRate, string> = {
   2_000: "2k/s",
   10_000: "10k/s",
 };
+const tapeCanvasCssHeight = 460;
 
 export function OpsRoute() {
   const { attachTapeCanvas, resizeTapeCanvas, setStreamRate, snapshot } = useOpsStream();
@@ -42,6 +43,49 @@ export function OpsRoute() {
   return (
     <div className="space-y-5">
       <PageHeader eyebrow="God Mode" title="Operations control plane" />
+
+      <Panel className="overflow-hidden p-0">
+        <div className="border-b border-white/[0.075] px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+                Balance Sheet Tape
+              </p>
+              <p className="mt-1 text-sm text-white">Global debit and credit movement stream</p>
+            </div>
+
+            <div className="text-right text-xs text-bankops-muted">
+              <span>SettlementStream seq {snapshot.seq}</span>
+              <br />
+              <span className={statusClassNames[snapshot.connectionStatus]}>
+                {statusLabels[snapshot.connectionStatus]}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <BalanceSheetTape attachTapeCanvas={attachTapeCanvas} resizeTapeCanvas={resizeTapeCanvas} />
+
+        <div className="grid gap-3 border-t border-white/[0.075] bg-black/20 px-4 py-3 xl:grid-cols-[1fr_auto] xl:items-end">
+          <RendererMetrics snapshot={snapshot} />
+
+          <div className="flex items-center justify-between gap-3 xl:justify-end">
+            <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
+            <div className="flex gap-2">
+              {STREAM_RATES.map((streamRate) => (
+                <Button
+                  className="min-h-8 px-3 text-xs"
+                  key={streamRate}
+                  onClick={() => setStreamRate(streamRate)}
+                  variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
+                >
+                  {streamRateLabels[streamRate]}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Panel>
 
       <section className="grid gap-3 xl:grid-cols-4">
         <StatCard
@@ -58,43 +102,7 @@ export function OpsRoute() {
         <StatCard icon={Gauge} label="Hot movement rate" value={`${snapshot.movementRate}/s`} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <Panel className="min-h-[420px]" title="Balance Sheet Tape">
-          <div className="flex h-[360px] flex-col justify-between border border-dashed border-white/[0.1] bg-black/20 p-4">
-            <div className="flex items-center justify-between text-xs text-bankops-muted">
-              <span>SettlementStream seq {snapshot.seq}</span>
-              <span className={statusClassNames[snapshot.connectionStatus]}>
-                {statusLabels[snapshot.connectionStatus]}
-              </span>
-            </div>
-
-            <BalanceSheetTape
-              attachTapeCanvas={attachTapeCanvas}
-              resizeTapeCanvas={resizeTapeCanvas}
-            />
-
-            <div className="grid gap-3">
-              <RendererMetrics snapshot={snapshot} />
-
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-medium text-bankops-muted">Stream rate</span>
-                <div className="flex gap-2">
-                  {STREAM_RATES.map((streamRate) => (
-                    <Button
-                      className="min-h-8 px-3 text-xs"
-                      key={streamRate}
-                      onClick={() => setStreamRate(streamRate)}
-                      variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
-                    >
-                      {streamRateLabels[streamRate]}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Panel>
-
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <Panel title="System Health">
           <div className="space-y-3">
             {railHealth === undefined
@@ -159,10 +167,11 @@ function BalanceSheetTape({
     <div className="relative overflow-hidden border border-white/[0.075] bg-[#070809]">
       <canvas
         aria-label="Live balance sheet movement tape"
-        className="block h-[236px] w-full"
+        className="block w-full"
         data-testid="balance-sheet-tape"
-        height={236}
+        height={tapeCanvasCssHeight}
         ref={attachCanvasRef}
+        style={{ height: tapeCanvasCssHeight }}
         width={1100}
       />
       {"transferControlToOffscreen" in HTMLCanvasElement.prototype ? null : (
@@ -179,7 +188,7 @@ function readTapeCanvasLayout(canvas: HTMLCanvasElement): TapeCanvasLayout {
 
   return {
     dpr: Math.max(1, window.devicePixelRatio || 1),
-    height: Math.max(1, Math.round(rect.height || canvas.clientHeight || 236)),
+    height: Math.max(1, Math.round(rect.height || canvas.clientHeight || tapeCanvasCssHeight)),
     width: Math.max(1, Math.round(rect.width || canvas.clientWidth || 1_100)),
   };
 }
