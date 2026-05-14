@@ -30,7 +30,7 @@ import type {
   RailHealthSnapshot,
   TapeCanvasLayout,
 } from "../ops/ops-stream-messages";
-import { Button, PageHeader, Panel, StatCard } from "../../design/components";
+import { Button, PageHeader, Panel } from "../../design/components";
 
 const usdCompact = new Intl.NumberFormat("en-US", {
   currency: "USD",
@@ -103,33 +103,64 @@ function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
 
   return (
     <section className="grid gap-3 xl:grid-cols-6">
-      <StatCard icon={Activity} label="Event rate" value={`${formatCount(snapshot.eventRate)}/s`} />
-      <StatCard
+      <OpsMetricCard
+        icon={Activity}
+        label="Event rate"
+        value={`${formatCount(snapshot.eventRate)}/s`}
+      />
+      <OpsMetricCard
         icon={BanknoteArrowUp}
         label="Credits"
         value={formatMinorString(snapshot.cumulativeCreditsMinor)}
       />
-      <StatCard
+      <OpsMetricCard
         icon={BanknoteArrowDown}
         label="Debits"
         value={formatMinorString(snapshot.cumulativeDebitsMinor)}
       />
-      <StatCard
+      <OpsMetricCard
         icon={Wallet}
         label="Liquidity"
         value={formatMinorString(snapshot.liquidityReserveMinor)}
       />
-      <StatCard
+      <OpsMetricCard
         icon={ShieldAlert}
-        label="Exception queue"
+        label="Exceptions"
         value={formatCount(snapshot.exceptionQueueDepth)}
       />
-      <StatCard
+      <OpsMetricCard
         icon={RadioTower}
         label="Rail health"
+        tone={worstRail?.status}
         value={worstRail === undefined ? "Waiting" : railStatusLabel(worstRail)}
       />
     </section>
+  );
+}
+
+function OpsMetricCard({
+  icon: Icon,
+  label,
+  tone,
+  value,
+}: {
+  icon: React.ComponentType<{ "aria-hidden": true; className: string }>;
+  label: string;
+  tone?: RailHealthSnapshot["status"];
+  value: React.ReactNode;
+}) {
+  return (
+    <article className="min-w-0 rounded-[5px] border border-white/[0.075] bg-white/[0.022] p-3 shadow-[0_1px_0_rgba(255,255,255,0.018)_inset]">
+      <div className="mb-3 flex items-center gap-2 text-bankops-muted">
+        <Icon aria-hidden={true} className="size-3.5 shrink-0 text-sky-300/85" />
+        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em]">{label}</p>
+      </div>
+      <p
+        className={`truncate text-[1.35rem] font-semibold leading-none tracking-tight ${tone === undefined ? "text-white" : railHealthClassName(tone)}`}
+      >
+        {value}
+      </p>
+    </article>
   );
 }
 
@@ -143,7 +174,7 @@ function OpsSideRail({
   const pressure = streamPressure(snapshot);
 
   return (
-    <aside className="space-y-4">
+    <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
       <Panel title="Stream Control">
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
@@ -157,7 +188,7 @@ function OpsSideRail({
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-bankops-muted">SettlementStream</span>
+            <span className="text-xs text-bankops-muted">Sequence</span>
             <span className="text-xs font-medium text-white">seq {snapshot.seq}</span>
           </div>
 
@@ -321,7 +352,7 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
             </p>
           </div>
           <span className={`text-[11px] font-semibold ${railHealthClassName(rail.status)}`}>
-            {rail.status}
+            {statusLabel(rail.status)}
           </span>
         </div>
       ))}
@@ -331,7 +362,7 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
 
 function OpsBottomBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   return (
-    <section className="grid gap-4 xl:grid-cols-5">
+    <section className="grid gap-4" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
       <SparklinePanel
         icon={Activity}
         label="Throughput"
@@ -381,7 +412,7 @@ function SparklinePanel({
   const values = points.map(valueForPoint);
 
   return (
-    <Panel className="p-3">
+    <Panel className="min-w-0 p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
@@ -445,14 +476,14 @@ function BucketTotalsPanel({ bucketTotals }: { bucketTotals: Record<string, stri
   const max = Math.max(1, ...buckets.map(({ value }) => Math.abs(value)));
 
   return (
-    <Panel className="p-3">
+    <Panel className="min-w-0 p-3 xl:col-span-4">
       <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-bankops-muted">
         <Landmark aria-hidden="true" className="size-3.5" />
         Bucket totals
       </p>
-      <div className="mt-3 space-y-1.5">
+      <div className="mt-3 grid gap-x-5 gap-y-2 xl:grid-cols-4">
         {buckets.map(({ bucket, value }) => (
-          <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2" key={bucket}>
+          <div className="grid grid-cols-[7.5rem_1fr] items-center gap-2" key={bucket}>
             <span className="truncate text-[11px] text-bankops-muted">{bucketLabel(bucket)}</span>
             <span className="h-2 bg-white/[0.045]">
               <span
@@ -717,7 +748,11 @@ function railSeverity(status: RailHealthSnapshot["status"]) {
 }
 
 function railStatusLabel(rail: RailHealthSnapshot) {
-  return `${railLabel(rail.rail)} ${rail.status}`;
+  return `${railLabel(rail.rail)} ${statusLabel(rail.status)}`;
+}
+
+function statusLabel(status: RailHealthSnapshot["status"]) {
+  return status[0].toUpperCase() + status.slice(1);
 }
 
 function railHealthClassName(status: RailHealthSnapshot["status"]) {
@@ -760,13 +795,20 @@ function streamPressure(snapshot: OpsStreamSnapshot): {
 }
 
 function railLabel(rail: Rail) {
-  return rail.replaceAll("_", " ");
+  return titleize(rail);
 }
 
 function bucketLabel(bucket: BalanceSheetBucket) {
-  return bucket.replaceAll("_", " ");
+  return titleize(bucket);
 }
 
 function heatmapKey(rail: Rail, bucket: BalanceSheetBucket) {
   return `${rail}:${bucket}`;
+}
+
+function titleize(value: string) {
+  return value
+    .split("_")
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
 }
