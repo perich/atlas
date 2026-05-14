@@ -18,7 +18,7 @@ import {
 
 type WarmOpsSnapshotMessage = Omit<
   OpsStreamSnapshot,
-  "connectionStatus" | "streamRate" | "movementRate" | "railBucketHeatmap"
+  "connectionStatus" | "streamRate" | "railBucketHeatmap" | "renderer"
 > & {
   channel: typeof StreamChannel.AggregateSnapshot;
   type: "ops.snapshot";
@@ -112,10 +112,10 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
       const warmSnapshot = readWarmSnapshot(event.data);
       const decodedRate = decodedCount * 4;
       publish({
-        ...warmSnapshot,
+        ...snapshot,
         connectionStatus: "open",
+        seq: warmSnapshot.seq,
         streamRate,
-        movementRate: decodedRate,
         railBucketHeatmap: buildHeatmapSnapshot(),
         renderer: {
           supported: canvasContext !== null,
