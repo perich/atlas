@@ -5,7 +5,11 @@ import {
   type StreamRate,
 } from "@bankops/contracts";
 
-import type { OpsStreamSnapshot, OpsWorkerCommand } from "./ops-stream-messages";
+import {
+  INITIAL_OPS_STREAM_SNAPSHOT,
+  type OpsStreamSnapshot,
+  type OpsWorkerCommand,
+} from "./ops-stream-messages";
 
 type WarmOpsSnapshotMessage = Omit<
   OpsStreamSnapshot,
@@ -19,40 +23,26 @@ let socket: WebSocket | undefined;
 let reconnectTimer: number | undefined;
 let streamRate: StreamRate = DEFAULT_STREAM_RATE;
 let movementCount = 0;
-let snapshot: OpsStreamSnapshot = {
-  connectionStatus: "connecting",
-  streamRate,
-  seq: "0",
-  eventRate: 0,
-  movementRate: 0,
-  cumulativeCreditsMinor: "0",
-  cumulativeDebitsMinor: "0",
-  liquidityReserveMinor: "0",
-  exceptionQueueDepth: 0,
-  railHealth: [],
-};
+let snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
 
 self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
   const command = event.data;
 
-  if (command.type === "connect") {
-    connect("connecting");
-    return;
+  switch (command.type) {
+    case "connect":
+      connect("connecting");
+      return;
+    case "disconnect":
+      disconnect();
+      return;
+    case "stream.rate.set":
+      streamRate = command.targetRate;
+      socket?.send(JSON.stringify(command));
+      publish({ ...snapshot, streamRate });
+      return;
+    default:
+      assertNever(command);
   }
-
-  if (command.type === "disconnect") {
-    disconnect();
-    return;
-  }
-
-  if (command.type === "stream.rate.set") {
-    streamRate = command.targetRate;
-    socket?.send(JSON.stringify(command));
-    publish({ ...snapshot, streamRate });
-    return;
-  }
-
-  command satisfies never;
 };
 
 function connect(status: OpsStreamSnapshot["connectionStatus"]) {
@@ -138,4 +128,8 @@ function assertWarmSnapshot(value: unknown): asserts value is WarmOpsSnapshotMes
   if (value.type !== "ops.snapshot" || value.channel !== StreamChannel.AggregateSnapshot) {
     throw new Error("Unknown SettlementStream warm message");
   }
+}
+
+function assertNever(_: never): never {
+  throw new Error("Unexpected worker command");
 }

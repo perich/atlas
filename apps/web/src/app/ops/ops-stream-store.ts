@@ -1,24 +1,16 @@
 import { useSyncExternalStore } from "react";
-import { DEFAULT_STREAM_RATE, type StreamRate } from "@bankops/contracts";
+import type { StreamRate } from "@bankops/contracts";
 
-import type { OpsStreamSnapshot, OpsWorkerCommand, OpsWorkerMessage } from "./ops-stream-messages";
-
-export const initialOpsStreamSnapshot: OpsStreamSnapshot = {
-  connectionStatus: "connecting",
-  streamRate: DEFAULT_STREAM_RATE,
-  seq: "0",
-  eventRate: 0,
-  movementRate: 0,
-  cumulativeCreditsMinor: "0",
-  cumulativeDebitsMinor: "0",
-  liquidityReserveMinor: "0",
-  exceptionQueueDepth: 0,
-  railHealth: [],
-};
+import {
+  INITIAL_OPS_STREAM_SNAPSHOT,
+  type OpsStreamSnapshot,
+  type OpsWorkerCommand,
+  type OpsWorkerMessage,
+} from "./ops-stream-messages";
 
 export function createOpsStreamStore(createWorker: () => Worker) {
   let worker: Worker | undefined;
-  let snapshot = initialOpsStreamSnapshot;
+  let snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
   const listeners = new Set<() => void>();
 
   function emit(nextSnapshot: OpsStreamSnapshot) {
@@ -29,9 +21,7 @@ export function createOpsStreamStore(createWorker: () => Worker) {
   function start() {
     worker = createWorker();
     worker.onmessage = (event: MessageEvent<OpsWorkerMessage>) => {
-      if (event.data.type === "snapshot") {
-        emit(event.data.snapshot);
-      }
+      emit(event.data.snapshot);
     };
     post({ type: "connect" });
   }
@@ -40,7 +30,7 @@ export function createOpsStreamStore(createWorker: () => Worker) {
     post({ type: "disconnect" });
     worker?.terminate();
     worker = undefined;
-    snapshot = initialOpsStreamSnapshot;
+    snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
   }
 
   function post(command: OpsWorkerCommand) {
