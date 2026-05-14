@@ -3,6 +3,8 @@ import { Activity, Gauge, Landmark, RadioTower } from "lucide-react";
 
 import { PageHeader, Panel, StatCard } from "../../design/components";
 
+const healthChecks = ["Core ledger", "Wire rail", "Stablecoin settlement", "Audit writer"];
+
 export function OpsRoute() {
   return (
     <div className="space-y-5">
@@ -29,7 +31,7 @@ export function OpsRoute() {
 
         <Panel title="System Health">
           <div className="space-y-3">
-            {["Core ledger", "Wire rail", "Stablecoin settlement", "Audit writer"].map((label) => (
+            {healthChecks.map((label) => (
               <div
                 className="flex items-center justify-between border-b border-white/[0.06] pb-3 text-sm last:border-b-0 last:pb-0"
                 key={label}
