@@ -1,6 +1,7 @@
 import React from "react";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Link } from "@tanstack/react-router";
-import type { LucideIcon } from "lucide-react";
+import { Info, type LucideIcon } from "lucide-react";
 
 import { cn } from "./utils";
 
@@ -114,5 +115,38 @@ export function NavLink({
       <Icon aria-hidden="true" className="size-4 shrink-0" />
       <span className="font-medium">{children}</span>
     </Link>
+  );
+}
+
+export const TooltipProvider = TooltipPrimitive.Provider;
+
+function TooltipContent({ children }: { children: string }) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        className="z-50 max-w-80 border border-white/[0.12] bg-[#111315] px-3 py-2.5 text-left text-xs leading-5 text-bankops-muted shadow-xl shadow-black/35"
+        sideOffset={8}
+      >
+        {children}
+        <TooltipPrimitive.Arrow className="fill-[#111315]" />
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
+  );
+}
+
+export function InfoTooltip({ children, label }: { children: string; label: string }) {
+  return (
+    <TooltipPrimitive.Root>
+      <TooltipPrimitive.Trigger asChild>
+        <button
+          aria-label={label}
+          className="inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-white/[0.12] text-bankops-muted transition-colors hover:border-white/25 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+          type="button"
+        >
+          <Info aria-hidden="true" className="size-3" />
+        </button>
+      </TooltipPrimitive.Trigger>
+      <TooltipContent>{children}</TooltipContent>
+    </TooltipPrimitive.Root>
   );
 }
