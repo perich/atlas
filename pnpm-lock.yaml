@@ -38,6 +38,12 @@ importers:
 
   apps/server:
     dependencies:
+      '@bankops/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@bankops/ops-tape-sim':
+        specifier: workspace:*
+        version: link:../../packages/ops-tape-sim
       '@fastify/static':
         specifier: 8.3.0
         version: 8.3.0
@@ -48,9 +54,18 @@ importers:
         specifier: 5.6.2
         version: 5.6.2
     devDependencies:
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
       tsx:
         specifier: 4.21.0
         version: 4.21.0
+      vitest:
+        specifier: 4.1.5
+        version: 4.1.5(@types/node@25.6.2)(jsdom@29.1.1)(vite@8.0.11(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0))
+      ws:
+        specifier: 8.20.0
+        version: 8.20.0
 
   apps/web:
     dependencies:
@@ -1520,6 +1535,9 @@ packages:
 
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@vitejs/plugin-react@6.0.1':
     resolution: {integrity: sha512-l9X/E3cDb+xY3SWzlG1MOGt2usfEHGMNIaegaUGFsLkb3RCn/k8/TOXBcab+OndDI4TBtktT8/9BwwW8Vi9KUQ==}
@@ -3865,6 +3883,10 @@ snapshots:
   '@types/react@19.2.14':
     dependencies:
       csstype: 3.2.3
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 25.6.2
 
   '@vitejs/plugin-react@6.0.1(vite@8.0.11(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0))':
     dependencies:
