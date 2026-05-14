@@ -31,12 +31,42 @@ describe("audit window cache", () => {
   });
 
   it("requests the next page near the bottom of the loaded window", () => {
-    const cache = mergeAuditWindow(EMPTY_AUDIT_WINDOW_CACHE, { direction: "initial" }, page(0));
+    const cache = mergeAuditWindow(
+      EMPTY_AUDIT_WINDOW_CACHE,
+      { direction: "initial" },
+      page(0, 100),
+    );
 
     expect(nextAuditWindowRequest(cache, { start: 70, end: 99 })).toEqual({
       cursor: "next-0",
       direction: "after",
     });
+  });
+
+  it("jumps directly when the visible range is far outside the cached windows", () => {
+    const cache = mergeAuditWindow(EMPTY_AUDIT_WINDOW_CACHE, { direction: "initial" }, page(0));
+
+    expect(nextAuditWindowRequest(cache, { start: 100, end: 130 })).toEqual({
+      direction: "offset",
+      offset: 70,
+    });
+  });
+
+  it("replaces the cache after a direct jump", () => {
+    const initialCache = mergeAuditWindow(
+      EMPTY_AUDIT_WINDOW_CACHE,
+      { direction: "initial" },
+      page(0),
+    );
+    const jumpedCache = mergeAuditWindow(
+      initialCache,
+      { direction: "offset", offset: 870 },
+      page(870),
+    );
+
+    expect(jumpedCache.windows).toHaveLength(1);
+    expect(jumpedCache.windows[0].start).toBe(870);
+    expect(jumpedCache.windows[0].rows[0].id).toBe("row-870");
   });
 
   it("can refetch a pruned previous region from the first retained cursor", () => {
@@ -55,12 +85,13 @@ describe("audit window cache", () => {
   });
 });
 
-function page(index: number): JsonAuditPage {
+function page(index: number, rowCount = 1): JsonAuditPage {
   return {
     nextCursor: `next-${index}`,
+    offset: index,
     prevCursor: index === 0 ? undefined : `prev-${index}`,
     queryMs: 1,
-    rows: [makeRow(index)],
+    rows: Array.from({ length: rowCount }, (_value, offset) => makeRow(index + offset)),
     totalMatched: 1_000,
   };
 }
