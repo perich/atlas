@@ -221,7 +221,7 @@ function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
               <HeatmapTooltip />
             </div>
             <p className="mt-1 text-sm text-white">
-              Rolling 5s pressure across rails and balance-sheet buckets
+              Rolling 5s amount/sec and movement rate by rail and balance-sheet bucket
             </p>
           </div>
 
@@ -281,7 +281,7 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
   return (
     <div className="hidden min-w-56 text-right xl:block">
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted">
-        Hottest flow
+        Highest amount/sec
       </p>
       <p className="mt-1 text-sm font-medium text-white">
         {railLabel(cell.rail)} / {bucketLabel(cell.bucket)}
@@ -299,7 +299,7 @@ function HeatmapLegend() {
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-bankops-muted">
       <LegendItem color="rgba(251,191,36,0.95)" label="Yellow border: 5%+ exceptions" />
       <span className="hidden text-[11px] text-bankops-muted/80 xl:inline">
-        Rolling 5s window. Cells show amount/sec and movement count/sec.
+        Stronger tint means higher amount/sec in the rolling 5s window.
       </span>
     </div>
   );
@@ -328,10 +328,10 @@ function HeatmapTooltip() {
         className="pointer-events-none absolute left-1/2 top-6 z-30 w-80 -translate-x-1/2 border border-white/[0.12] bg-[#111315] p-3 text-left text-xs leading-5 text-bankops-muted opacity-0 shadow-xl shadow-black/35 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
         role="tooltip"
       >
-        Each cell summarizes the same stream as the tape. Rows are payment rails; columns are
-        balance-sheet buckets. The dollar value is movement amount per second, /s is movement count,
-        and the green/red tint shows the dominant side. A yellow border appears only when pending,
-        held, or failed movements reach at least 5% of that cell's flow.
+        Each cell summarizes balance-sheet tape movements over the last 5 seconds. Rows are payment
+        rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s is movement
+        count/sec. Stronger green/red tint means more amount/sec, with color indicating the dominant
+        side. Yellow borders mark cells where pending, held, or failed movements are at least 5%.
       </span>
     </span>
   );
