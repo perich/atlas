@@ -6,6 +6,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "concurrently -n web,server -c cyan,green \"pnpm dev:web\" \"pnpm dev:server\"",
+    "dev:scan": "concurrently -n web,server -c cyan,green \"pnpm --filter @bankops/web dev:scan\" \"pnpm dev:server\"",
     "dev:web": "pnpm --filter @bankops/web dev",
     "dev:server": "pnpm --filter @bankops/server dev",
     "build": "pnpm -r --if-present build",
