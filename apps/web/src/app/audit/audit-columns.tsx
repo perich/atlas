@@ -25,7 +25,6 @@ export type AuditColumn = {
   minWidth: number;
   maxWidth: number;
   loadingWidthClasses: readonly string[];
-  renderCell: (row: JsonAuditEntry) => React.ReactNode;
   sortField?: AuditSort["field"];
 };
 
@@ -41,139 +40,49 @@ export type AuditColumnLayout = {
 
 export const AUDIT_COLUMN_LAYOUT_STORAGE_KEY = "bankops.audit.column-layout.v1";
 
-const AUDIT_COLUMN_BY_ID = {
-  ts: {
-    id: "ts",
-    label: "Timestamp",
-    defaultWidth: 162,
-    minWidth: 142,
-    maxWidth: 220,
-    loadingWidthClasses: ["w-3/4", "w-4/5", "w-11/12"],
-    renderCell: (row) => {
-      const timestamp = formatTimestamp(row.ts);
+const loadingWidths = {
+  narrow: ["w-2/5", "w-1/2", "w-3/5"],
+  medium: ["w-1/2", "w-3/5", "w-2/3"],
+  timestamp: ["w-3/4", "w-4/5", "w-11/12"],
+  wide: ["w-2/3", "w-3/4", "w-4/5"],
+} as const;
 
-      return <TextCell title={timestamp}>{timestamp}</TextCell>;
-    },
-    sortField: "ts",
-  },
-  severity: {
-    id: "severity",
-    label: "Severity",
-    defaultWidth: 146,
-    minWidth: 92,
-    maxWidth: 170,
-    loadingWidthClasses: ["w-1/2", "w-3/5", "w-2/3"],
-    renderCell: (row) => <SeverityChip severity={row.severity} />,
-    sortField: "severity",
-  },
-  kind: {
-    id: "kind",
-    label: "Kind",
-    defaultWidth: 92,
-    minWidth: 70,
-    maxWidth: 132,
-    loadingWidthClasses: ["w-1/2", "w-3/5", "w-2/3"],
-    renderCell: (row) => <TextCell>{row.kind}</TextCell>,
-    sortField: "kind",
-  },
-  actor: {
-    id: "actor",
-    label: "Actor",
-    defaultWidth: 84,
-    minWidth: 74,
-    maxWidth: 140,
-    loadingWidthClasses: ["w-2/5", "w-1/2", "w-3/5"],
-    renderCell: (row) => <TextCell>{row.actor}</TextCell>,
-  },
-  action: {
-    id: "action",
-    label: "Action",
-    defaultWidth: 136,
-    minWidth: 124,
-    maxWidth: 280,
-    loadingWidthClasses: ["w-2/3", "w-3/4", "w-4/5"],
-    renderCell: (row) => <TextCell title={row.action}>{row.action}</TextCell>,
-  },
-  subject: {
-    id: "subject",
-    label: "Subject",
-    defaultWidth: 138,
-    minWidth: 120,
-    maxWidth: 260,
-    loadingWidthClasses: ["w-2/3", "w-3/4", "w-4/5"],
-    renderCell: (row) => (
-      <TextCell title={`${row.subjectType}:${row.subjectId}`}>
-        {row.subjectType}:{row.subjectId}
-      </TextCell>
-    ),
-  },
-  customerId: {
-    id: "customerId",
-    label: "Customer",
-    defaultWidth: 104,
-    minWidth: 78,
-    maxWidth: 140,
-    loadingWidthClasses: ["w-1/2", "w-3/5", "w-2/3"],
-    renderCell: (row) => <TextCell>{row.customerId ?? "-"}</TextCell>,
-  },
-  rail: {
-    id: "rail",
-    label: "Rail",
-    defaultWidth: 110,
-    minWidth: 84,
-    maxWidth: 150,
-    loadingWidthClasses: ["w-2/5", "w-1/2", "w-3/5"],
-    renderCell: (row) => <RailChip rail={row.rail} />,
-    sortField: "rail",
-  },
-  status: {
-    id: "status",
-    label: "Status",
-    defaultWidth: 108,
-    minWidth: 76,
-    maxWidth: 132,
-    loadingWidthClasses: ["w-1/2", "w-3/5", "w-2/3"],
-    renderCell: (row) => <TextCell className={statusClass(row.status)}>{row.status}</TextCell>,
-    sortField: "status",
-  },
-  amountMinor: {
-    id: "amountMinor",
-    label: "Amount",
-    defaultWidth: 124,
-    minWidth: 100,
-    maxWidth: 180,
-    loadingWidthClasses: ["w-2/3", "w-3/4", "w-4/5"],
-    renderCell: (row) => (
-      <TextCell className={amountClass(row.amountMinor)}>{formatMinor(row.amountMinor)}</TextCell>
-    ),
-  },
-  traceId: {
-    id: "traceId",
-    label: "Trace ID",
-    defaultWidth: 118,
-    minWidth: 96,
-    maxWidth: 210,
-    loadingWidthClasses: ["w-2/3", "w-3/4", "w-4/5"],
-    renderCell: (row) => (
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="truncate" title={row.traceId}>
-          {row.traceId}
-        </span>
-        <button
-          aria-label={`Copy trace ID ${row.traceId}`}
-          className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
-          onClick={() => void navigator.clipboard?.writeText(row.traceId)}
-          type="button"
-        >
-          <Copy aria-hidden="true" className="size-3" />
-        </button>
-      </span>
-    ),
-  },
+const AUDIT_COLUMN_BY_ID = {
+  ts: col("ts", "Timestamp", 162, 142, 220, loadingWidths.timestamp, "ts"),
+  severity: col("severity", "Severity", 146, 92, 170, loadingWidths.medium, "severity"),
+  kind: col("kind", "Kind", 92, 70, 132, loadingWidths.medium, "kind"),
+  actor: col("actor", "Actor", 84, 74, 140, loadingWidths.narrow),
+  action: col("action", "Action", 136, 124, 280, loadingWidths.wide),
+  subject: col("subject", "Subject", 138, 120, 260, loadingWidths.wide),
+  customerId: col("customerId", "Customer", 104, 78, 140, loadingWidths.medium),
+  rail: col("rail", "Rail", 110, 84, 150, loadingWidths.narrow, "rail"),
+  status: col("status", "Status", 108, 76, 132, loadingWidths.medium, "status"),
+  amountMinor: col("amountMinor", "Amount", 124, 100, 180, loadingWidths.wide),
+  traceId: col("traceId", "Trace ID", 118, 96, 210, loadingWidths.wide),
 } satisfies Record<AuditColumnId, AuditColumn>;
 
+function col(
+  id: AuditColumnId,
+  label: string,
+  defaultWidth: number,
+  minWidth: number,
+  maxWidth: number,
+  loadingWidthClasses: readonly string[],
+  sortField?: AuditSort["field"],
+): AuditColumn {
+  return {
+    defaultWidth,
+    id,
+    label,
+    loadingWidthClasses,
+    maxWidth,
+    minWidth,
+    ...(sortField === undefined ? {} : { sortField }),
+  };
+}
+
 export const AUDIT_COLUMNS: readonly AuditColumn[] = Object.values(AUDIT_COLUMN_BY_ID);
-export const AUDIT_COLUMN_IDS = AUDIT_COLUMNS.map((column) => column.id);
+const AUDIT_COLUMN_IDS = AUDIT_COLUMNS.map((column) => column.id);
 
 export function defaultAuditColumnLayout(): AuditColumnLayout {
   return {
@@ -302,34 +211,57 @@ export function auditColumnStyle(column: SizedAuditColumn): React.CSSProperties 
   };
 }
 
-export function isAuditColumnSortable(column: AuditColumn): boolean {
-  return column.sortField !== undefined;
-}
+export function renderAuditColumnCell(column: AuditColumn, row: JsonAuditEntry): React.ReactNode {
+  switch (column.id) {
+    case "ts": {
+      const timestamp = formatTimestamp(row.ts);
 
-export function auditColumnSortDir(
-  column: AuditColumn,
-  sort: AuditSort,
-): AuditSort["dir"] | undefined {
-  return column.sortField !== undefined && sort.field === column.sortField ? sort.dir : undefined;
-}
-
-export function nextAuditColumnSort(column: AuditColumn, sort: AuditSort): AuditSort | undefined {
-  if (column.sortField === undefined) {
-    return undefined;
+      return <TextCell title={timestamp}>{timestamp}</TextCell>;
+    }
+    case "severity":
+      return <SeverityChip severity={row.severity} />;
+    case "kind":
+      return <TextCell>{row.kind}</TextCell>;
+    case "actor":
+      return <TextCell>{row.actor}</TextCell>;
+    case "action":
+      return <TextCell title={row.action}>{row.action}</TextCell>;
+    case "subject":
+      return (
+        <TextCell title={`${row.subjectType}:${row.subjectId}`}>
+          {row.subjectType}:{row.subjectId}
+        </TextCell>
+      );
+    case "customerId":
+      return <TextCell>{row.customerId ?? "-"}</TextCell>;
+    case "rail":
+      return <RailChip rail={row.rail} />;
+    case "status":
+      return <TextCell className={statusClass(row.status)}>{row.status}</TextCell>;
+    case "amountMinor":
+      return (
+        <TextCell className={amountClass(row.amountMinor)}>{formatMinor(row.amountMinor)}</TextCell>
+      );
+    case "traceId":
+      return (
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate" title={row.traceId}>
+            {row.traceId}
+          </span>
+          <button
+            aria-label={`Copy trace ID ${row.traceId}`}
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
+            onClick={() => void navigator.clipboard?.writeText(row.traceId)}
+            type="button"
+          >
+            <Copy aria-hidden="true" className="size-3" />
+          </button>
+        </span>
+      );
   }
 
-  return {
-    field: column.sortField,
-    dir: sort.field === column.sortField && sort.dir === "desc" ? "asc" : "desc",
-  };
-}
-
-export function auditColumnLoadingClassName(column: AuditColumn, rowIndex: number): string {
-  return column.loadingWidthClasses[rowIndex % column.loadingWidthClasses.length];
-}
-
-export function renderAuditColumnCell(column: AuditColumn, row: JsonAuditEntry): React.ReactNode {
-  return column.renderCell(row);
+  const exhaustive: never = column.id;
+  return exhaustive;
 }
 
 function clampWidth(width: number, column: AuditColumn) {

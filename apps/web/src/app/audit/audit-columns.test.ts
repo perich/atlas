@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   AUDIT_COLUMNS,
   AUDIT_COLUMN_LAYOUT_STORAGE_KEY,
-  auditColumnLoadingClassName,
   defaultAuditColumnLayout,
-  isAuditColumnSortable,
   moveAuditColumn,
   readAuditColumnLayout,
   resizeAuditColumn,
@@ -66,20 +64,17 @@ describe("audit column layout", () => {
   });
 
   it("keeps sortable column metadata aligned with audit query fields", () => {
-    expect(AUDIT_COLUMNS.filter(isAuditColumnSortable).map((column) => column.id)).toEqual([
-      "ts",
-      "severity",
-      "kind",
-      "rail",
-      "status",
-    ]);
+    expect(
+      AUDIT_COLUMNS.filter((column) => column.sortField !== undefined).map((column) => column.id),
+    ).toEqual(["ts", "severity", "kind", "rail", "status"]);
   });
 
   it("defines loading skeleton widths for every column", () => {
     for (const column of AUDIT_COLUMNS) {
-      expect(auditColumnLoadingClassName(column, 0)).toMatch(/^w-/);
-      expect(auditColumnLoadingClassName(column, 1)).toMatch(/^w-/);
-      expect(auditColumnLoadingClassName(column, 2)).toMatch(/^w-/);
+      expect(column.loadingWidthClasses).toHaveLength(3);
+      expect(column.loadingWidthClasses.every((className) => className.startsWith("w-"))).toBe(
+        true,
+      );
     }
   });
 });
