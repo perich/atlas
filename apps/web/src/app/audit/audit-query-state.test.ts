@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { readAuditQueryState, serializeAuditQueryState } from "./audit-query-state";
+import {
+  auditSearchToQueryState,
+  readAuditQueryState,
+  serializeAuditQueryState,
+} from "./audit-query-state";
 
 describe("audit query state", () => {
   it("serializes only filters and sort", () => {
@@ -43,5 +47,14 @@ describe("audit query state", () => {
       filters: {},
       sort: { dir: "desc", field: "ts" },
     });
+  });
+
+  it("normalizes unsupported route search values before querying the API", () => {
+    const state = auditSearchToQueryState({
+      sortDir: "sideways",
+      sortField: "nope",
+    });
+
+    expect(state.sort).toEqual({ dir: "desc", field: "ts" });
   });
 });
