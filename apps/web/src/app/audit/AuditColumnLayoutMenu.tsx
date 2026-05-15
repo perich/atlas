@@ -7,7 +7,7 @@ import {
   defaultAuditColumnLayout,
   setAuditColumnVisible,
   type AuditColumnLayout,
-} from "./audit-column-layout";
+} from "./audit-columns";
 
 export type ColumnLayoutUpdate =
   | AuditColumnLayout

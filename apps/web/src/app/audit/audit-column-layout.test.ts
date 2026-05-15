@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  AUDIT_COLUMNS,
   AUDIT_COLUMN_LAYOUT_STORAGE_KEY,
+  auditColumnLoadingClassName,
   defaultAuditColumnLayout,
+  isAuditColumnSortable,
   moveAuditColumn,
   readAuditColumnLayout,
   resizeAuditColumn,
   setAuditColumnVisible,
   visibleAuditColumns,
   writeAuditColumnLayout,
-} from "./audit-column-layout";
+} from "./audit-columns";
 
 describe("audit column layout", () => {
   beforeEach(() => localStorage.clear());
@@ -20,6 +23,7 @@ describe("audit column layout", () => {
     expect(visibleAuditColumns(layout).map((column) => column.id)).toEqual(
       defaultAuditColumnLayout().order,
     );
+    expect(defaultAuditColumnLayout().order).toEqual(AUDIT_COLUMNS.map((column) => column.id));
   });
 
   it("persists visibility, order, and widths in localStorage", () => {
@@ -59,5 +63,23 @@ describe("audit column layout", () => {
     expect(layout.hidden).toEqual(["rail"]);
     expect(layout.widths.traceId).toBe(210);
     expect(layout.order).toHaveLength(defaultAuditColumnLayout().order.length);
+  });
+
+  it("keeps sortable column metadata aligned with audit query fields", () => {
+    expect(AUDIT_COLUMNS.filter(isAuditColumnSortable).map((column) => column.id)).toEqual([
+      "ts",
+      "severity",
+      "kind",
+      "rail",
+      "status",
+    ]);
+  });
+
+  it("defines loading skeleton widths for every column", () => {
+    for (const column of AUDIT_COLUMNS) {
+      expect(auditColumnLoadingClassName(column, 0)).toMatch(/^w-/);
+      expect(auditColumnLoadingClassName(column, 1)).toMatch(/^w-/);
+      expect(auditColumnLoadingClassName(column, 2)).toMatch(/^w-/);
+    }
   });
 });

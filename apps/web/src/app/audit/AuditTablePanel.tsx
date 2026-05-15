@@ -1,42 +1,24 @@
 import React from "react";
-import type { AuditSort } from "@bankops/contracts";
 
-import { AuditCellValue, AuditHeaderCell, AuditRowCell } from "./AuditTableCells";
+import { AuditHeaderCell, AuditRowCell } from "./AuditTableCells";
 import type { ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditEntry } from "./audit-api";
 import {
+  auditColumnLoadingClassName,
+  auditColumnSortDir,
+  isAuditColumnSortable,
   moveAuditColumn,
+  nextAuditColumnSort,
+  renderAuditColumnCell,
   resizeAuditColumn,
   type AuditColumnId,
   type SizedAuditColumn,
-} from "./audit-column-layout";
+} from "./audit-columns";
 import type { AuditWindowCache } from "./audit-window";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
 
 const AUDIT_HEADER_HEIGHT = 38;
-const SORT_FIELD_BY_COLUMN_ID: Partial<Record<AuditColumnId, AuditSort["field"]>> = {
-  kind: "kind",
-  rail: "rail",
-  severity: "severity",
-  status: "status",
-  ts: "ts",
-};
-// Width classes for loading skeleton bars, tuned to resemble each column's real content.
-// Each array is cycled by row so placeholder rows do not look mechanically duplicated.
-const LOADING_CELL_WIDTH_CLASSES_BY_COLUMN: Record<AuditColumnId, readonly string[]> = {
-  action: ["w-2/3", "w-3/4", "w-4/5"],
-  actor: ["w-2/5", "w-1/2", "w-3/5"],
-  amountMinor: ["w-2/3", "w-3/4", "w-4/5"],
-  customerId: ["w-1/2", "w-3/5", "w-2/3"],
-  kind: ["w-1/2", "w-3/5", "w-2/3"],
-  rail: ["w-2/5", "w-1/2", "w-3/5"],
-  severity: ["w-1/2", "w-3/5", "w-2/3"],
-  status: ["w-1/2", "w-3/5", "w-2/3"],
-  subject: ["w-2/3", "w-3/4", "w-4/5"],
-  traceId: ["w-2/3", "w-3/4", "w-4/5"],
-  ts: ["w-3/4", "w-4/5", "w-11/12"],
-};
 
 type AuditVirtualItem = {
   index: number;
@@ -100,7 +82,7 @@ export function AuditTablePanel({
           style={{ height: `${AUDIT_HEADER_HEIGHT}px`, width: `${tableWidth}px` }}
         >
           {visibleColumns.map((column) => {
-            const field = SORT_FIELD_BY_COLUMN_ID[column.id];
+            const nextSort = nextAuditColumnSort(column, queryState.sort);
 
             return (
               <AuditHeaderCell
@@ -122,23 +104,17 @@ export function AuditTablePanel({
                   setColumnLayout((layout) => resizeAuditColumn(layout, column.id, width))
                 }
                 onSort={
-                  field === undefined
+                  nextSort === undefined
                     ? undefined
                     : () => {
                         setQueryState({
                           filters: queryState.filters,
-                          sort: {
-                            field,
-                            dir:
-                              queryState.sort.field === field && queryState.sort.dir === "desc"
-                                ? "asc"
-                                : "desc",
-                          },
+                          sort: nextSort,
                         });
                       }
                 }
-                sortable={field !== undefined}
-                sortDir={queryState.sort.field === field ? queryState.sort.dir : undefined}
+                sortable={isAuditColumnSortable(column)}
+                sortDir={auditColumnSortDir(column, queryState.sort)}
               />
             );
           })}
@@ -195,7 +171,7 @@ function AuditVirtualRow({
       >
         {visibleColumns.map((column) => (
           <AuditRowCell column={column} key={column.id}>
-            <AuditLoadingCell columnId={column.id} rowIndex={virtualRow.index} />
+            <AuditLoadingCell column={column} rowIndex={virtualRow.index} />
           </AuditRowCell>
         ))}
       </div>
@@ -214,16 +190,15 @@ function AuditVirtualRow({
     >
       {visibleColumns.map((column) => (
         <AuditRowCell column={column} key={column.id}>
-          <AuditCellValue columnId={column.id} row={row} />
+          {renderAuditColumnCell(column, row)}
         </AuditRowCell>
       ))}
     </div>
   );
 }
 
-function AuditLoadingCell({ columnId, rowIndex }: { columnId: AuditColumnId; rowIndex: number }) {
-  const widthClasses = LOADING_CELL_WIDTH_CLASSES_BY_COLUMN[columnId];
-  const widthClass = widthClasses[rowIndex % widthClasses.length];
+function AuditLoadingCell({ column, rowIndex }: { column: SizedAuditColumn; rowIndex: number }) {
+  const widthClass = auditColumnLoadingClassName(column, rowIndex);
 
   return (
     <span
