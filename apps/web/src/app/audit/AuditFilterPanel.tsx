@@ -3,7 +3,7 @@ import type { AuditEntry } from "@bankops/contracts";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
-import type { AuditColumnLayout } from "./audit-column-layout";
+import type { AuditColumnLayout } from "./audit-columns";
 import { TIME_RANGES, type TimeRangeValue } from "./audit-time-range";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
