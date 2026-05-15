@@ -4,7 +4,7 @@ import type { TapeCanvasLayout } from "./ops-stream-messages";
 
 const tapeCanvasCssHeight = 620;
 
-export function BalanceSheetTape({
+export const BalanceSheetTape = React.memo(function BalanceSheetTape({
   attachTapeCanvas,
   resizeTapeCanvas,
 }: {
@@ -58,7 +58,7 @@ export function BalanceSheetTape({
       />
     </div>
   );
-}
+});
 
 function readTapeCanvasLayout(canvas: HTMLCanvasElement): TapeCanvasLayout {
   const rect = canvas.getBoundingClientRect();
