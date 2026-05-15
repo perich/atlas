@@ -1,133 +1,260 @@
 # BankOps Mission Control
 
-A real-time control plane prototype for modern chartered banking operations: payment rails,
-ledger reconciliation, liquidity, and stablecoin settlement.
+A high-performance internal operations prototype for a modern chartered bank: realtime balance-sheet
+movements, rail health, liquidity pressure, and a high-scale bank-core audit log.
 
-This repo is a pnpm workspace scaffold for a small, high-polish product demo. The target is not a
-consumer banking clone. The target is an internal operator surface that makes bank-core complexity
-legible under live operational pressure.
+This is not a consumer banking clone. BankOps is built as the kind of dense back-office surface an
+operator or engineer would use to understand what is happening inside a bank core under live
+operational pressure.
 
-## Spec
+- Live demo: https://bankops-mission-control.onrender.com
+- Product/spec: [SPEC.md](./SPEC.md)
+- Domain language: [CONTEXT.md](./CONTEXT.md)
+- Architecture decisions: [docs/adr](./docs/adr)
+- Deployment notes: [docs/deployment.md](./docs/deployment.md)
 
-The implementation target is tracked in [SPEC.md](./SPEC.md). Domain language is tracked in
-[CONTEXT.md](./CONTEXT.md), and architectural decisions live in [docs/adr](./docs/adr).
+## What This Demonstrates
 
-## Product Shape
+BankOps is a staff-level frontend/product engineering portfolio project. The main technical point is
+that high-volume financial activity should not be coupled to React render frequency.
 
-- `/ops` — real-time bank operations dashboard centered on a worker-rendered Balance Sheet Tape,
-  with rail health, liquidity, system health, and stream performance context.
-- `/audit` — high-scale bank-core audit log with virtualized rows, sparse facets, URL-persisted
-  filters, and advanced column controls.
-- `/analyst` — placeholder for a future constrained CodeMode analyst surface.
+The app uses a real Node/Fastify server to own the synthetic bank data. The browser receives a
+WebSocket firehose, decodes binary movement batches in a worker, renders the hot path with
+OffscreenCanvas, and lets React handle the operator shell, controls, metrics, and table UI.
 
-The routes are independent product surfaces over shared bank-operations vocabulary. `/ops` and
-`/audit` do not require row-level data consistency or cross-route drilldowns in the first cut.
+The result is a product surface that is fast, bank-flavored, and measurable:
 
-## Route 1: Ops Dashboard
+- server-owned realtime data over WebSocket
+- fixed-width binary movement frames shared by server and worker
+- worker-owned stream connection, binary decode, reconnect state, rolling windows, and canvas render
+- OffscreenCanvas Balance Sheet Tape for dense live movement rendering
+- React snapshots via `useSyncExternalStore`, not one React update per event
+- server-backed audit API over a 100k-row synthetic bank-core log
+- virtualized audit table with bounded row cache, URL filters/sort, and local column preferences
+- Render single-service deploy serving SPA, HTTP API, health check, and WebSocket from one origin
 
-The dashboard should be backed by a real local Node server, not by timers buried in React
-components.
+## Product Routes
+
+### `/ops` — Operations Control Plane
+
+The Ops route is the realtime "god mode" view.
+
+The hero component is a worker-rendered Balance Sheet Tape: a dense terminal-style feed of debits
+and credits against bank balance-sheet buckets such as customer deposits, settlement cash, reserve
+cash, rail clearing, stablecoin treasury, fee income, and exception queue.
+
+Implemented surfaces:
+
+- live Balance Sheet Tape rendered with OffscreenCanvas
+- stream-rate controls for `1/s`, `50/s`, `2k/s`, and `10k/s`
+- rail health for ACH, wire, instant payments, card, internal ledger, and stablecoin rails
+- cumulative credits/debits, event rate, liquidity reserve, and exception queue depth
+- performance HUD with render FPS, frame cost, sequence lag, decoded rate, rendered row rate, and
+  backlog pressure
+- rolling sparklines for throughput, latency, failures, queue depth, liquidity, and flow totals
+- live rail-by-bucket concentration heatmap over the last 5 seconds of decoded movements
+- automatic WebSocket reconnect and visible connection status
+
+The important architecture detail: the worker owns the WebSocket and hot rendering path. React only
+receives compact snapshots for product UI state.
+
+### `/audit` — Bank Core Audit Log
+
+The Audit route is a table engineering showcase over bank-shaped operational data.
+
+It renders a server-backed audit log containing payments, journals, settlements, reconciliation
+events, risk events, liquidity events, rail-health changes, cutoff events, configuration changes,
+and operator actions.
+
+Implemented surfaces:
+
+- 100k deterministic synthetic audit entries generated once per server process
+- server-side filtering by time range, severity, rail, and status
+- single-column server-side sort with stable id tie-breaker
+- cursor and offset-backed window fetching for normal scrolling and direct scrollbar seeks
+- TanStack Virtual table with fixed-height dense rows
+- bounded client-side window cache so scrolling does not load the full dataset into memory
+- URL-persisted filters and sort for shareable investigation views
+- localStorage-backed column order, width, and visibility preferences
+- draggable, resizable, sortable column headers
+- column visibility menu
+- row loading skeletons instead of repeated loading text
+- render trace showing visible range, mounted rows, query latency, main-thread p95, cached rows,
+  loaded windows, and loaded ranges
+
+### `/analyst` — Future Analyst Workspace
+
+The Analyst route is intentionally a placeholder. The project keeps space for a future constrained
+CodeMode-style analyst, but the current build focuses on making `/ops` and `/audit` excellent.
+
+Future generated UI should be typed, declarative, auditable, and validated before rendering. The
+model should not generate arbitrary React inside the browser.
+
+## Architecture
 
 ```txt
-apps/server
-  -> WebSocket binary event batches
-  -> ops-tape.worker.ts
-  -> bounded ring buffer, aggregate snapshots, and OffscreenCanvas Balance Sheet Tape
-  -> React shell for controls, metrics, sparklines, and status panels
+Render Web Service
+  -> @bankops/server
+       /                  built React SPA
+       /ops               SPA fallback
+       /audit             SPA fallback
+       /analyst           SPA fallback
+       /api/audit          cursor-windowed audit API
+       /api/audit/facets   audit filter facets
+       /stream             WebSocket upgrade for realtime ops firehose
+       /healthz            health check
+
+Browser
+  -> React shell
+  -> ops-stream.worker.ts
+       WebSocket connection
+       fixed-width binary decode
+       rolling movement windows
+       OffscreenCanvas tape renderer
+       compact snapshots to React
+  -> TanStack Virtual audit table
+       bounded window cache
+       URL query state
+       local column preferences
 ```
 
-React should receive coalesced snapshots for product UI state at roughly 4-10 Hz. The firehose path
-can run far faster because binary decode, ring-buffer writes, and Canvas rendering stay outside the
-React render loop.
+The hot and warm paths are deliberately separate:
 
-### SettlementStream Targets
+- Hot path: binary movement batches at 60 Hz feed the worker and OffscreenCanvas tape.
+- Warm path: JSON aggregate snapshots at roughly 4 Hz feed React dashboard panels.
+- Control path: JSON messages let the client change stream rate on the existing WebSocket.
 
-- Server-owned deterministic Balance Sheet Movement stream.
-- Binary event batches over WebSocket for the hot path.
-- JSON aggregate snapshots at roughly 4 Hz for the React dashboard panels.
-- JSON control messages for stream rate and client performance telemetry.
-- `ops-tape.worker.ts` owns the socket, decode path, recent-event ring buffer, aggregate snapshots,
-  perf telemetry, and high-rate OffscreenCanvas tape visualization.
-- Performance HUD shows event rate, client sequence lag, FPS, decode latency, rendered rows/sec,
-  worker backlog, and React snapshot cadence.
+At `10k` movements/sec, the hot stream payload is roughly `332 kB/s` before WebSocket/TLS overhead:
+`10,000 * 33-byte records + 60 * 36-byte headers`. Batching keeps protocol overhead small.
 
-## Bank-Domain Model
-
-The synthetic data should model actual operational concepts:
-
-- payment rail state machines
-- stablecoin settlement lifecycle
-- double-entry ledger journals
-- reconciliation gaps
-- idempotency collisions
-- liquidity reserve pressure
-- deposit concentration
-- regulatory cutoff behavior
-
-Do not present the cutoff simulation as legal or compliance advice. It is an engineering prototype
-inspired by public themes around bank operability.
-
-## Current Stack
-
-- pnpm workspaces
-- React + TypeScript
-- Vite
-- Fastify
-- TanStack Router
-- TanStack Virtual
-- Tailwind CSS
-- Radix-ready component primitives
-- Vitest + Playwright
-- oxlint + oxfmt
-
-Seeded workspace shape:
+## Repo Layout
 
 ```txt
-apps/web                  React/Vite app
-apps/server               Fastify server shell
-packages/contracts        shared API and stream contracts
-packages/ops-tape-sim     server-only tape simulator package
-packages/audit-log-model  server-only audit data/query package
+apps/
+  web/                 React/Vite app, routes, workers, design primitives
+  server/              Fastify server for local dev and Render production
+
+packages/
+  contracts/           shared domain types, audit API types, stream frame encoder/decoder
+  ops-tape-sim/        server-only realtime balance-sheet movement simulator
+  audit-log-model/     server-only audit entry generation, filtering, sorting, facets, cursors
+
+docs/
+  adr/                 architecture decision records
+  deployment.md        Render deployment shape and smoke commands
 ```
 
-Still to implement as the product surfaces require them:
+Runtime boundaries are intentional:
 
-- real WebSocket stream and audit API behavior
-- worker-backed protocol decoder
-- OffscreenCanvas renderer
-- TanStack Table
-- dnd-kit
-- Zod
+- `@bankops/contracts` is shared by browser, worker, server, and tests.
+- `@bankops/ops-tape-sim` is server-only.
+- `@bankops/audit-log-model` is server-only.
+- `@bankops/web` does not import simulation/model packages directly.
 
-## Scripts
+## Tech Choices
 
-```txt
+- **Fastify**: small, fast Node server with clean API, static hosting, and WebSocket support.
+- **WebSocket**: simple long-lived transport for a real server-owned firehose.
+- **Fixed-width binary frames**: lower parse overhead than JSON-per-event and a stronger protocol
+  boundary for the hot stream.
+- **Web Worker**: keeps socket ingest, decode, rolling-window computation, and canvas rendering off
+  the main thread.
+- **OffscreenCanvas**: renders the dense Balance Sheet Tape without involving the DOM or React.
+- **React + `useSyncExternalStore`**: minimal bridge from worker-authored snapshots to React UI.
+- **TanStack Router**: typed route/search-state model for URL-addressable audit views.
+- **TanStack Query**: request lifecycle, cancellation, stale timing, and cache keys for audit windows.
+- **TanStack Virtual**: small mounted row count over a large logical result set.
+- **Tailwind CSS + Radix primitives**: fast iteration on a dense desktop console UI.
+- **Render Web Service**: one deployable Node process serving SPA, API, WebSocket, and health check
+  from the same origin.
+
+## Local Development
+
+Requirements:
+
+- Node `>=22.13`
+- pnpm `11.1.0`
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Run the web app and server together:
+
+```bash
 pnpm dev
+```
+
+Development servers:
+
+- Web: `http://127.0.0.1:5173`
+- Server: `http://127.0.0.1:8787`
+
+The Vite dev server proxies API and stream traffic to the Fastify server.
+
+Useful scripts:
+
+```bash
 pnpm build
 pnpm start
 pnpm typecheck
 pnpm lint
-pnpm format
+pnpm format:check
 pnpm test:run
 pnpm test:e2e
 ```
 
-## Deployment
+## Production Shape
 
-The first public deploy target is one Render Web Service running `@bankops/server`. In production,
-the Node service serves the built SPA, `/api/audit`, `/stream`, and `/healthz` from one origin.
-Render terminates TLS, so clients use same-origin `https` for HTTP and `wss` for the ops stream.
+Production uses one Render Web Service running `@bankops/server`.
 
-The deploy contract is captured in [`render.yaml`](./render.yaml), with operational notes and local
-smoke commands in [`docs/deployment.md`](./docs/deployment.md).
+`render.yaml` defines the deploy contract:
 
-## Baseline Health
+```txt
+buildCommand: npm install -g pnpm@11.1.0 && pnpm install --frozen-lockfile && pnpm build
+startCommand: pnpm start
+healthCheckPath: /healthz
+```
 
-As of the initial spec pass:
+Render terminates public TLS. The app, HTTP API, and WebSocket stream are same-origin:
 
-- `pnpm typecheck` passes.
-- `pnpm lint` passes.
-- `pnpm test:run` passes.
-- `pnpm build` passes.
-- `pnpm test:e2e` passes when the sandbox is allowed to bind the Vite dev server to
-  `127.0.0.1:5173`.
+- `https://<host>/` for the SPA and API
+- `wss://<host>/stream` for the realtime Ops firehose
+
+The worker derives the stream URL from `self.location`, so local HTTP uses `ws://` and production
+HTTPS uses `wss://` without a separate client-side environment variable.
+
+## Test Coverage
+
+The test suite is aimed at the architecture and UX claims this project makes:
+
+- stream protocol encode/decode round trips and bad-frame handling
+- ops simulator aggregate behavior
+- Fastify health, static serving, SPA fallback, audit API, and WebSocket upgrade
+- audit query filtering, sorting, cursors, facets, and URL-state serialization
+- audit window cache behavior and scroll-window request planning
+- route smoke coverage for `/ops`, `/audit`, and `/analyst`
+- nonblank Balance Sheet Tape canvas rendering
+- audit virtualization, bounded cache behavior, sort/filter URL state, and column persistence
+- graceful route-level backend-unavailable state
+
+## Non-Goals
+
+BankOps is a portfolio prototype, not a banking product.
+
+It intentionally does not include:
+
+- auth or user management
+- KYC/onboarding
+- real money movement
+- real blockchain or payment-rail integrations
+- real compliance advice
+- real customer data
+- a production database
+- mobile-first layouts for the dense operator surfaces
+- arbitrary LLM-generated React
+
+Synthetic data is deterministic and bank-shaped so the product can demonstrate realistic frontend
+systems work without pretending to be a real financial system.
