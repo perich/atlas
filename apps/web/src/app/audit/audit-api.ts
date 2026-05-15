@@ -1,23 +1,12 @@
-import type { AuditEntry } from "@bankops/contracts";
+import { jsonAuditPageSchema } from "@bankops/contracts";
+import type { JsonAuditEntry, JsonAuditPage } from "@bankops/contracts";
 
 import type { AuditQueryState } from "./audit-query-state";
 import { serializeAuditQueryState } from "./audit-query-state";
 import type { AuditWindowRequest } from "./audit-window";
 import { AUDIT_PAGE_SIZE } from "./audit-window";
 
-export type JsonAuditEntry = Omit<AuditEntry, "amountMinor" | "detail"> & {
-  amountMinor?: string;
-  detail: Record<string, unknown>;
-};
-
-export type JsonAuditPage = {
-  rows: JsonAuditEntry[];
-  offset: number;
-  nextCursor?: string;
-  prevCursor?: string;
-  totalMatched: number;
-  queryMs: number;
-};
+export type { JsonAuditEntry, JsonAuditPage };
 
 export async function fetchAuditPage(input: {
   state: AuditQueryState;
@@ -48,20 +37,5 @@ export async function fetchAuditPage(input: {
   }
 
   const page: unknown = await response.json();
-  assertAuditPage(page);
-  return page;
-}
-
-function assertAuditPage(value: unknown): asserts value is JsonAuditPage {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Invalid audit page");
-  }
-
-  if (!("rows" in value) || !Array.isArray(value.rows)) {
-    throw new Error("Invalid audit page");
-  }
-
-  if (!("offset" in value) || !("totalMatched" in value) || !("queryMs" in value)) {
-    throw new Error("Invalid audit page");
-  }
+  return jsonAuditPageSchema.parse(page);
 }

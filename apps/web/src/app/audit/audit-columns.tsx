@@ -1,22 +1,26 @@
 import React from "react";
 import type { AuditSort } from "@bankops/contracts";
 import { Copy } from "lucide-react";
+import { z } from "zod";
 
 import type { JsonAuditEntry } from "./audit-api";
 import { cn } from "../../design/utils";
 
-export type AuditColumnId =
-  | "ts"
-  | "severity"
-  | "kind"
-  | "actor"
-  | "action"
-  | "subject"
-  | "customerId"
-  | "rail"
-  | "status"
-  | "amountMinor"
-  | "traceId";
+const AUDIT_COLUMN_IDS = [
+  "ts",
+  "severity",
+  "kind",
+  "actor",
+  "action",
+  "subject",
+  "customerId",
+  "rail",
+  "status",
+  "amountMinor",
+  "traceId",
+] as const;
+
+export type AuditColumnId = (typeof AUDIT_COLUMN_IDS)[number];
 
 export type AuditColumn = {
   id: AuditColumnId;
@@ -82,7 +86,30 @@ function col(
 }
 
 export const AUDIT_COLUMNS: readonly AuditColumn[] = Object.values(AUDIT_COLUMN_BY_ID);
-const AUDIT_COLUMN_IDS = AUDIT_COLUMNS.map((column) => column.id);
+const auditColumnIdSchema = z.enum(AUDIT_COLUMN_IDS);
+const auditColumnIdListSchema = z
+  .array(z.unknown())
+  .catch([])
+  .transform((values) => {
+    const ids: AuditColumnId[] = [];
+
+    for (const value of values) {
+      const parsed = auditColumnIdSchema.safeParse(value);
+
+      if (parsed.success && !ids.includes(parsed.data)) {
+        ids.push(parsed.data);
+      }
+    }
+
+    return ids;
+  });
+const auditColumnLayoutSchema = z
+  .object({
+    order: auditColumnIdListSchema.optional().default([]),
+    hidden: auditColumnIdListSchema.optional().default([]),
+    widths: z.record(z.string(), z.unknown()).catch({}),
+  })
+  .catch({ order: [], hidden: [], widths: {} });
 
 export function defaultAuditColumnLayout(): AuditColumnLayout {
   return {
@@ -181,23 +208,23 @@ export function setAuditColumnVisible(
 }
 
 export function normalizeAuditColumnLayout(value: unknown): AuditColumnLayout {
-  const layout =
-    value !== null && typeof value === "object" ? (value as Partial<AuditColumnLayout>) : {};
-  const order = knownIds(layout.order);
+  const layout = auditColumnLayoutSchema.parse(value);
+  const order = layout.order;
   const fullOrder = [...order, ...AUDIT_COLUMN_IDS.filter((id) => !order.includes(id))];
-  const hidden = knownIds(layout.hidden);
   const widths: AuditColumnLayout["widths"] = {};
 
   for (const id of AUDIT_COLUMN_IDS) {
     const width = layout.widths?.[id];
 
-    if (typeof width === "number" && Number.isFinite(width)) {
-      widths[id] = clampWidth(width, AUDIT_COLUMN_BY_ID[id]);
+    const parsedWidth = z.number().finite().safeParse(width);
+
+    if (parsedWidth.success) {
+      widths[id] = clampWidth(parsedWidth.data, AUDIT_COLUMN_BY_ID[id]);
     }
   }
 
   return {
-    hidden,
+    hidden: layout.hidden,
     order: fullOrder,
     widths,
   };
@@ -251,7 +278,7 @@ export function renderAuditColumnCell(column: AuditColumn, row: JsonAuditEntry):
           <button
             aria-label={`Copy trace ID ${row.traceId}`}
             className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
-            onClick={() => void navigator.clipboard?.writeText(row.traceId)}
+            onClick={() => void navigator.clipboard?.writeText(row.traceId).catch(() => undefined)}
             type="button"
           >
             <Copy aria-hidden="true" className="size-3" />
@@ -266,24 +293,6 @@ export function renderAuditColumnCell(column: AuditColumn, row: JsonAuditEntry):
 
 function clampWidth(width: number, column: AuditColumn) {
   return Math.min(column.maxWidth, Math.max(column.minWidth, Math.round(width)));
-}
-
-function knownIds(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [] as AuditColumnId[];
-  }
-
-  const ids: AuditColumnId[] = [];
-
-  for (const item of value) {
-    for (const id of AUDIT_COLUMN_IDS) {
-      if (item === id && !ids.includes(id)) {
-        ids.push(id);
-      }
-    }
-  }
-
-  return ids;
 }
 
 function TextCell({
