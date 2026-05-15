@@ -1,10 +1,13 @@
 import {
   ASSETS,
   RAILS,
+  type AggregateChartPointInput,
+  type AggregateSnapshotInput,
   type Asset,
   type BalanceSheetMovement,
   type MovementStatus,
   type Rail,
+  type RailHealthFrame,
   type RiskTier,
   type StreamRate,
 } from "@bankops/contracts";
@@ -62,43 +65,10 @@ export type OpsTapeBatch = {
   movements: SimulatedBalanceSheetMovement[];
 };
 
-export type RailHealthStatus = "nominal" | "degraded" | "incident";
-
-export type RailHealthSnapshot = {
-  rail: Rail;
-  status: RailHealthStatus;
-  eventCount: number;
-  eventsPerSec: number;
-  failureRate: number;
-  pendingCount: number;
-  heldCount: number;
-  averageLatencyMs: number;
-  p95LatencyMs: number;
-  lastEventTs: number;
-};
-
-export type OpsTapeChartPoint = {
-  ts: number;
-  eventCount: number;
-  eventRate: number;
-  p95LatencyMs: number;
-  failureRate: number;
-  exceptionQueueDepth: number;
-  liquidityReserveMinor: bigint;
-  creditMinor: bigint;
-  debitMinor: bigint;
-};
-
-export type OpsTapeAggregateSnapshot = {
-  seq: bigint;
-  eventRate: number;
-  cumulativeCreditsMinor: bigint;
-  cumulativeDebitsMinor: bigint;
-  liquidityReserveMinor: bigint;
-  exceptionQueueDepth: number;
-  railHealth: RailHealthSnapshot[];
-  chart: OpsTapeChartPoint[];
-};
+export type RailHealthStatus = RailHealthFrame["status"];
+export type RailHealthSnapshot = RailHealthFrame;
+export type OpsTapeChartPoint = AggregateChartPointInput;
+export type OpsTapeAggregateSnapshot = AggregateSnapshotInput;
 
 type RandomState = {
   value: number;

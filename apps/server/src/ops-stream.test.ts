@@ -1,10 +1,13 @@
-import { decodeMovementBatch } from "@bankops/contracts";
+import {
+  decodeMovementBatch,
+  readAggregateSnapshotFrame,
+  type AggregateSnapshotFrame,
+} from "@bankops/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import type { RawData } from "ws";
 
 import { buildServer } from "./main.js";
-import type { WarmOpsSnapshotMessage } from "./ops-stream.js";
 
 let app: Awaited<ReturnType<typeof buildServer>>;
 
@@ -97,15 +100,14 @@ function nextBinary(
   });
 }
 
-function nextSnapshot(socket: WebSocket): Promise<WarmOpsSnapshotMessage> {
+function nextSnapshot(socket: WebSocket): Promise<AggregateSnapshotFrame> {
   return new Promise((resolve) => {
     const onMessage = (data: RawData, isBinary: boolean) => {
       if (isBinary) {
         return;
       }
 
-      const parsed: unknown = JSON.parse(rawDataToText(data));
-      assertWarmOpsSnapshotMessage(parsed);
+      const parsed = readAggregateSnapshotFrame(rawDataToText(data));
 
       socket.off("message", onMessage);
       resolve(parsed);
@@ -129,17 +131,4 @@ function rawDataToBuffer(data: RawData): Buffer {
 
 function rawDataToText(data: RawData): string {
   return rawDataToBuffer(data).toString("utf8");
-}
-
-function assertWarmOpsSnapshotMessage(value: unknown): asserts value is WarmOpsSnapshotMessage {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Expected warm ops snapshot message");
-  }
-
-  if (!("type" in value) || !("channel" in value)) {
-    throw new Error("Expected warm ops snapshot message");
-  }
-
-  expect(value.type).toBe("ops.snapshot");
-  expect(value.channel).toBe(2);
 }
