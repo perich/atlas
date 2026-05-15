@@ -278,7 +278,7 @@ export function renderAuditColumnCell(column: AuditColumn, row: JsonAuditEntry):
           <button
             aria-label={`Copy trace ID ${row.traceId}`}
             className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
-            onClick={() => void navigator.clipboard?.writeText(row.traceId)}
+            onClick={() => void navigator.clipboard?.writeText(row.traceId).catch(() => undefined)}
             type="button"
           >
             <Copy aria-hidden="true" className="size-3" />
