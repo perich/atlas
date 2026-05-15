@@ -68,7 +68,7 @@ export function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   );
 }
 
-function OpsMetricCard({
+const OpsMetricCard = React.memo(function OpsMetricCard({
   icon: Icon,
   label,
   tone,
@@ -97,4 +97,4 @@ function OpsMetricCard({
       </p>
     </article>
   );
-}
+});
