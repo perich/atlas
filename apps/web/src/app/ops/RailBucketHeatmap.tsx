@@ -12,6 +12,14 @@ import { InfoTooltip, Panel } from "../../design/components";
 import { formatMinorUsd, formatPercent } from "../../design/format";
 
 const elevatedExceptionRate = 0.05;
+const emptyHeatmapCells = new Map<string, RailBucketHeatmapCell>(
+  RAILS.flatMap((rail) =>
+    BALANCE_SHEET_BUCKETS.map((bucket): [string, RailBucketHeatmapCell] => [
+      heatmapKey(rail, bucket),
+      createEmptyHeatmapCell(rail, bucket),
+    ]),
+  ),
+);
 
 export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] }) {
   const cellsByKey = new Map(cells.map((cell) => [heatmapKey(cell.rail, cell.bucket), cell]));
@@ -76,12 +84,16 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
               <div className="bg-[#0c0d0e] px-2.5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-bankops-text">
                 {titleize(rail)}
               </div>
-              {BALANCE_SHEET_BUCKETS.map((bucket) => (
-                <HeatmapCell
-                  cell={cellsByKey.get(heatmapKey(rail, bucket)) ?? emptyHeatmapCell(rail, bucket)}
-                  key={bucket}
-                />
-              ))}
+              {BALANCE_SHEET_BUCKETS.map((bucket) => {
+                const key = heatmapKey(rail, bucket);
+
+                return (
+                  <HeatmapCell
+                    cell={cellsByKey.get(key) ?? emptyHeatmapCells.get(key)!}
+                    key={bucket}
+                  />
+                );
+              })}
             </React.Fragment>
           ))}
         </div>
@@ -115,7 +127,7 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
   );
 }
 
-function HeatmapLegend() {
+const HeatmapLegend = React.memo(function HeatmapLegend() {
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-bankops-muted">
       <LegendItem color="rgba(251,191,36,0.95)" label="Yellow border: 5%+ exceptions" />
@@ -124,16 +136,22 @@ function HeatmapLegend() {
       </span>
     </div>
   );
-}
+});
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+const LegendItem = React.memo(function LegendItem({
+  color,
+  label,
+}: {
+  color: string;
+  label: string;
+}) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="size-2.5 border border-white/15" style={{ backgroundColor: color }} />
       {label}
     </span>
   );
-}
+});
 
 const HeatmapCell = React.memo(function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const isActive = cell.intensity > 0;
@@ -196,7 +214,7 @@ function areHeatmapCellsEqual(
   );
 }
 
-function emptyHeatmapCell(rail: Rail, bucket: BalanceSheetBucket): RailBucketHeatmapCell {
+function createEmptyHeatmapCell(rail: Rail, bucket: BalanceSheetBucket): RailBucketHeatmapCell {
   return {
     amountPerSecMinor: 0,
     bucket,
