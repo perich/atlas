@@ -96,17 +96,29 @@ export const opsStreamStore = createOpsStreamStore(
   () => new Worker(new URL("./ops-stream.worker.ts", import.meta.url), { type: "module" }),
 );
 
-export function useOpsStream() {
-  const snapshot = useSyncExternalStore(
+const opsStreamControls = {
+  attachTapeCanvas: opsStreamStore.attachTapeCanvas,
+  resizeTapeCanvas: opsStreamStore.resizeTapeCanvas,
+  setStreamRate: opsStreamStore.setStreamRate,
+};
+
+export function useOpsStreamSnapshot() {
+  return useSyncExternalStore(
     opsStreamStore.subscribe,
     opsStreamStore.getSnapshot,
     opsStreamStore.getSnapshot,
   );
+}
+
+export function useOpsStreamControls() {
+  return opsStreamControls;
+}
+
+export function useOpsStream() {
+  const snapshot = useOpsStreamSnapshot();
 
   return {
-    attachTapeCanvas: opsStreamStore.attachTapeCanvas,
-    resizeTapeCanvas: opsStreamStore.resizeTapeCanvas,
-    setStreamRate: opsStreamStore.setStreamRate,
+    ...opsStreamControls,
     snapshot,
   };
 }
