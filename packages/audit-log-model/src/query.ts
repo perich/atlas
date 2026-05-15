@@ -1,12 +1,23 @@
-import type { AuditEntry, AuditFacets, AuditPage, AuditQuery, AuditSort } from "@bankops/contracts";
+import {
+  auditSortDirectionSchema,
+  auditSortFieldSchema,
+  type AuditEntry,
+  type AuditFacets,
+  type AuditPage,
+  type AuditQuery,
+  type AuditSort,
+} from "@bankops/contracts";
+import { z } from "zod";
 
 export type AuditFilters = NonNullable<AuditQuery["filters"]>;
 
-type Cursor = {
-  dir: AuditSort["dir"];
-  field: AuditSort["field"];
-  id: string;
-};
+const cursorSchema = z.object({
+  dir: auditSortDirectionSchema,
+  field: auditSortFieldSchema,
+  id: z.string(),
+});
+
+type Cursor = z.infer<typeof cursorSchema>;
 
 const DEFAULT_SORT = {
   dir: "desc",
@@ -171,26 +182,9 @@ function encodeCursor(entry: AuditEntry, sort: AuditSort): string {
 }
 
 function decodeCursor(cursor: string): Cursor {
-  const parsed: unknown = JSON.parse(decodeURIComponent(cursor));
-
-  assertCursor(parsed);
-  return parsed;
-}
-
-function assertCursor(value: unknown): asserts value is Cursor {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Invalid audit cursor");
-  }
-
-  if (!("dir" in value) || !("field" in value) || !("id" in value)) {
-    throw new Error("Invalid audit cursor");
-  }
-
-  if (typeof value.id !== "string") {
-    throw new Error("Invalid audit cursor");
-  }
-
-  if (typeof value.field !== "string" || typeof value.dir !== "string") {
+  try {
+    return cursorSchema.parse(JSON.parse(decodeURIComponent(cursor)));
+  } catch {
     throw new Error("Invalid audit cursor");
   }
 }

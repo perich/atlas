@@ -11,8 +11,14 @@ import {
   AUDIT_SORT_FIELDS,
   AUDIT_STATUSES,
   RAILS,
+  auditSeveritySchema,
+  auditSortDirectionSchema,
+  auditSortFieldSchema,
+  auditStatusSchema,
+  railSchema,
 } from "@bankops/contracts";
 import type { FastifyInstance, FastifyReply } from "fastify";
+import { z } from "zod";
 
 type AuditQueryParams = Record<string, string | string[] | undefined>;
 type QueryParam = string | string[] | undefined;
@@ -20,6 +26,14 @@ type QueryParam = string | string[] | undefined;
 const DEFAULT_AUDIT_SORT = { field: "ts", dir: "desc" } satisfies AuditSort;
 const DEFAULT_AUDIT_LIMIT = 100;
 const MAX_AUDIT_LIMIT = 500;
+const queryParamValuesSchema = z.union([
+  z.array(z.string()),
+  z.string().transform((value) => [value]),
+  z.undefined().transform(() => [] as string[]),
+]);
+const safeIntegerSchema = z.int();
+const limitSchema = z.int().min(1).max(MAX_AUDIT_LIMIT);
+const offsetSchema = z.int().nonnegative();
 
 export function registerAuditApi(app: FastifyInstance) {
   app.get<{ Querystring: AuditQueryParams }>("/api/audit", async (request, reply) => {
@@ -62,17 +76,19 @@ function parseAuditQuery(params: AuditQueryParams): AuditQuery {
     throw new Error("Use only one paging anchor");
   }
 
-  if (offset !== undefined && (!Number.isSafeInteger(offset) || offset < 0)) {
+  if (offset !== undefined && !offsetSchema.safeParse(offset).success) {
     throw new Error("offset must be a non-negative integer");
   }
 
   const field = sortField ?? DEFAULT_AUDIT_SORT.field;
   const dir = sortDir ?? DEFAULT_AUDIT_SORT.dir;
 
-  assertOneOf(field, "sortField", AUDIT_SORT_FIELDS);
-  assertOneOf(dir, "sortDir", AUDIT_SORT_DIRECTIONS);
+  const parsedSort = {
+    field: parseOneOf(auditSortFieldSchema, field, "sortField", AUDIT_SORT_FIELDS),
+    dir: parseOneOf(auditSortDirectionSchema, dir, "sortDir", AUDIT_SORT_DIRECTIONS),
+  };
 
-  const query: AuditQuery = { filters: parseAuditFilters(params), limit, sort: { field, dir } };
+  const query: AuditQuery = { filters: parseAuditFilters(params), limit, sort: parsedSort };
 
   if (after !== undefined) {
     query.after = after;
@@ -98,11 +114,11 @@ function parseAuditFilters(params: AuditQueryParams): AuditFilters {
   const severity = list(params.severity, "severity");
   const status = list(params.status, "status");
 
-  if (tsFrom !== undefined && !Number.isSafeInteger(tsFrom)) {
+  if (tsFrom !== undefined && !safeIntegerSchema.safeParse(tsFrom).success) {
     throw new Error("tsFrom must be an integer");
   }
 
-  if (tsTo !== undefined && !Number.isSafeInteger(tsTo)) {
+  if (tsTo !== undefined && !safeIntegerSchema.safeParse(tsTo).success) {
     throw new Error("tsTo must be an integer");
   }
 
@@ -113,24 +129,19 @@ function parseAuditFilters(params: AuditQueryParams): AuditFilters {
   const filters: AuditFilters = {};
 
   if (rail !== undefined) {
-    filters.rail = rail.map((value) => {
-      assertOneOf(value, "rail", RAILS);
-      return value;
-    });
+    filters.rail = rail.map((value) => parseOneOf(railSchema, value, "rail", RAILS));
   }
 
   if (severity !== undefined) {
-    filters.severity = severity.map((value) => {
-      assertOneOf(value, "severity", AUDIT_SEVERITIES);
-      return value;
-    });
+    filters.severity = severity.map((value) =>
+      parseOneOf(auditSeveritySchema, value, "severity", AUDIT_SEVERITIES),
+    );
   }
 
   if (status !== undefined) {
-    filters.status = status.map((value) => {
-      assertOneOf(value, "status", AUDIT_STATUSES);
-      return value;
-    });
+    filters.status = status.map((value) =>
+      parseOneOf(auditStatusSchema, value, "status", AUDIT_STATUSES),
+    );
   }
 
   if (tsFrom !== undefined) {
@@ -151,29 +162,37 @@ function parseLimit(value: QueryParam): number {
 
   const parsed = Number(single(value, "limit"));
 
-  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > MAX_AUDIT_LIMIT) {
+  const result = limitSchema.safeParse(parsed);
+
+  if (!result.success) {
     throw new Error(`limit must be between 1 and ${MAX_AUDIT_LIMIT}`);
   }
 
-  return parsed;
+  return result.data;
 }
 
-function assertOneOf<const T extends string>(
+function parseOneOf<const T extends string>(
+  schema: z.ZodType<T>,
   value: string,
   name: string,
   allowed: readonly T[],
-): asserts value is T {
-  if (!allowed.some((item) => item === value)) {
+): T {
+  const result = schema.safeParse(value);
+
+  if (!result.success) {
     throw new Error(`${name} must be one of: ${allowed.join(", ")}`);
   }
+
+  return result.data;
 }
 
 function list(value: QueryParam, name: string): string[] | undefined {
-  if (value === undefined) {
+  const rawValues = queryParamValuesSchema.parse(value);
+
+  if (rawValues.length === 0) {
     return undefined;
   }
 
-  const rawValues = Array.isArray(value) ? value : [value];
   const values = rawValues.flatMap((item) => item.split(","));
   const trimmed = values.map((item) => item.trim()).filter((item) => item.length > 0);
 
@@ -185,19 +204,17 @@ function list(value: QueryParam, name: string): string[] | undefined {
 }
 
 function single(value: QueryParam, name: string): string | undefined {
-  if (value === undefined) {
+  const values = queryParamValuesSchema.parse(value);
+
+  if (values.length === 0) {
     return undefined;
   }
 
-  if (Array.isArray(value)) {
-    if (value.length !== 1) {
-      throw new Error(`${name} must have a single value`);
-    }
-
-    return single(value[0], name);
+  if (values.length !== 1) {
+    throw new Error(`${name} must have a single value`);
   }
 
-  const trimmed = value.trim();
+  const trimmed = values[0].trim();
 
   if (trimmed.length === 0) {
     throw new Error(`${name} must not be empty`);
