@@ -4,12 +4,14 @@ import { fileURLToPath } from "node:url";
 import fastifyStatic from "@fastify/static";
 import websocket from "@fastify/websocket";
 import Fastify from "fastify";
+import { z } from "zod";
 
 import { registerAuditApi } from "./audit-api.js";
 import { startOpsStreamSession } from "./ops-stream.js";
 
 const DEFAULT_PORT = 8787;
 const DEFAULT_HOST = "0.0.0.0";
+const listenPortSchema = z.coerce.number().finite().catch(DEFAULT_PORT);
 
 type BuildServerOptions = {
   logger?: boolean;
@@ -61,11 +63,9 @@ export async function buildServer(options: boolean | BuildServerOptions = true) 
 }
 
 export function resolveListenOptions(env: NodeJS.ProcessEnv = process.env) {
-  const port = Number(env.PORT ?? DEFAULT_PORT);
-
   return {
     host: env.HOST ?? DEFAULT_HOST,
-    port: Number.isFinite(port) ? port : DEFAULT_PORT,
+    port: listenPortSchema.parse(env.PORT ?? DEFAULT_PORT),
   };
 }
 

@@ -1,4 +1,10 @@
-import { decodeMovementBatch, DEFAULT_STREAM_RATE, type StreamRate } from "@bankops/contracts";
+import {
+  decodeMovementBatch,
+  DEFAULT_STREAM_RATE,
+  encodeStreamRateControlFrame,
+  readAggregateSnapshotFrame,
+  type StreamRate,
+} from "@bankops/contracts";
 
 import {
   INITIAL_OPS_STREAM_SNAPSHOT,
@@ -8,7 +14,6 @@ import {
 } from "./ops-stream-messages";
 import { OpsMovementWindow } from "./ops-movement-window";
 import { OpsTapeRenderer } from "./ops-tape-renderer";
-import { readWarmSnapshot } from "./ops-worker-protocol";
 
 let socket: WebSocket | undefined;
 let reconnectTimer: number | undefined;
@@ -37,7 +42,7 @@ self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
       return;
     case "stream.rate.set":
       streamRate = command.targetRate;
-      socket?.send(JSON.stringify(command));
+      socket?.send(encodeStreamRateControlFrame(command));
       publish({ ...snapshot, streamRate });
       return;
   }
@@ -51,13 +56,13 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   socket.binaryType = "arraybuffer";
 
   socket.onopen = () => {
-    socket?.send(JSON.stringify({ type: "stream.rate.set", targetRate: streamRate }));
+    socket?.send(encodeStreamRateControlFrame({ type: "stream.rate.set", targetRate: streamRate }));
     publish({ ...snapshot, connectionStatus: "open", streamRate });
   };
 
   socket.onmessage = (event) => {
     if (typeof event.data === "string") {
-      const warmSnapshot = readWarmSnapshot(event.data);
+      const warmSnapshot = readAggregateSnapshotFrame(event.data);
       const rendererMetrics = renderer.metrics();
       const decodedRate = decodedCount * 4;
 
