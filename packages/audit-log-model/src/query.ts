@@ -1,32 +1,20 @@
 import {
-  auditSortDirectionSchema,
-  auditSortFieldSchema,
+  DEFAULT_AUDIT_SORT,
+  auditCursorForEntry,
+  decodeAuditCursor,
   type AuditEntry,
   type AuditFacets,
+  type AuditFilters,
   type AuditPage,
   type AuditQuery,
   type AuditSort,
 } from "@bankops/contracts";
-import { z } from "zod";
 
-export type AuditFilters = NonNullable<AuditQuery["filters"]>;
-
-const cursorSchema = z.object({
-  dir: auditSortDirectionSchema,
-  field: auditSortFieldSchema,
-  id: z.string(),
-});
-
-type Cursor = z.infer<typeof cursorSchema>;
-
-const DEFAULT_SORT = {
-  dir: "desc",
-  field: "ts",
-} satisfies AuditSort;
+export type { AuditFilters };
 
 export function queryAuditEntries(entries: readonly AuditEntry[], query: AuditQuery): AuditPage {
   const startedAt = Date.now();
-  const sort = query.sort ?? DEFAULT_SORT;
+  const sort = query.sort ?? DEFAULT_AUDIT_SORT;
   const sorted = filterEntries(entries, query.filters).toSorted((left, right) =>
     compareEntries(left, right, sort),
   );
@@ -38,9 +26,9 @@ export function queryAuditEntries(entries: readonly AuditEntry[], query: AuditQu
     offset: start,
     nextCursor:
       start + query.limit < sorted.length && rows.length > 0
-        ? encodeCursor(rows[rows.length - 1], sort)
+        ? auditCursorForEntry(rows[rows.length - 1], sort)
         : undefined,
-    prevCursor: start > 0 && rows.length > 0 ? encodeCursor(rows[0], sort) : undefined,
+    prevCursor: start > 0 && rows.length > 0 ? auditCursorForEntry(rows[0], sort) : undefined,
     totalMatched: sorted.length,
     queryMs: Date.now() - startedAt,
   };
@@ -118,7 +106,7 @@ function pageStart(entries: readonly AuditEntry[], query: AuditQuery, sort: Audi
 }
 
 function cursorIndex(entries: readonly AuditEntry[], cursor: string, sort: AuditSort): number {
-  const decoded = decodeCursor(cursor);
+  const decoded = decodeAuditCursor(cursor);
 
   if (decoded.field !== sort.field || decoded.dir !== sort.dir) {
     throw new Error("Cursor sort does not match query sort");
@@ -169,24 +157,6 @@ function compareValues(left: string | number, right: string | number): number {
   }
 
   return 0;
-}
-
-function encodeCursor(entry: AuditEntry, sort: AuditSort): string {
-  const cursor: Cursor = {
-    dir: sort.dir,
-    field: sort.field,
-    id: entry.id,
-  };
-
-  return encodeURIComponent(JSON.stringify(cursor));
-}
-
-function decodeCursor(cursor: string): Cursor {
-  try {
-    return cursorSchema.parse(JSON.parse(decodeURIComponent(cursor)));
-  } catch {
-    throw new Error("Invalid audit cursor");
-  }
 }
 
 function increment(counts: Record<string, number>, key: string) {
