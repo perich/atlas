@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import {
   ASSETS,
   BALANCE_SHEET_BUCKETS,
@@ -6,9 +8,8 @@ import {
   MOVEMENT_SIDES,
   MOVEMENT_STATUSES,
   RAILS,
-  type Rail,
-  type StreamRate,
-  STREAM_RATES,
+  railSchema,
+  streamRateSchema,
 } from "./domain.js";
 
 // Fixed-width binary frames keep the hot /ops stream cheap to parse in a worker.
@@ -34,73 +35,83 @@ export type MovementBatchFrame = {
   movements: BalanceSheetMovement[];
 };
 
-export type RailHealthStatus = "nominal" | "degraded" | "incident";
+const finiteNumberSchema = z.number().finite();
 
-export type RailHealthFrame = {
-  rail: Rail;
-  status: RailHealthStatus;
-  eventCount: number;
-  eventsPerSec: number;
-  failureRate: number;
-  pendingCount: number;
-  heldCount: number;
-  averageLatencyMs: number;
-  p95LatencyMs: number;
-  lastEventTs: number;
-};
+export const railHealthStatusSchema = z.enum(["nominal", "degraded", "incident"]);
 
-export type AggregateChartPointInput = {
-  ts: number;
-  eventCount: number;
-  eventRate: number;
-  p95LatencyMs: number;
-  failureRate: number;
-  exceptionQueueDepth: number;
-  liquidityReserveMinor: bigint;
-  creditMinor: bigint;
-  debitMinor: bigint;
-};
+export const railHealthFrameSchema = z.object({
+  rail: railSchema,
+  status: railHealthStatusSchema,
+  eventCount: finiteNumberSchema,
+  eventsPerSec: finiteNumberSchema,
+  failureRate: finiteNumberSchema,
+  pendingCount: finiteNumberSchema,
+  heldCount: finiteNumberSchema,
+  averageLatencyMs: finiteNumberSchema,
+  p95LatencyMs: finiteNumberSchema,
+  lastEventTs: finiteNumberSchema,
+});
 
-export type AggregateSnapshotInput = {
-  seq: bigint;
-  eventRate: number;
-  cumulativeCreditsMinor: bigint;
-  cumulativeDebitsMinor: bigint;
-  liquidityReserveMinor: bigint;
-  exceptionQueueDepth: number;
-  railHealth: readonly RailHealthFrame[];
-  chart: readonly AggregateChartPointInput[];
-};
+export const aggregateChartPointInputSchema = z.object({
+  ts: finiteNumberSchema,
+  eventCount: finiteNumberSchema,
+  eventRate: finiteNumberSchema,
+  p95LatencyMs: finiteNumberSchema,
+  failureRate: finiteNumberSchema,
+  exceptionQueueDepth: finiteNumberSchema,
+  liquidityReserveMinor: z.bigint(),
+  creditMinor: z.bigint(),
+  debitMinor: z.bigint(),
+});
 
-export type AggregateChartPointFrame = {
-  ts: number;
-  eventCount: number;
-  eventRate: number;
-  p95LatencyMs: number;
-  failureRate: number;
-  exceptionQueueDepth: number;
-  liquidityReserveMinor: string;
-  creditMinor: string;
-  debitMinor: string;
-};
+export const aggregateSnapshotInputSchema = z.object({
+  seq: z.bigint(),
+  eventRate: finiteNumberSchema,
+  cumulativeCreditsMinor: z.bigint(),
+  cumulativeDebitsMinor: z.bigint(),
+  liquidityReserveMinor: z.bigint(),
+  exceptionQueueDepth: finiteNumberSchema,
+  railHealth: z.array(railHealthFrameSchema),
+  chart: z.array(aggregateChartPointInputSchema),
+});
 
-export type AggregateSnapshotFrame = {
-  channel: typeof StreamChannel.AggregateSnapshot;
-  type: "ops.snapshot";
-  seq: string;
-  eventRate: number;
-  cumulativeCreditsMinor: string;
-  cumulativeDebitsMinor: string;
-  liquidityReserveMinor: string;
-  exceptionQueueDepth: number;
-  railHealth: RailHealthFrame[];
-  chart: AggregateChartPointFrame[];
-};
+export const aggregateChartPointFrameSchema = z.object({
+  ts: finiteNumberSchema,
+  eventCount: finiteNumberSchema,
+  eventRate: finiteNumberSchema,
+  p95LatencyMs: finiteNumberSchema,
+  failureRate: finiteNumberSchema,
+  exceptionQueueDepth: finiteNumberSchema,
+  liquidityReserveMinor: z.string(),
+  creditMinor: z.string(),
+  debitMinor: z.string(),
+});
 
-export type StreamRateControlFrame = {
-  type: "stream.rate.set";
-  targetRate: StreamRate;
-};
+export const aggregateSnapshotFrameSchema = z.object({
+  channel: z.literal(StreamChannel.AggregateSnapshot),
+  type: z.literal("ops.snapshot"),
+  seq: z.string(),
+  eventRate: finiteNumberSchema,
+  cumulativeCreditsMinor: z.string(),
+  cumulativeDebitsMinor: z.string(),
+  liquidityReserveMinor: z.string(),
+  exceptionQueueDepth: finiteNumberSchema,
+  railHealth: z.array(railHealthFrameSchema),
+  chart: z.array(aggregateChartPointFrameSchema),
+});
+
+export const streamRateControlFrameSchema = z.object({
+  type: z.literal("stream.rate.set"),
+  targetRate: streamRateSchema,
+});
+
+export type RailHealthStatus = z.infer<typeof railHealthStatusSchema>;
+export type RailHealthFrame = z.infer<typeof railHealthFrameSchema>;
+export type AggregateChartPointInput = z.infer<typeof aggregateChartPointInputSchema>;
+export type AggregateSnapshotInput = z.infer<typeof aggregateSnapshotInputSchema>;
+export type AggregateChartPointFrame = z.infer<typeof aggregateChartPointFrameSchema>;
+export type AggregateSnapshotFrame = z.infer<typeof aggregateSnapshotFrameSchema>;
+export type StreamRateControlFrame = z.infer<typeof streamRateControlFrameSchema>;
 
 // Machine-readable reasons let the worker surface bad frames without guesswork.
 export class SettlementStreamDecodeError extends Error {
@@ -124,19 +135,26 @@ const MAX_U32 = 0xffffffff;
 const MAX_U32_BIGINT = BigInt(MAX_U32);
 const MIN_I64 = -(1n << 63n);
 const MAX_I64 = (1n << 63n) - 1n;
+const nonnegativeBigIntSchema = z.bigint().nonnegative();
+const uint16Schema = z.int().nonnegative().max(MAX_U16);
+const uint32Schema = z.int().nonnegative().max(MAX_U32);
+const uint32BigIntSchema = z.bigint().nonnegative().max(MAX_U32_BIGINT);
+const int64Schema = z.bigint().min(MIN_I64).max(MAX_I64);
 
 export function toAggregateSnapshotFrame(snapshot: AggregateSnapshotInput): AggregateSnapshotFrame {
+  const parsed = aggregateSnapshotInputSchema.parse(snapshot);
+
   return {
     channel: StreamChannel.AggregateSnapshot,
     type: "ops.snapshot",
-    seq: snapshot.seq.toString(),
-    eventRate: snapshot.eventRate,
-    cumulativeCreditsMinor: snapshot.cumulativeCreditsMinor.toString(),
-    cumulativeDebitsMinor: snapshot.cumulativeDebitsMinor.toString(),
-    liquidityReserveMinor: snapshot.liquidityReserveMinor.toString(),
-    exceptionQueueDepth: snapshot.exceptionQueueDepth,
-    railHealth: [...snapshot.railHealth],
-    chart: snapshot.chart.map((point) => ({
+    seq: parsed.seq.toString(),
+    eventRate: parsed.eventRate,
+    cumulativeCreditsMinor: parsed.cumulativeCreditsMinor.toString(),
+    cumulativeDebitsMinor: parsed.cumulativeDebitsMinor.toString(),
+    liquidityReserveMinor: parsed.liquidityReserveMinor.toString(),
+    exceptionQueueDepth: parsed.exceptionQueueDepth,
+    railHealth: parsed.railHealth,
+    chart: parsed.chart.map((point) => ({
       ts: point.ts,
       eventCount: point.eventCount,
       eventRate: point.eventRate,
@@ -151,28 +169,21 @@ export function toAggregateSnapshotFrame(snapshot: AggregateSnapshotInput): Aggr
 }
 
 export function readAggregateSnapshotFrame(raw: string): AggregateSnapshotFrame {
-  const parsed: unknown = JSON.parse(raw);
-
-  assertAggregateSnapshotFrame(parsed);
-  return parsed;
+  return aggregateSnapshotFrameSchema.parse(JSON.parse(raw));
 }
 
 export function encodeStreamRateControlFrame(frame: StreamRateControlFrame): string {
-  assertStreamRateControlFrame(frame);
-  return JSON.stringify(frame);
+  return JSON.stringify(streamRateControlFrameSchema.parse(frame));
 }
 
 export function readStreamRateControlFrame(raw: string): StreamRateControlFrame {
-  const parsed: unknown = JSON.parse(raw);
-
-  assertStreamRateControlFrame(parsed);
-  return parsed;
+  return streamRateControlFrameSchema.parse(JSON.parse(raw));
 }
 
 export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
-  assertMovementBatchFrame(frame);
+  const parsedFrame = parseMovementBatchFrame(frame);
 
-  const eventCount = frame.movements.length;
+  const eventCount = parsedFrame.movements.length;
   const bytes = STREAM_FRAME_HEADER_BYTES + eventCount * MOVEMENT_RECORD_BYTES;
   const buffer = new ArrayBuffer(bytes);
   const view = new DataView(buffer);
@@ -181,25 +192,50 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   view.setUint32(0, SETTLEMENT_STREAM_MAGIC, STREAM_LITTLE_ENDIAN);
   view.setUint16(4, SETTLEMENT_STREAM_VERSION, STREAM_LITTLE_ENDIAN);
   view.setUint16(6, StreamChannel.MovementBatch, STREAM_LITTLE_ENDIAN);
-  view.setBigUint64(8, frame.fromSeq, STREAM_LITTLE_ENDIAN);
-  view.setBigUint64(16, frame.toSeq, STREAM_LITTLE_ENDIAN);
-  view.setFloat64(24, frame.serverTsMs, STREAM_LITTLE_ENDIAN);
+  view.setBigUint64(8, parsedFrame.fromSeq, STREAM_LITTLE_ENDIAN);
+  view.setBigUint64(16, parsedFrame.toSeq, STREAM_LITTLE_ENDIAN);
+  view.setFloat64(24, parsedFrame.serverTsMs, STREAM_LITTLE_ENDIAN);
   view.setUint32(32, eventCount, STREAM_LITTLE_ENDIAN);
 
   let offset = STREAM_FRAME_HEADER_BYTES;
 
-  for (const movement of frame.movements) {
+  for (const movement of parsedFrame.movements) {
     // Deltas keep each movement record compact while preserving exact seq/time.
-    const seqDelta = movement.seq - frame.fromSeq;
-    const dtMs = movement.serverTs - frame.serverTsMs;
-
-    assertBigUint32("seqDelta", seqDelta);
-    assertUint("dtMs", dtMs, MAX_U16);
-    assertUint("customerId", movement.customerId, MAX_U32);
-    assertUint("accountId", movement.accountId, MAX_U32);
-    assertInt64("amountMinor", movement.amountMinor);
-    assertUint("latencyMs", movement.latencyMs, MAX_U16);
-    assertUint("flags", movement.flags, MAX_U16);
+    const seqDelta = parseRange(
+      uint32BigIntSchema,
+      movement.seq - parsedFrame.fromSeq,
+      "seqDelta must fit in an unsigned 32-bit integer",
+    );
+    const dtMs = parseRange(
+      uint16Schema,
+      movement.serverTs - parsedFrame.serverTsMs,
+      `dtMs must be an integer between 0 and ${MAX_U16}`,
+    );
+    const customerId = parseRange(
+      uint32Schema,
+      movement.customerId,
+      `customerId must be an integer between 0 and ${MAX_U32}`,
+    );
+    const accountId = parseRange(
+      uint32Schema,
+      movement.accountId,
+      `accountId must be an integer between 0 and ${MAX_U32}`,
+    );
+    const amountMinor = parseRange(
+      int64Schema,
+      movement.amountMinor,
+      "amountMinor must fit in a signed 64-bit integer",
+    );
+    const latencyMs = parseRange(
+      uint16Schema,
+      movement.latencyMs,
+      `latencyMs must be an integer between 0 and ${MAX_U16}`,
+    );
+    const flags = parseRange(
+      uint16Schema,
+      movement.flags,
+      `flags must be an integer between 0 and ${MAX_U16}`,
+    );
 
     view.setUint32(offset, Number(seqDelta), STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -215,19 +251,19 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
     offset += 1;
     view.setUint8(offset, ASSETS.indexOf(movement.asset));
     offset += 1;
-    view.setUint32(offset, movement.customerId, STREAM_LITTLE_ENDIAN);
+    view.setUint32(offset, customerId, STREAM_LITTLE_ENDIAN);
     offset += 4;
-    view.setUint32(offset, movement.accountId, STREAM_LITTLE_ENDIAN);
+    view.setUint32(offset, accountId, STREAM_LITTLE_ENDIAN);
     offset += 4;
-    view.setBigInt64(offset, movement.amountMinor, STREAM_LITTLE_ENDIAN);
+    view.setBigInt64(offset, amountMinor, STREAM_LITTLE_ENDIAN);
     offset += 8;
-    view.setUint16(offset, movement.latencyMs, STREAM_LITTLE_ENDIAN);
+    view.setUint16(offset, latencyMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
     view.setUint8(offset, MOVEMENT_STATUSES.indexOf(movement.status));
     offset += 1;
     view.setUint8(offset, movement.riskTier);
     offset += 1;
-    view.setUint16(offset, movement.flags, STREAM_LITTLE_ENDIAN);
+    view.setUint16(offset, flags, STREAM_LITTLE_ENDIAN);
     offset += 2;
   }
 
@@ -384,16 +420,16 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
   };
 }
 
-function assertMovementBatchFrame(frame: MovementBatchFrame) {
-  if (frame.fromSeq < 0n || frame.toSeq < frame.fromSeq) {
+function parseMovementBatchFrame(frame: MovementBatchFrame): MovementBatchFrame {
+  if (!nonnegativeBigIntSchema.safeParse(frame.fromSeq).success || frame.toSeq < frame.fromSeq) {
     throw new RangeError("Movement batch sequence range is invalid");
   }
 
-  if (!Number.isFinite(frame.serverTsMs)) {
+  if (!finiteNumberSchema.safeParse(frame.serverTsMs).success) {
     throw new RangeError("Movement batch serverTsMs must be finite");
   }
 
-  if (frame.movements.length > MAX_U32) {
+  if (!uint32Schema.safeParse(frame.movements.length).success) {
     throw new RangeError("Movement batch event count exceeds uint32 range");
   }
 
@@ -402,125 +438,16 @@ function assertMovementBatchFrame(frame: MovementBatchFrame) {
       throw new RangeError("Movement sequence falls outside the batch range");
     }
   }
+
+  return frame;
 }
 
-function assertAggregateSnapshotFrame(value: unknown): asserts value is AggregateSnapshotFrame {
-  assertRecord(value, "Expected aggregate snapshot frame");
+function parseRange<T>(schema: z.ZodType<T>, value: unknown, message: string): T {
+  const result = schema.safeParse(value);
 
-  if (value.type !== "ops.snapshot" || value.channel !== StreamChannel.AggregateSnapshot) {
-    throw new Error("Unknown SettlementStream aggregate snapshot frame");
+  if (!result.success) {
+    throw new RangeError(message);
   }
 
-  assertString(value.seq, "seq");
-  assertNumber(value.eventRate, "eventRate");
-  assertString(value.cumulativeCreditsMinor, "cumulativeCreditsMinor");
-  assertString(value.cumulativeDebitsMinor, "cumulativeDebitsMinor");
-  assertString(value.liquidityReserveMinor, "liquidityReserveMinor");
-  assertNumber(value.exceptionQueueDepth, "exceptionQueueDepth");
-
-  if (!Array.isArray(value.railHealth)) {
-    throw new Error("railHealth must be an array");
-  }
-
-  for (const railHealth of value.railHealth) {
-    assertRailHealthFrame(railHealth);
-  }
-
-  if (!Array.isArray(value.chart)) {
-    throw new Error("chart must be an array");
-  }
-
-  for (const point of value.chart) {
-    assertAggregateChartPointFrame(point);
-  }
-}
-
-function assertRailHealthFrame(value: unknown): asserts value is RailHealthFrame {
-  assertRecord(value, "Expected rail health frame");
-
-  if (!isRail(value.rail)) {
-    throw new Error(`Unsupported rail: ${String(value.rail)}`);
-  }
-
-  if (value.status !== "nominal" && value.status !== "degraded" && value.status !== "incident") {
-    throw new Error(`Unsupported rail health status: ${String(value.status)}`);
-  }
-
-  assertNumber(value.eventCount, "eventCount");
-  assertNumber(value.eventsPerSec, "eventsPerSec");
-  assertNumber(value.failureRate, "failureRate");
-  assertNumber(value.pendingCount, "pendingCount");
-  assertNumber(value.heldCount, "heldCount");
-  assertNumber(value.averageLatencyMs, "averageLatencyMs");
-  assertNumber(value.p95LatencyMs, "p95LatencyMs");
-  assertNumber(value.lastEventTs, "lastEventTs");
-}
-
-function assertAggregateChartPointFrame(value: unknown): asserts value is AggregateChartPointFrame {
-  assertRecord(value, "Expected aggregate chart point frame");
-  assertNumber(value.ts, "ts");
-  assertNumber(value.eventCount, "eventCount");
-  assertNumber(value.eventRate, "eventRate");
-  assertNumber(value.p95LatencyMs, "p95LatencyMs");
-  assertNumber(value.failureRate, "failureRate");
-  assertNumber(value.exceptionQueueDepth, "exceptionQueueDepth");
-  assertString(value.liquidityReserveMinor, "liquidityReserveMinor");
-  assertString(value.creditMinor, "creditMinor");
-  assertString(value.debitMinor, "debitMinor");
-}
-
-function assertStreamRateControlFrame(value: unknown): asserts value is StreamRateControlFrame {
-  assertRecord(value, "Expected stream rate control frame");
-
-  if (value.type !== "stream.rate.set") {
-    throw new Error(`Unknown stream control frame: ${String(value.type)}`);
-  }
-
-  if (!isStreamRate(value.targetRate)) {
-    throw new Error(`Unsupported stream rate: ${String(value.targetRate)}`);
-  }
-}
-
-function assertUint(label: string, value: number, max: number) {
-  if (!Number.isInteger(value) || value < 0 || value > max) {
-    throw new RangeError(`${label} must be an integer between 0 and ${max}`);
-  }
-}
-
-function assertBigUint32(label: string, value: bigint) {
-  if (value < 0n || value > MAX_U32_BIGINT) {
-    throw new RangeError(`${label} must fit in an unsigned 32-bit integer`);
-  }
-}
-
-function assertInt64(label: string, value: bigint) {
-  if (value < MIN_I64 || value > MAX_I64) {
-    throw new RangeError(`${label} must fit in a signed 64-bit integer`);
-  }
-}
-
-function assertRecord(value: unknown, message: string): asserts value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    throw new Error(message);
-  }
-}
-
-function assertNumber(value: unknown, label: string): asserts value is number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${label} must be a finite number`);
-  }
-}
-
-function assertString(value: unknown, label: string): asserts value is string {
-  if (typeof value !== "string") {
-    throw new Error(`${label} must be a string`);
-  }
-}
-
-function isRail(value: unknown): value is Rail {
-  return RAILS.some((rail) => rail === value);
-}
-
-function isStreamRate(value: unknown): value is StreamRate {
-  return STREAM_RATES.some((streamRate) => streamRate === value);
+  return result.data;
 }
