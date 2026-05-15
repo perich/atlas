@@ -13,7 +13,7 @@ import {
   visibleAuditColumns,
   writeAuditColumnLayout,
   type AuditColumnId,
-} from "../audit/audit-column-layout";
+} from "../audit/audit-columns";
 import { useAuditWindow } from "../audit/use-audit-window";
 import type { AuditQueryState } from "../audit/use-audit-window";
 import { PageHeader } from "../../design/components";
