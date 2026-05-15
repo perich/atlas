@@ -26,8 +26,8 @@ export type AuditSearch = {
   status?: string;
   tsFrom?: number;
   tsTo?: number;
-  sortField?: AuditSort["field"];
-  sortDir?: AuditSort["dir"];
+  sortField?: string;
+  sortDir?: string;
 };
 
 export type AuditQueryState = {
@@ -61,6 +61,9 @@ export function validateAuditSearch(search: AuditSearchInput): AuditSearch {
 }
 
 export function auditSearchToQueryState(search: AuditSearch): AuditQueryState {
+  const sortField = enumList(search.sortField, auditSortFieldSchema)[0];
+  const sortDir = enumList(search.sortDir, auditSortDirectionSchema)[0];
+
   return {
     filters: {
       ...(search.severity === undefined
@@ -74,8 +77,8 @@ export function auditSearchToQueryState(search: AuditSearch): AuditQueryState {
       ...(search.tsTo === undefined ? {} : { tsTo: search.tsTo }),
     },
     sort: {
-      field: search.sortField ?? DEFAULT_AUDIT_QUERY_STATE.sort.field,
-      dir: search.sortDir ?? DEFAULT_AUDIT_QUERY_STATE.sort.dir,
+      field: sortField ?? DEFAULT_AUDIT_QUERY_STATE.sort.field,
+      dir: sortDir ?? DEFAULT_AUDIT_QUERY_STATE.sort.dir,
     },
   };
 }
