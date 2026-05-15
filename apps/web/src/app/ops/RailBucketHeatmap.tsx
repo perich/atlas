@@ -135,7 +135,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
-function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
+const HeatmapCell = React.memo(function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const isActive = cell.intensity > 0;
   const isElevatedException = cell.exceptionRate >= elevatedExceptionRate;
   const sideRgb = cell.skew >= 0 ? "34,197,94" : "244,63,94";
@@ -176,6 +176,23 @@ function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
         <div className="pointer-events-none absolute inset-0 border border-amber-300/90" />
       ) : null}
     </div>
+  );
+}, areHeatmapCellsEqual);
+
+function areHeatmapCellsEqual(
+  previous: { cell: RailBucketHeatmapCell },
+  next: { cell: RailBucketHeatmapCell },
+) {
+  return (
+    previous.cell.amountPerSecMinor === next.cell.amountPerSecMinor &&
+    previous.cell.bucket === next.cell.bucket &&
+    previous.cell.creditMinor === next.cell.creditMinor &&
+    previous.cell.debitMinor === next.cell.debitMinor &&
+    previous.cell.exceptionRate === next.cell.exceptionRate &&
+    previous.cell.intensity === next.cell.intensity &&
+    previous.cell.movementRate === next.cell.movementRate &&
+    previous.cell.rail === next.cell.rail &&
+    previous.cell.skew === next.cell.skew
   );
 }
 

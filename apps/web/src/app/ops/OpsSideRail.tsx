@@ -67,21 +67,10 @@ export function OpsSideRail({
             <span className="text-xs font-medium text-white">seq {snapshot.seq}</span>
           </div>
 
-          <div>
-            <p className="mb-2 text-xs font-medium text-bankops-muted">Stream rate</p>
-            <div className="grid grid-cols-2 gap-2">
-              {STREAM_RATES.map((streamRate) => (
-                <Button
-                  className="min-h-10 px-3 text-[10px]"
-                  key={streamRate}
-                  onClick={() => setStreamRate(streamRate)}
-                  variant={snapshot.streamRate === streamRate ? "primary" : "secondary"}
-                >
-                  {streamRateLabels[streamRate]}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <StreamRateControl
+            currentStreamRate={snapshot.streamRate}
+            setStreamRate={setStreamRate}
+          />
         </div>
       </Panel>
 
@@ -109,6 +98,32 @@ export function OpsSideRail({
     </aside>
   );
 }
+
+const StreamRateControl = React.memo(function StreamRateControl({
+  currentStreamRate,
+  setStreamRate,
+}: {
+  currentStreamRate: StreamRate;
+  setStreamRate: (streamRate: StreamRate) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-medium text-bankops-muted">Stream rate</p>
+      <div className="grid grid-cols-2 gap-2">
+        {STREAM_RATES.map((streamRate) => (
+          <Button
+            className="min-h-10 px-3 text-[10px]"
+            key={streamRate}
+            onClick={() => setStreamRate(streamRate)}
+            variant={currentStreamRate === streamRate ? "primary" : "secondary"}
+          >
+            {streamRateLabels[streamRate]}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+});
 
 function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   const metrics = [
