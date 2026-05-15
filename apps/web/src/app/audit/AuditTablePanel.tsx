@@ -4,11 +4,7 @@ import { AuditHeaderCell, AuditRowCell } from "./AuditTableCells";
 import type { ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditEntry } from "./audit-api";
 import {
-  auditColumnLoadingClassName,
-  auditColumnSortDir,
-  isAuditColumnSortable,
   moveAuditColumn,
-  nextAuditColumnSort,
   renderAuditColumnCell,
   resizeAuditColumn,
   type AuditColumnId,
@@ -82,7 +78,7 @@ export function AuditTablePanel({
           style={{ height: `${AUDIT_HEADER_HEIGHT}px`, width: `${tableWidth}px` }}
         >
           {visibleColumns.map((column) => {
-            const nextSort = nextAuditColumnSort(column, queryState.sort);
+            const sortField = column.sortField;
 
             return (
               <AuditHeaderCell
@@ -104,17 +100,23 @@ export function AuditTablePanel({
                   setColumnLayout((layout) => resizeAuditColumn(layout, column.id, width))
                 }
                 onSort={
-                  nextSort === undefined
+                  sortField === undefined
                     ? undefined
                     : () => {
                         setQueryState({
                           filters: queryState.filters,
-                          sort: nextSort,
+                          sort: {
+                            field: sortField,
+                            dir:
+                              queryState.sort.field === sortField && queryState.sort.dir === "desc"
+                                ? "asc"
+                                : "desc",
+                          },
                         });
                       }
                 }
-                sortable={isAuditColumnSortable(column)}
-                sortDir={auditColumnSortDir(column, queryState.sort)}
+                sortable={sortField !== undefined}
+                sortDir={queryState.sort.field === sortField ? queryState.sort.dir : undefined}
               />
             );
           })}
@@ -198,7 +200,7 @@ function AuditVirtualRow({
 }
 
 function AuditLoadingCell({ column, rowIndex }: { column: SizedAuditColumn; rowIndex: number }) {
-  const widthClass = auditColumnLoadingClassName(column, rowIndex);
+  const widthClass = column.loadingWidthClasses[rowIndex % column.loadingWidthClasses.length];
 
   return (
     <span
