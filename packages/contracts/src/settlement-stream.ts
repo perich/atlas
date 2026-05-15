@@ -6,6 +6,9 @@ import {
   MOVEMENT_SIDES,
   MOVEMENT_STATUSES,
   RAILS,
+  type Rail,
+  type StreamRate,
+  STREAM_RATES,
 } from "./domain.js";
 
 // Fixed-width binary frames keep the hot /ops stream cheap to parse in a worker.
@@ -31,6 +34,74 @@ export type MovementBatchFrame = {
   movements: BalanceSheetMovement[];
 };
 
+export type RailHealthStatus = "nominal" | "degraded" | "incident";
+
+export type RailHealthFrame = {
+  rail: Rail;
+  status: RailHealthStatus;
+  eventCount: number;
+  eventsPerSec: number;
+  failureRate: number;
+  pendingCount: number;
+  heldCount: number;
+  averageLatencyMs: number;
+  p95LatencyMs: number;
+  lastEventTs: number;
+};
+
+export type AggregateChartPointInput = {
+  ts: number;
+  eventCount: number;
+  eventRate: number;
+  p95LatencyMs: number;
+  failureRate: number;
+  exceptionQueueDepth: number;
+  liquidityReserveMinor: bigint;
+  creditMinor: bigint;
+  debitMinor: bigint;
+};
+
+export type AggregateSnapshotInput = {
+  seq: bigint;
+  eventRate: number;
+  cumulativeCreditsMinor: bigint;
+  cumulativeDebitsMinor: bigint;
+  liquidityReserveMinor: bigint;
+  exceptionQueueDepth: number;
+  railHealth: readonly RailHealthFrame[];
+  chart: readonly AggregateChartPointInput[];
+};
+
+export type AggregateChartPointFrame = {
+  ts: number;
+  eventCount: number;
+  eventRate: number;
+  p95LatencyMs: number;
+  failureRate: number;
+  exceptionQueueDepth: number;
+  liquidityReserveMinor: string;
+  creditMinor: string;
+  debitMinor: string;
+};
+
+export type AggregateSnapshotFrame = {
+  channel: typeof StreamChannel.AggregateSnapshot;
+  type: "ops.snapshot";
+  seq: string;
+  eventRate: number;
+  cumulativeCreditsMinor: string;
+  cumulativeDebitsMinor: string;
+  liquidityReserveMinor: string;
+  exceptionQueueDepth: number;
+  railHealth: RailHealthFrame[];
+  chart: AggregateChartPointFrame[];
+};
+
+export type StreamRateControlFrame = {
+  type: "stream.rate.set";
+  targetRate: StreamRate;
+};
+
 // Machine-readable reasons let the worker surface bad frames without guesswork.
 export class SettlementStreamDecodeError extends Error {
   constructor(
@@ -53,6 +124,50 @@ const MAX_U32 = 0xffffffff;
 const MAX_U32_BIGINT = BigInt(MAX_U32);
 const MIN_I64 = -(1n << 63n);
 const MAX_I64 = (1n << 63n) - 1n;
+
+export function toAggregateSnapshotFrame(snapshot: AggregateSnapshotInput): AggregateSnapshotFrame {
+  return {
+    channel: StreamChannel.AggregateSnapshot,
+    type: "ops.snapshot",
+    seq: snapshot.seq.toString(),
+    eventRate: snapshot.eventRate,
+    cumulativeCreditsMinor: snapshot.cumulativeCreditsMinor.toString(),
+    cumulativeDebitsMinor: snapshot.cumulativeDebitsMinor.toString(),
+    liquidityReserveMinor: snapshot.liquidityReserveMinor.toString(),
+    exceptionQueueDepth: snapshot.exceptionQueueDepth,
+    railHealth: [...snapshot.railHealth],
+    chart: snapshot.chart.map((point) => ({
+      ts: point.ts,
+      eventCount: point.eventCount,
+      eventRate: point.eventRate,
+      p95LatencyMs: point.p95LatencyMs,
+      failureRate: point.failureRate,
+      exceptionQueueDepth: point.exceptionQueueDepth,
+      liquidityReserveMinor: point.liquidityReserveMinor.toString(),
+      creditMinor: point.creditMinor.toString(),
+      debitMinor: point.debitMinor.toString(),
+    })),
+  };
+}
+
+export function readAggregateSnapshotFrame(raw: string): AggregateSnapshotFrame {
+  const parsed: unknown = JSON.parse(raw);
+
+  assertAggregateSnapshotFrame(parsed);
+  return parsed;
+}
+
+export function encodeStreamRateControlFrame(frame: StreamRateControlFrame): string {
+  assertStreamRateControlFrame(frame);
+  return JSON.stringify(frame);
+}
+
+export function readStreamRateControlFrame(raw: string): StreamRateControlFrame {
+  const parsed: unknown = JSON.parse(raw);
+
+  assertStreamRateControlFrame(parsed);
+  return parsed;
+}
 
 export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   assertMovementBatchFrame(frame);
@@ -289,6 +404,83 @@ function assertMovementBatchFrame(frame: MovementBatchFrame) {
   }
 }
 
+function assertAggregateSnapshotFrame(value: unknown): asserts value is AggregateSnapshotFrame {
+  assertRecord(value, "Expected aggregate snapshot frame");
+
+  if (value.type !== "ops.snapshot" || value.channel !== StreamChannel.AggregateSnapshot) {
+    throw new Error("Unknown SettlementStream aggregate snapshot frame");
+  }
+
+  assertString(value.seq, "seq");
+  assertNumber(value.eventRate, "eventRate");
+  assertString(value.cumulativeCreditsMinor, "cumulativeCreditsMinor");
+  assertString(value.cumulativeDebitsMinor, "cumulativeDebitsMinor");
+  assertString(value.liquidityReserveMinor, "liquidityReserveMinor");
+  assertNumber(value.exceptionQueueDepth, "exceptionQueueDepth");
+
+  if (!Array.isArray(value.railHealth)) {
+    throw new Error("railHealth must be an array");
+  }
+
+  for (const railHealth of value.railHealth) {
+    assertRailHealthFrame(railHealth);
+  }
+
+  if (!Array.isArray(value.chart)) {
+    throw new Error("chart must be an array");
+  }
+
+  for (const point of value.chart) {
+    assertAggregateChartPointFrame(point);
+  }
+}
+
+function assertRailHealthFrame(value: unknown): asserts value is RailHealthFrame {
+  assertRecord(value, "Expected rail health frame");
+
+  if (!isRail(value.rail)) {
+    throw new Error(`Unsupported rail: ${String(value.rail)}`);
+  }
+
+  if (value.status !== "nominal" && value.status !== "degraded" && value.status !== "incident") {
+    throw new Error(`Unsupported rail health status: ${String(value.status)}`);
+  }
+
+  assertNumber(value.eventCount, "eventCount");
+  assertNumber(value.eventsPerSec, "eventsPerSec");
+  assertNumber(value.failureRate, "failureRate");
+  assertNumber(value.pendingCount, "pendingCount");
+  assertNumber(value.heldCount, "heldCount");
+  assertNumber(value.averageLatencyMs, "averageLatencyMs");
+  assertNumber(value.p95LatencyMs, "p95LatencyMs");
+  assertNumber(value.lastEventTs, "lastEventTs");
+}
+
+function assertAggregateChartPointFrame(value: unknown): asserts value is AggregateChartPointFrame {
+  assertRecord(value, "Expected aggregate chart point frame");
+  assertNumber(value.ts, "ts");
+  assertNumber(value.eventCount, "eventCount");
+  assertNumber(value.eventRate, "eventRate");
+  assertNumber(value.p95LatencyMs, "p95LatencyMs");
+  assertNumber(value.failureRate, "failureRate");
+  assertNumber(value.exceptionQueueDepth, "exceptionQueueDepth");
+  assertString(value.liquidityReserveMinor, "liquidityReserveMinor");
+  assertString(value.creditMinor, "creditMinor");
+  assertString(value.debitMinor, "debitMinor");
+}
+
+function assertStreamRateControlFrame(value: unknown): asserts value is StreamRateControlFrame {
+  assertRecord(value, "Expected stream rate control frame");
+
+  if (value.type !== "stream.rate.set") {
+    throw new Error(`Unknown stream control frame: ${String(value.type)}`);
+  }
+
+  if (!isStreamRate(value.targetRate)) {
+    throw new Error(`Unsupported stream rate: ${String(value.targetRate)}`);
+  }
+}
+
 function assertUint(label: string, value: number, max: number) {
   if (!Number.isInteger(value) || value < 0 || value > max) {
     throw new RangeError(`${label} must be an integer between 0 and ${max}`);
@@ -305,4 +497,30 @@ function assertInt64(label: string, value: bigint) {
   if (value < MIN_I64 || value > MAX_I64) {
     throw new RangeError(`${label} must fit in a signed 64-bit integer`);
   }
+}
+
+function assertRecord(value: unknown, message: string): asserts value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) {
+    throw new Error(message);
+  }
+}
+
+function assertNumber(value: unknown, label: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be a finite number`);
+  }
+}
+
+function assertString(value: unknown, label: string): asserts value is string {
+  if (typeof value !== "string") {
+    throw new Error(`${label} must be a string`);
+  }
+}
+
+function isRail(value: unknown): value is Rail {
+  return RAILS.some((rail) => rail === value);
+}
+
+function isStreamRate(value: unknown): value is StreamRate {
+  return STREAM_RATES.some((streamRate) => streamRate === value);
 }
