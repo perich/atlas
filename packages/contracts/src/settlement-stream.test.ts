@@ -3,15 +3,21 @@ import { describe, expect, it } from "vitest";
 import {
   decodeMovementBatch,
   encodeMovementBatch,
+  encodeStreamRateControlFrame,
   MOVEMENT_RECORD_BYTES,
+  readAggregateSnapshotFrame,
+  readStreamRateControlFrame,
   SettlementStreamDecodeError,
   SETTLEMENT_STREAM_MAGIC,
   SETTLEMENT_STREAM_VERSION,
   STREAM_FRAME_HEADER_BYTES,
   STREAM_LITTLE_ENDIAN,
   StreamChannel,
+  toAggregateSnapshotFrame,
+  type AggregateSnapshotInput,
   type BalanceSheetMovement,
   type MovementBatchFrame,
+  type StreamRateControlFrame,
 } from "./index.js";
 
 const SERVER_TS_MS = 1_778_600_000_000;
@@ -168,6 +174,82 @@ describe("SettlementStream movement batch frames", () => {
         movements: [movement],
       }),
     ).toThrow(RangeError);
+  });
+});
+
+describe("SettlementStream aggregate snapshot frames", () => {
+  const aggregateSnapshot: AggregateSnapshotInput = {
+    seq: 42n,
+    eventRate: 2_000,
+    cumulativeCreditsMinor: 810_000_000n,
+    cumulativeDebitsMinor: 200_000_000n,
+    liquidityReserveMinor: 250_000_000_000n,
+    exceptionQueueDepth: 3,
+    railHealth: [
+      {
+        rail: "ach",
+        status: "nominal",
+        eventCount: 10,
+        eventsPerSec: 2,
+        failureRate: 0.01,
+        pendingCount: 1,
+        heldCount: 0,
+        averageLatencyMs: 120,
+        p95LatencyMs: 400,
+        lastEventTs: SERVER_TS_MS,
+      },
+    ],
+    chart: [
+      {
+        ts: SERVER_TS_MS,
+        eventCount: 10,
+        eventRate: 2_000,
+        p95LatencyMs: 400,
+        failureRate: 0.01,
+        exceptionQueueDepth: 3,
+        liquidityReserveMinor: 250_000_000_000n,
+        creditMinor: 1_000n,
+        debitMinor: 500n,
+      },
+    ],
+  };
+
+  it("maps simulator aggregate snapshots onto the JSON frame shape", () => {
+    const frame = toAggregateSnapshotFrame(aggregateSnapshot);
+
+    expect(frame).toMatchObject({
+      channel: StreamChannel.AggregateSnapshot,
+      type: "ops.snapshot",
+      seq: "42",
+      cumulativeCreditsMinor: "810000000",
+      cumulativeDebitsMinor: "200000000",
+      liquidityReserveMinor: "250000000000",
+    });
+    expect(frame.chart[0]?.creditMinor).toBe("1000");
+    expect(readAggregateSnapshotFrame(JSON.stringify(frame))).toEqual(frame);
+  });
+
+  it("rejects unknown aggregate snapshot frames", () => {
+    expect(() =>
+      readAggregateSnapshotFrame(
+        JSON.stringify({ channel: StreamChannel.ClientControl, type: "ops.snapshot" }),
+      ),
+    ).toThrow("Unknown SettlementStream aggregate snapshot frame");
+  });
+});
+
+describe("SettlementStream stream rate control frames", () => {
+  it("round trips client rate controls through the JSON frame", () => {
+    const frame: StreamRateControlFrame = { type: "stream.rate.set", targetRate: 50 };
+
+    expect(JSON.parse(encodeStreamRateControlFrame(frame))).toEqual(frame);
+    expect(readStreamRateControlFrame(JSON.stringify(frame))).toEqual(frame);
+  });
+
+  it("rejects unsupported stream rate controls", () => {
+    expect(() =>
+      readStreamRateControlFrame(JSON.stringify({ type: "stream.rate.set", targetRate: 42 })),
+    ).toThrow("Unsupported stream rate");
   });
 });
 

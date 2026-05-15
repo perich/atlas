@@ -1,45 +1,16 @@
 import {
   DEFAULT_STREAM_RATE,
   encodeMovementBatch,
-  StreamChannel,
-  STREAM_RATES,
+  readStreamRateControlFrame,
   type StreamRate,
+  toAggregateSnapshotFrame,
 } from "@bankops/contracts";
-import { createOpsTapeSimulator, type OpsTapeAggregateSnapshot } from "@bankops/ops-tape-sim";
+import { createOpsTapeSimulator } from "@bankops/ops-tape-sim";
 import type { WebSocket } from "@fastify/websocket";
 import type { RawData } from "ws";
 
 const HOT_TICK_MS = 1_000 / 60;
 const WARM_TICK_MS = 250;
-const VALID_STREAM_RATE_VALUES: readonly unknown[] = STREAM_RATES;
-
-export type WarmOpsSnapshotMessage = {
-  channel: typeof StreamChannel.AggregateSnapshot;
-  type: "ops.snapshot";
-  seq: string;
-  eventRate: number;
-  cumulativeCreditsMinor: string;
-  cumulativeDebitsMinor: string;
-  liquidityReserveMinor: string;
-  exceptionQueueDepth: number;
-  railHealth: OpsTapeAggregateSnapshot["railHealth"];
-  chart: Array<{
-    ts: number;
-    eventCount: number;
-    eventRate: number;
-    p95LatencyMs: number;
-    failureRate: number;
-    exceptionQueueDepth: number;
-    liquidityReserveMinor: string;
-    creditMinor: string;
-    debitMinor: string;
-  }>;
-};
-
-type StreamRateMessage = {
-  type: "stream.rate.set";
-  targetRate: StreamRate;
-};
 
 export function startOpsStreamSession(socket: WebSocket) {
   const simulator = createOpsTapeSimulator();
@@ -52,7 +23,7 @@ export function startOpsStreamSession(socket: WebSocket) {
   };
 
   const sendWarmSnapshot = () => {
-    socket.send(JSON.stringify(toWarmMessage(simulator.getAggregateSnapshot())));
+    socket.send(JSON.stringify(toAggregateSnapshotFrame(simulator.getAggregateSnapshot())));
   };
 
   sendWarmSnapshot();
@@ -61,20 +32,13 @@ export function startOpsStreamSession(socket: WebSocket) {
   const warmTimer = setInterval(sendWarmSnapshot, WARM_TICK_MS);
 
   socket.on("message", (data) => {
-    targetRate = readControlMessage(data).targetRate;
+    targetRate = readStreamRateControlFrame(rawDataToText(data)).targetRate;
   });
 
   socket.on("close", () => {
     clearInterval(hotTimer);
     clearInterval(warmTimer);
   });
-}
-
-function readControlMessage(data: RawData): StreamRateMessage {
-  const parsed: unknown = JSON.parse(rawDataToText(data));
-  assertStreamRateMessage(parsed);
-
-  return parsed;
 }
 
 function rawDataToText(data: RawData): string {
@@ -87,46 +51,4 @@ function rawDataToText(data: RawData): string {
   }
 
   return Buffer.concat(data).toString("utf8");
-}
-
-function assertStreamRateMessage(value: unknown): asserts value is StreamRateMessage {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Expected stream rate control message");
-  }
-
-  if (!("type" in value) || !("targetRate" in value)) {
-    throw new Error("Expected stream rate control message");
-  }
-
-  if (value.type !== "stream.rate.set") {
-    throw new Error(`Unknown stream control message: ${String(value.type)}`);
-  }
-
-  if (!isStreamRate(value.targetRate)) {
-    throw new Error(`Unsupported stream rate: ${String(value.targetRate)}`);
-  }
-}
-
-function isStreamRate(value: unknown): value is StreamRate {
-  return VALID_STREAM_RATE_VALUES.includes(value);
-}
-
-function toWarmMessage(snapshot: OpsTapeAggregateSnapshot): WarmOpsSnapshotMessage {
-  return {
-    channel: StreamChannel.AggregateSnapshot,
-    type: "ops.snapshot",
-    seq: snapshot.seq.toString(),
-    eventRate: snapshot.eventRate,
-    cumulativeCreditsMinor: snapshot.cumulativeCreditsMinor.toString(),
-    cumulativeDebitsMinor: snapshot.cumulativeDebitsMinor.toString(),
-    liquidityReserveMinor: snapshot.liquidityReserveMinor.toString(),
-    exceptionQueueDepth: snapshot.exceptionQueueDepth,
-    railHealth: snapshot.railHealth,
-    chart: snapshot.chart.map((point) => ({
-      ...point,
-      liquidityReserveMinor: point.liquidityReserveMinor.toString(),
-      creditMinor: point.creditMinor.toString(),
-      debitMinor: point.debitMinor.toString(),
-    })),
-  };
 }
