@@ -1,31 +1,12 @@
+import {
+  jsonAuditFacetsSchema,
+  jsonAuditPageSchema,
+  type JsonAuditFacets,
+  type JsonAuditPage,
+} from "@bankops/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { buildServer } from "./main.js";
-
-type JsonAuditEntry = {
-  id: string;
-  ts: number;
-  severity: string;
-  kind: string;
-  rail?: string;
-  amountMinor?: string;
-  status: string;
-};
-
-type JsonAuditPage = {
-  rows: JsonAuditEntry[];
-  offset: number;
-  nextCursor?: string;
-  prevCursor?: string;
-  totalMatched: number;
-  queryMs: number;
-};
-
-type JsonAuditFacets = {
-  rail: Record<string, number>;
-  severity: Record<string, number>;
-  status: Record<string, number>;
-};
 
 let app: Awaited<ReturnType<typeof buildServer>>;
 
@@ -122,42 +103,12 @@ async function getAuditPage(url: string): Promise<JsonAuditPage> {
   const response = await app.inject({ method: "GET", url });
 
   expect(response.statusCode).toBe(200);
-  const parsed: unknown = JSON.parse(response.body);
-
-  assertJsonAuditPage(parsed);
-  return parsed;
+  return jsonAuditPageSchema.parse(JSON.parse(response.body));
 }
 
 async function getAuditFacets(url: string): Promise<JsonAuditFacets> {
   const response = await app.inject({ method: "GET", url });
 
   expect(response.statusCode).toBe(200);
-  const parsed: unknown = JSON.parse(response.body);
-
-  assertJsonAuditFacets(parsed);
-  return parsed;
-}
-
-function assertJsonAuditPage(value: unknown): asserts value is JsonAuditPage {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Expected audit page object");
-  }
-
-  if (!("rows" in value) || !Array.isArray(value.rows)) {
-    throw new Error("Expected audit page rows");
-  }
-
-  if (!("offset" in value) || !("totalMatched" in value) || !("queryMs" in value)) {
-    throw new Error("Expected audit page totals");
-  }
-}
-
-function assertJsonAuditFacets(value: unknown): asserts value is JsonAuditFacets {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("Expected audit facets object");
-  }
-
-  if (!("rail" in value) || !("severity" in value) || !("status" in value)) {
-    throw new Error("Expected audit facet counts");
-  }
+  return jsonAuditFacetsSchema.parse(JSON.parse(response.body));
 }

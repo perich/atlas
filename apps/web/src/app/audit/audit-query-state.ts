@@ -1,14 +1,24 @@
 import type { AuditQuery, AuditSort } from "@bankops/contracts";
 import {
-  AUDIT_SEVERITIES,
-  AUDIT_SORT_DIRECTIONS,
-  AUDIT_SORT_FIELDS,
-  AUDIT_STATUSES,
-  RAILS,
+  auditSeveritySchema,
+  auditSortDirectionSchema,
+  auditSortFieldSchema,
+  auditStatusSchema,
+  railSchema,
 } from "@bankops/contracts";
+import { z } from "zod";
 
 type AuditSearchValue = string | string[] | number | undefined;
 type AuditSearchInput = Record<string, AuditSearchValue>;
+type StringSchema<T extends string> = z.ZodType<T>;
+
+const safeIntegerSchema = z.int();
+const searchStringsSchema = z.union([
+  z.array(z.union([z.string(), z.number()])).transform((values) => values.map(String)),
+  z.string().transform((value) => [value]),
+  z.number().transform((value) => [String(value)]),
+  z.undefined().transform(() => [] as string[]),
+]);
 
 export type AuditSearch = {
   severity?: string;
@@ -33,11 +43,11 @@ export const DEFAULT_AUDIT_QUERY_STATE = {
 export function validateAuditSearch(search: AuditSearchInput): AuditSearch {
   const tsFrom = parseNumber(search.tsFrom);
   const tsTo = parseNumber(search.tsTo);
-  const severity = enumList(search.severity, AUDIT_SEVERITIES);
-  const rail = enumList(search.rail, RAILS);
-  const status = enumList(search.status, AUDIT_STATUSES);
-  const sortField = enumList(search.sortField, AUDIT_SORT_FIELDS)[0];
-  const sortDir = enumList(search.sortDir, AUDIT_SORT_DIRECTIONS)[0];
+  const severity = enumList(search.severity, auditSeveritySchema);
+  const rail = enumList(search.rail, railSchema);
+  const status = enumList(search.status, auditStatusSchema);
+  const sortField = enumList(search.sortField, auditSortFieldSchema)[0];
+  const sortDir = enumList(search.sortDir, auditSortDirectionSchema)[0];
 
   return {
     ...(severity.length > 0 ? { severity: severity.join(",") } : {}),
@@ -55,9 +65,11 @@ export function auditSearchToQueryState(search: AuditSearch): AuditQueryState {
     filters: {
       ...(search.severity === undefined
         ? {}
-        : { severity: enumList(search.severity, AUDIT_SEVERITIES) }),
-      ...(search.rail === undefined ? {} : { rail: enumList(search.rail, RAILS) }),
-      ...(search.status === undefined ? {} : { status: enumList(search.status, AUDIT_STATUSES) }),
+        : { severity: enumList(search.severity, auditSeveritySchema) }),
+      ...(search.rail === undefined ? {} : { rail: enumList(search.rail, railSchema) }),
+      ...(search.status === undefined
+        ? {}
+        : { status: enumList(search.status, auditStatusSchema) }),
       ...(search.tsFrom === undefined ? {} : { tsFrom: search.tsFrom }),
       ...(search.tsTo === undefined ? {} : { tsTo: search.tsTo }),
     },
@@ -85,11 +97,11 @@ export function queryStateToAuditSearch(state: AuditQueryState): Partial<AuditSe
 export function readAuditQueryState(search = window.location.search): AuditQueryState {
   const params = new URLSearchParams(search);
   const filters: AuditQueryState["filters"] = {};
-  const severity = enumList(params.getAll("severity"), AUDIT_SEVERITIES);
-  const rail = enumList(params.getAll("rail"), RAILS);
-  const status = enumList(params.getAll("status"), AUDIT_STATUSES);
-  const sortField = enumList(params.getAll("sortField"), AUDIT_SORT_FIELDS)[0];
-  const sortDir = enumList(params.getAll("sortDir"), AUDIT_SORT_DIRECTIONS)[0];
+  const severity = enumList(params.getAll("severity"), auditSeveritySchema);
+  const rail = enumList(params.getAll("rail"), railSchema);
+  const status = enumList(params.getAll("status"), auditStatusSchema);
+  const sortField = enumList(params.getAll("sortField"), auditSortFieldSchema)[0];
+  const sortDir = enumList(params.getAll("sortDir"), auditSortDirectionSchema)[0];
   const tsFrom = params.get("tsFrom");
   const tsTo = params.get("tsTo");
 
@@ -106,17 +118,17 @@ export function readAuditQueryState(search = window.location.search): AuditQuery
   }
 
   if (tsFrom !== null) {
-    const parsed = Number(tsFrom);
+    const parsed = parseNumber(tsFrom);
 
-    if (Number.isSafeInteger(parsed)) {
+    if (parsed !== undefined) {
       filters.tsFrom = parsed;
     }
   }
 
   if (tsTo !== null) {
-    const parsed = Number(tsTo);
+    const parsed = parseNumber(tsTo);
 
-    if (Number.isSafeInteger(parsed)) {
+    if (parsed !== undefined) {
       filters.tsTo = parsed;
     }
   }
@@ -165,12 +177,12 @@ function appendList(params: URLSearchParams, key: string, items: readonly string
 
 function enumList<const T extends string>(
   input: AuditSearchValue | string[],
-  allowed: readonly T[],
+  schema: StringSchema<T>,
 ): T[] {
   return toSearchStrings(input)
     .flatMap((value) => value.split(","))
     .map((value) => value.trim())
-    .filter((value): value is T => allowed.some((allowedValue) => allowedValue === value));
+    .filter((value): value is T => schema.safeParse(value).success);
 }
 
 function parseNumber(input: AuditSearchValue) {
@@ -181,17 +193,9 @@ function parseNumber(input: AuditSearchValue) {
   }
 
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) ? parsed : undefined;
+  return safeIntegerSchema.safeParse(parsed).success ? parsed : undefined;
 }
 
 function toSearchStrings(input: AuditSearchValue | string[]) {
-  if (Array.isArray(input)) {
-    return input.map(String);
-  }
-
-  if (input === undefined) {
-    return [];
-  }
-
-  return [String(input)];
+  return searchStringsSchema.parse(input);
 }
