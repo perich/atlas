@@ -6,11 +6,14 @@
   "scripts": {
     "prepare": "husky",
     "dev": "concurrently -n web,server -c cyan,green \"pnpm dev:web\" \"pnpm dev:server\"",
+    "dev:scan": "concurrently -n web,server -c cyan,green \"pnpm --filter @bankops/web dev:scan\" \"pnpm dev:server\"",
     "dev:web": "pnpm --filter @bankops/web dev",
     "dev:server": "pnpm --filter @bankops/server dev",
     "build": "pnpm -r --if-present build",
     "start": "pnpm --filter @bankops/server start",
     "preview:web": "pnpm --filter @bankops/web preview",
+    "doctor": "react-doctor . --verbose",
+    "doctor:diff": "react-doctor . --verbose --diff",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "oxlint --type-aware .",
     "format": "oxfmt --write .",
@@ -32,6 +35,7 @@
     "oxfmt": "0.48.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "react-doctor": "0.1.6",
     "typescript": "6.0.3"
   },
   "lint-staged": {
