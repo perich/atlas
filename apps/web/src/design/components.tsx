@@ -136,7 +136,13 @@ function TooltipContent({ children }: { children: string }) {
   );
 }
 
-export function InfoTooltip({ children, label }: { children: string; label: string }) {
+export const InfoTooltip = React.memo(function InfoTooltip({
+  children,
+  label,
+}: {
+  children: string;
+  label: string;
+}) {
   return (
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>
@@ -151,4 +157,4 @@ export function InfoTooltip({ children, label }: { children: string; label: stri
       <TooltipContent>{children}</TooltipContent>
     </TooltipPrimitive.Root>
   );
-}
+});
