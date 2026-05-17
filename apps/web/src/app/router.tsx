@@ -36,11 +36,9 @@ const auditRoute = createRoute({
   component: AuditRoute,
   getParentRoute: () => rootRoute,
   loaderDeps: ({ search }) => auditSearchToQueryState(search),
-  loader: async ({ context, deps }) => {
-    await Promise.allSettled([
-      context.queryClient.ensureQueryData(auditWindowOptions(deps, { direction: "initial" })),
-      context.queryClient.ensureQueryData(auditFacetsOptions(deps)),
-    ]);
+  loader: ({ context, deps }) => {
+    void context.queryClient.prefetchQuery(auditWindowOptions(deps, { direction: "initial" }));
+    void context.queryClient.prefetchQuery(auditFacetsOptions(deps));
   },
   path: "/audit",
   validateSearch: validateAuditSearch,
