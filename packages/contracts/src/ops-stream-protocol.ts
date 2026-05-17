@@ -350,35 +350,15 @@ export function decodeOpsMovementBatch(
     offset += 4;
     const dtMs = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    const kindCode = view.getUint8(offset);
-    const kind = MOVEMENT_KINDS[kindCode];
-    if (kind === undefined) {
-      throw new OpsStreamDecodeError(`Invalid kind code ${kindCode}`, "invalid_enum_code");
-    }
+    const kind = readEnumCode(MOVEMENT_KINDS, view.getUint8(offset), "kind");
     offset += 1;
-    const sideCode = view.getUint8(offset);
-    const side = MOVEMENT_SIDES[sideCode];
-    if (side === undefined) {
-      throw new OpsStreamDecodeError(`Invalid side code ${sideCode}`, "invalid_enum_code");
-    }
+    const side = readEnumCode(MOVEMENT_SIDES, view.getUint8(offset), "side");
     offset += 1;
-    const bucketCode = view.getUint8(offset);
-    const bucket = BALANCE_SHEET_BUCKETS[bucketCode];
-    if (bucket === undefined) {
-      throw new OpsStreamDecodeError(`Invalid bucket code ${bucketCode}`, "invalid_enum_code");
-    }
+    const bucket = readEnumCode(BALANCE_SHEET_BUCKETS, view.getUint8(offset), "bucket");
     offset += 1;
-    const railCode = view.getUint8(offset);
-    const rail = RAILS[railCode];
-    if (rail === undefined) {
-      throw new OpsStreamDecodeError(`Invalid rail code ${railCode}`, "invalid_enum_code");
-    }
+    const rail = readEnumCode(RAILS, view.getUint8(offset), "rail");
     offset += 1;
-    const assetCode = view.getUint8(offset);
-    const asset = ASSETS[assetCode];
-    if (asset === undefined) {
-      throw new OpsStreamDecodeError(`Invalid asset code ${assetCode}`, "invalid_enum_code");
-    }
+    const asset = readEnumCode(ASSETS, view.getUint8(offset), "asset");
     offset += 1;
     const customerId = view.getUint32(offset, STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -388,11 +368,7 @@ export function decodeOpsMovementBatch(
     offset += 8;
     const latencyMs = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    const statusCode = view.getUint8(offset);
-    const status = MOVEMENT_STATUSES[statusCode];
-    if (status === undefined) {
-      throw new OpsStreamDecodeError(`Invalid status code ${statusCode}`, "invalid_enum_code");
-    }
+    const status = readEnumCode(MOVEMENT_STATUSES, view.getUint8(offset), "status");
     offset += 1;
     const riskTier = view.getUint8(offset);
     offset += 1;
@@ -460,4 +436,18 @@ function parseRange<T>(schema: z.ZodType<T>, value: unknown, message: string): T
   }
 
   return result.data;
+}
+
+function readEnumCode<const T extends readonly string[]>(
+  values: T,
+  code: number,
+  name: string,
+): T[number] {
+  const value = values[code];
+
+  if (value === undefined) {
+    throw new OpsStreamDecodeError(`Invalid ${name} code ${code}`, "invalid_enum_code");
+  }
+
+  return value;
 }

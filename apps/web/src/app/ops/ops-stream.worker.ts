@@ -3,6 +3,7 @@ import {
   DEFAULT_STREAM_RATE,
   encodeOpsStreamControlFrame,
   OpsStreamDecodeError,
+  type OpsAggregateSnapshotFrame,
   type StreamRate,
 } from "@bankops/contracts";
 
@@ -64,44 +65,20 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
     try {
       const frame = decodeOpsStreamServerFrame(event.data);
 
-      if (frame.kind === "aggregate_snapshot") {
-        const warmSnapshot = frame.snapshot;
-        const rendererMetrics = renderer.metrics();
-        const decodedRate = decodedCount * 4;
-
-        publish({
-          ...snapshot,
-          connectionStatus: "open",
-          streamIssue: undefined,
-          eventRate: warmSnapshot.eventRate,
-          cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
-          cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
-          liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
-          exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
-          railHealth: warmSnapshot.railHealth,
-          chart: warmSnapshot.chart,
-          seq: warmSnapshot.seq,
-          streamRate,
-          railBucketHeatmap: movementWindow.heatmapSnapshot(),
-          renderer: {
-            ...rendererMetrics,
-            sequenceLag:
-              latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
-            decodedRate,
-          },
-        });
-        decodedCount = 0;
-        renderer.resetMetrics();
-        return;
+      switch (frame.kind) {
+        case "aggregate_snapshot":
+          publishWarmSnapshot(frame.snapshot);
+          return;
+        case "movement_batch":
+          decodedCount += frame.batch.movements.length;
+          latestSeq = frame.batch.toSeq;
+          renderer.pushRows(frame.batch.movements);
+          movementWindow.record(frame.batch.movements);
+          return;
       }
 
-      const batch = frame.batch;
-
-      decodedCount += batch.movements.length;
-      latestSeq = batch.toSeq;
-      renderer.pushRows(batch.movements);
-      movementWindow.record(batch.movements);
-      return;
+      const exhaustive: never = frame;
+      throw new Error(`Unsupported OpsStream frame ${String(exhaustive)}`);
     } catch (error) {
       publish({
         ...snapshot,
@@ -140,6 +117,34 @@ function attachCanvas(canvas: OffscreenCanvas, layout: TapeCanvasLayout) {
 
 function resizeCanvas(layout: TapeCanvasLayout) {
   renderer.resize(layout);
+}
+
+function publishWarmSnapshot(warmSnapshot: OpsAggregateSnapshotFrame) {
+  const rendererMetrics = renderer.metrics();
+  const decodedRate = decodedCount * 4;
+
+  publish({
+    ...snapshot,
+    connectionStatus: "open",
+    streamIssue: undefined,
+    eventRate: warmSnapshot.eventRate,
+    cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
+    cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
+    liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
+    exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
+    railHealth: warmSnapshot.railHealth,
+    chart: warmSnapshot.chart,
+    seq: warmSnapshot.seq,
+    streamRate,
+    railBucketHeatmap: movementWindow.heatmapSnapshot(),
+    renderer: {
+      ...rendererMetrics,
+      sequenceLag: latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
+      decodedRate,
+    },
+  });
+  decodedCount = 0;
+  renderer.resetMetrics();
 }
 
 function publish(nextSnapshot: OpsStreamSnapshot) {
