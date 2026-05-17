@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { serializeAuditQueryState } from "./audit-query-state";
 import type { AuditQueryState } from "./audit-query-state";
@@ -27,14 +27,13 @@ export function useAuditWindow(queryState: AuditQueryState) {
     queryKey: ["audit-window", queryKey, "initial"],
     queryFn: ({ signal }) =>
       fetchAuditPage({ request: { direction: "initial" }, signal, state: queryState }),
-    placeholderData: (previousData) => previousData,
+    placeholderData: keepPreviousData,
     retry: 1,
     staleTime: 30_000,
   });
   const facetsQuery = useQuery({
     queryKey: ["audit-facets", queryKey],
     queryFn: ({ signal }) => fetchAuditFacets({ signal, state: queryState }),
-    placeholderData: (previousData) => previousData,
     retry: 1,
     staleTime: 30_000,
   });
@@ -53,7 +52,7 @@ export function useAuditWindow(queryState: AuditQueryState) {
   const rows = useMemo(() => cache.windows.flatMap((window) => window.rows), [cache]);
 
   const loadVisibleRange = useCallback(
-    async (visibleRange: AuditVisibleRange) => {
+    (visibleRange: AuditVisibleRange) => {
       const request = nextAuditWindowRequest(cache, visibleRange);
 
       if (request === undefined) {
@@ -61,20 +60,25 @@ export function useAuditWindow(queryState: AuditQueryState) {
       }
 
       const requestId = (requestIdRef.current += 1);
-      const page = await queryClient.fetchQuery({
-        queryKey: ["audit-window", queryKey, request],
-        queryFn: ({ signal }) => fetchAuditPage({ request, signal, state: queryState }),
-        staleTime: 30_000,
-      });
+      void queryClient
+        .fetchQuery({
+          queryKey: ["audit-window", queryKey, request],
+          queryFn: ({ signal }) => fetchAuditPage({ request, signal, state: queryState }),
+          staleTime: 30_000,
+        })
+        .then(
+          (page) => {
+            if (requestId !== requestIdRef.current) {
+              return;
+            }
 
-      if (requestId !== requestIdRef.current) {
-        return;
-      }
-
-      setExtraCache({
-        cache: mergeAuditWindow(cache, request, page),
-        queryKey,
-      });
+            setExtraCache({
+              cache: mergeAuditWindow(cache, request, page),
+              queryKey,
+            });
+          },
+          () => undefined,
+        );
     },
     [cache, queryClient, queryKey, queryState],
   );

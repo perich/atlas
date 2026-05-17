@@ -5,7 +5,7 @@ export type AuditVisibleRange = {
   end: number;
 };
 
-export type AuditWindow = {
+type AuditWindow = {
   start: number;
   rows: JsonAuditEntry[];
   prevCursor?: string;
