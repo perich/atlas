@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import type { StreamRate } from "@bankops/contracts";
 
 import {
@@ -95,6 +95,7 @@ const opsStreamStore = createOpsStreamStore(
   // Standard Vite worker bundling pattern: resolve the worker relative to this module.
   () => new Worker(new URL("./ops-stream.worker.ts", import.meta.url), { type: "module" }),
 );
+const selectOpsStreamSnapshot = (snapshot: OpsStreamSnapshot) => snapshot;
 
 const opsStreamControls = {
   attachTapeCanvas: opsStreamStore.attachTapeCanvas,
@@ -103,11 +104,7 @@ const opsStreamControls = {
 };
 
 export function useOpsStreamSnapshot() {
-  return useSyncExternalStore(
-    opsStreamStore.subscribe,
-    opsStreamStore.getSnapshot,
-    opsStreamStore.getSnapshot,
-  );
+  return useOpsStreamSelector(selectOpsStreamSnapshot);
 }
 
 export function useOpsStreamControls() {
@@ -120,5 +117,38 @@ export function useOpsStream() {
   return {
     ...opsStreamControls,
     snapshot,
+  };
+}
+
+export function useOpsStreamSelector<T>(
+  selector: (snapshot: OpsStreamSnapshot) => T,
+  isEqual: (left: T, right: T) => boolean = Object.is,
+): T {
+  const getSelection = useMemo(
+    () => createOpsStreamSelectionGetter(opsStreamStore.getSnapshot, selector, isEqual),
+    [isEqual, selector],
+  );
+
+  return useSyncExternalStore(opsStreamStore.subscribe, getSelection, getSelection);
+}
+
+export function createOpsStreamSelectionGetter<T>(
+  getSnapshot: () => OpsStreamSnapshot,
+  selector: (snapshot: OpsStreamSnapshot) => T,
+  isEqual: (left: T, right: T) => boolean = Object.is,
+) {
+  let hasSelection = false;
+  let selected: T;
+
+  return () => {
+    const nextSelected = selector(getSnapshot());
+
+    if (hasSelection && isEqual(selected, nextSelected)) {
+      return selected;
+    }
+
+    hasSelection = true;
+    selected = nextSelected;
+    return selected;
   };
 }
