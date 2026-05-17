@@ -30,7 +30,11 @@ export function toJsonAuditFacets(facets: AuditFacets): JsonAuditFacets {
 }
 
 function toJsonAuditDetail(detail: AuditEntry["detail"]): Record<string, unknown> {
-  return toJsonValue(detail) as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(detail)
+      .filter(([, item]) => item !== undefined)
+      .map(([key, item]) => [key, toJsonValue(item)]),
+  );
 }
 
 function toJsonValue(value: unknown): unknown {

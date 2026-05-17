@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { serializeAuditQueryState } from "./audit-query-state";
 import type { AuditQueryState } from "./audit-query-state";
-import { fetchAuditPage } from "./audit-api";
+import { fetchAuditFacets, fetchAuditPage } from "./audit-api";
 import {
   EMPTY_AUDIT_WINDOW_CACHE,
   mergeAuditWindow,
@@ -27,6 +27,13 @@ export function useAuditWindow(queryState: AuditQueryState) {
     queryKey: ["audit-window", queryKey, "initial"],
     queryFn: ({ signal }) =>
       fetchAuditPage({ request: { direction: "initial" }, signal, state: queryState }),
+    placeholderData: (previousData) => previousData,
+    retry: 1,
+    staleTime: 30_000,
+  });
+  const facetsQuery = useQuery({
+    queryKey: ["audit-facets", queryKey],
+    queryFn: ({ signal }) => fetchAuditFacets({ signal, state: queryState }),
     placeholderData: (previousData) => previousData,
     retry: 1,
     staleTime: 30_000,
@@ -79,6 +86,7 @@ export function useAuditWindow(queryState: AuditQueryState) {
 
   return {
     cache,
+    facets: facetsQuery.data,
     hasError: firstPageQuery.isError,
     isFetching: firstPageQuery.isFetching,
     rows,
