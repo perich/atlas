@@ -4,6 +4,12 @@ import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditFacets } from "./audit-api";
 import type { AuditColumnLayout } from "./audit-columns";
+import {
+  auditQueryStateWithRailFilter,
+  auditQueryStateWithSeverityFilter,
+  auditQueryStateWithStatusFilter,
+  auditQueryStateWithTimeBounds,
+} from "./audit-query-state";
 import { TIME_RANGES, type TimeRangeValue } from "./audit-time-range";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
@@ -48,16 +54,15 @@ export function AuditFilterPanel({
           label="Time"
           onChange={(value) => {
             const range = TIME_RANGES.find((item) => item.value === value);
-            const nextFilters = { ...queryState.filters };
 
-            delete nextFilters.tsFrom;
-            delete nextFilters.tsTo;
-
-            if (range?.durationMs !== undefined && newestRowTs !== undefined) {
-              nextFilters.tsFrom = newestRowTs - range.durationMs;
-            }
-
-            setQueryState({ filters: nextFilters, sort: queryState.sort });
+            setQueryState(
+              auditQueryStateWithTimeBounds(queryState, {
+                tsFrom:
+                  range?.durationMs !== undefined && newestRowTs !== undefined
+                    ? newestRowTs - range.durationMs
+                    : undefined,
+              }),
+            );
           }}
           options={TIME_OPTIONS}
           value={selectedTimeRange}
@@ -66,13 +71,9 @@ export function AuditFilterPanel({
         <FilterSelect
           label="Severity"
           onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                severity: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
+            setQueryState(
+              auditQueryStateWithSeverityFilter(queryState, value === "all" ? undefined : value),
+            )
           }
           options={severityOptions}
           value={queryState.filters.severity?.[0] ?? "all"}
@@ -81,13 +82,9 @@ export function AuditFilterPanel({
         <FilterSelect
           label="Rail"
           onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                rail: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
+            setQueryState(
+              auditQueryStateWithRailFilter(queryState, value === "all" ? undefined : value),
+            )
           }
           options={railOptions}
           value={queryState.filters.rail?.[0] ?? "all"}
@@ -96,13 +93,9 @@ export function AuditFilterPanel({
         <FilterSelect
           label="Status"
           onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                status: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
+            setQueryState(
+              auditQueryStateWithStatusFilter(queryState, value === "all" ? undefined : value),
+            )
           }
           options={statusOptions}
           value={queryState.filters.status?.[0] ?? "all"}
