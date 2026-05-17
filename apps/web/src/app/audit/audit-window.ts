@@ -15,6 +15,7 @@ export type AuditWindow = {
 export type AuditWindowCache = {
   windows: AuditWindow[];
   totalMatched: number;
+  newestTs?: number;
   queryMs: number;
 };
 
@@ -29,6 +30,7 @@ export const AUDIT_MAX_WINDOWS = 5;
 export const EMPTY_AUDIT_WINDOW_CACHE = {
   windows: [],
   totalMatched: 0,
+  newestTs: undefined,
   queryMs: 0,
 } as AuditWindowCache;
 
@@ -50,6 +52,7 @@ export function mergeAuditWindow(
     return {
       windows: [window],
       totalMatched: page.totalMatched,
+      newestTs: page.newestTs,
       queryMs: page.queryMs,
     };
   }
@@ -68,6 +71,7 @@ export function mergeAuditWindow(
   return {
     windows,
     totalMatched: page.totalMatched,
+    newestTs: page.newestTs,
     queryMs: page.queryMs,
   };
 }

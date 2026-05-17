@@ -15,15 +15,15 @@ export type { AuditFilters };
 export function queryAuditEntries(entries: readonly AuditEntry[], query: AuditQuery): AuditPage {
   const startedAt = Date.now();
   const sort = query.sort ?? DEFAULT_AUDIT_SORT;
-  const sorted = filterEntries(entries, query.filters).toSorted((left, right) =>
-    compareEntries(left, right, sort),
-  );
+  const filtered = filterEntries(entries, query.filters);
+  const sorted = filtered.toSorted((left, right) => compareEntries(left, right, sort));
   const start = pageStart(sorted, query, sort);
   const rows = sorted.slice(start, start + query.limit);
 
   return {
     rows,
     offset: start,
+    newestTs: newestAuditEntryTs(filtered),
     nextCursor:
       start + query.limit < sorted.length && rows.length > 0
         ? auditCursorForEntry(rows[rows.length - 1], sort)
@@ -32,6 +32,16 @@ export function queryAuditEntries(entries: readonly AuditEntry[], query: AuditQu
     totalMatched: sorted.length,
     queryMs: Date.now() - startedAt,
   };
+}
+
+function newestAuditEntryTs(entries: readonly AuditEntry[]): number | undefined {
+  return entries.reduce<number | undefined>((newestTs, entry) => {
+    if (newestTs === undefined || entry.ts > newestTs) {
+      return entry.ts;
+    }
+
+    return newestTs;
+  }, undefined);
 }
 
 export function getAuditFacets(entries: readonly AuditEntry[], filters: AuditFilters): AuditFacets {
