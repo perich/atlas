@@ -1,8 +1,8 @@
 import {
-  decodeMovementBatch,
+  decodeOpsStreamServerFrame,
   DEFAULT_STREAM_RATE,
-  encodeStreamRateControlFrame,
-  readAggregateSnapshotFrame,
+  encodeOpsStreamControlFrame,
+  OpsStreamDecodeError,
   type StreamRate,
 } from "@bankops/contracts";
 
@@ -42,7 +42,7 @@ self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
       return;
     case "stream.rate.set":
       streamRate = command.targetRate;
-      socket?.send(encodeStreamRateControlFrame(command));
+      socket?.send(encodeOpsStreamControlFrame(command));
       publish({ ...snapshot, streamRate });
       return;
   }
@@ -56,52 +56,59 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   socket.binaryType = "arraybuffer";
 
   socket.onopen = () => {
-    socket?.send(encodeStreamRateControlFrame({ type: "stream.rate.set", targetRate: streamRate }));
-    publish({ ...snapshot, connectionStatus: "open", streamRate });
+    socket?.send(encodeOpsStreamControlFrame({ type: "stream.rate.set", targetRate: streamRate }));
+    publish({ ...snapshot, connectionStatus: "open", streamIssue: undefined, streamRate });
   };
 
   socket.onmessage = (event) => {
-    if (typeof event.data === "string") {
-      const warmSnapshot = readAggregateSnapshotFrame(event.data);
-      const rendererMetrics = renderer.metrics();
-      const decodedRate = decodedCount * 4;
+    try {
+      const frame = decodeOpsStreamServerFrame(event.data);
 
-      publish({
-        ...snapshot,
-        connectionStatus: "open",
-        eventRate: warmSnapshot.eventRate,
-        cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
-        cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
-        liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
-        exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
-        railHealth: warmSnapshot.railHealth,
-        chart: warmSnapshot.chart,
-        seq: warmSnapshot.seq,
-        streamRate,
-        railBucketHeatmap: movementWindow.heatmapSnapshot(),
-        renderer: {
-          ...rendererMetrics,
-          sequenceLag:
-            latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
-          decodedRate,
-        },
-      });
-      decodedCount = 0;
-      renderer.resetMetrics();
-      return;
-    }
+      if (frame.kind === "aggregate_snapshot") {
+        const warmSnapshot = frame.snapshot;
+        const rendererMetrics = renderer.metrics();
+        const decodedRate = decodedCount * 4;
 
-    if (event.data instanceof ArrayBuffer) {
-      const batch = decodeMovementBatch(event.data);
+        publish({
+          ...snapshot,
+          connectionStatus: "open",
+          streamIssue: undefined,
+          eventRate: warmSnapshot.eventRate,
+          cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
+          cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
+          liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
+          exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
+          railHealth: warmSnapshot.railHealth,
+          chart: warmSnapshot.chart,
+          seq: warmSnapshot.seq,
+          streamRate,
+          railBucketHeatmap: movementWindow.heatmapSnapshot(),
+          renderer: {
+            ...rendererMetrics,
+            sequenceLag:
+              latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
+            decodedRate,
+          },
+        });
+        decodedCount = 0;
+        renderer.resetMetrics();
+        return;
+      }
+
+      const batch = frame.batch;
 
       decodedCount += batch.movements.length;
       latestSeq = batch.toSeq;
       renderer.pushRows(batch.movements);
       movementWindow.record(batch.movements);
       return;
+    } catch (error) {
+      publish({
+        ...snapshot,
+        connectionStatus: "degraded",
+        streamIssue: streamIssueFor(error),
+      });
     }
-
-    throw new Error("Unsupported SettlementStream message payload");
   };
 
   socket.onclose = () => {
@@ -112,7 +119,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   };
 
   socket.onerror = () => {
-    publish({ ...snapshot, connectionStatus: "degraded" });
+    publish({ ...snapshot, connectionStatus: "degraded", streamIssue: "transport:error" });
   };
 }
 
@@ -138,6 +145,18 @@ function resizeCanvas(layout: TapeCanvasLayout) {
 function publish(nextSnapshot: OpsStreamSnapshot) {
   snapshot = nextSnapshot;
   self.postMessage({ type: "snapshot", snapshot });
+}
+
+function streamIssueFor(error: unknown): string {
+  if (error instanceof OpsStreamDecodeError) {
+    return `protocol:${error.reason}`;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "protocol:unknown";
 }
 
 function streamUrl() {
