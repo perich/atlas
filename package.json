@@ -18,7 +18,8 @@
     "lint": "oxlint --type-aware .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "precommit": "pnpm lint-staged && pnpm typecheck && pnpm lint && pnpm test:run && pnpm format:check",
+    "precommit": "pnpm lint-staged && pnpm test:docs && pnpm typecheck && pnpm lint && pnpm test:run && pnpm format:check",
+    "test:docs": "node scripts/verify-local-links.mjs",
     "lint-staged": "lint-staged",
     "test": "pnpm -r --if-present test",
     "test:run": "pnpm -r --if-present test:run",
@@ -39,7 +40,7 @@
     "typescript": "6.0.3"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,jsonc,css,md,mdx}": "oxfmt --write --no-error-on-unmatched-pattern"
+    "*.{js,jsx,mjs,ts,tsx,json,jsonc,css,md,mdx}": "oxfmt --write --no-error-on-unmatched-pattern"
   },
   "engines": {
     "node": ">=22.13"
