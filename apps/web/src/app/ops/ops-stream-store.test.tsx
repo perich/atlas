@@ -196,12 +196,14 @@ describe("OpsRoute", () => {
         snapshot: opsSnapshot({
           connectionStatus: "degraded",
           renderer: { ...INITIAL_OPS_STREAM_SNAPSHOT.renderer, fps: 20, frameCostMs: 24 },
+          streamIssue: "protocol:bad_magic",
         }),
         type: "snapshot",
       });
     });
 
     expect(host?.textContent).toContain("Backend unavailable");
+    expect(host?.textContent).toContain("protocol:bad_magic");
     expect(host?.textContent).toContain("Strained");
   });
 });
