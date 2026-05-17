@@ -10,6 +10,7 @@ import {
   type AuditColumnId,
   type SizedAuditColumn,
 } from "./audit-columns";
+import { auditQueryStateWithToggledSort } from "./audit-query-state";
 import type { AuditWindowCache } from "./audit-window";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
@@ -110,18 +111,7 @@ export function AuditTablePanel({
                 onSort={
                   sortField === undefined
                     ? undefined
-                    : () => {
-                        setQueryState({
-                          filters: queryState.filters,
-                          sort: {
-                            field: sortField,
-                            dir:
-                              queryState.sort.field === sortField && queryState.sort.dir === "desc"
-                                ? "asc"
-                                : "desc",
-                          },
-                        });
-                      }
+                    : () => setQueryState(auditQueryStateWithToggledSort(queryState, sortField))
                 }
                 sortable={sortField !== undefined}
                 sortDir={queryState.sort.field === sortField ? queryState.sort.dir : undefined}
