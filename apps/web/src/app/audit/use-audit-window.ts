@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { serializeAuditQueryState } from "./audit-query-state";
 import type { AuditQueryState } from "./audit-query-state";
-import { fetchAuditFacets, fetchAuditPage } from "./audit-api";
+import { auditFacetsOptions, auditQueryStateKey, auditWindowOptions } from "./audit-query-options";
 import {
   EMPTY_AUDIT_WINDOW_CACHE,
   mergeAuditWindow,
@@ -17,26 +16,24 @@ type ExtraWindowCache = {
   cache: AuditWindowCache;
 };
 
+type BackgroundWindowError = {
+  queryKey: string;
+  error: Error;
+};
+
 export function useAuditWindow(queryState: AuditQueryState) {
   const queryClient = useQueryClient();
+  const queryKey = auditQueryStateKey(queryState);
   const requestIdRef = useRef(0);
   const [extraCache, setExtraCache] = useState<ExtraWindowCache>();
-  const queryKey = serializeAuditQueryState(queryState);
+  const [backgroundWindowError, setBackgroundWindowError] = useState<BackgroundWindowError>();
 
   const firstPageQuery = useQuery({
-    queryKey: ["audit-window", queryKey, "initial"],
-    queryFn: ({ signal }) =>
-      fetchAuditPage({ request: { direction: "initial" }, signal, state: queryState }),
+    ...auditWindowOptions(queryState, { direction: "initial" }),
     placeholderData: keepPreviousData,
     retry: 1,
-    staleTime: 30_000,
   });
-  const facetsQuery = useQuery({
-    queryKey: ["audit-facets", queryKey],
-    queryFn: ({ signal }) => fetchAuditFacets({ signal, state: queryState }),
-    retry: 1,
-    staleTime: 30_000,
-  });
+  const facetsQuery = useQuery({ ...auditFacetsOptions(queryState), retry: 1 });
   const initialCache = useMemo(() => {
     if (!firstPageQuery.data) {
       return EMPTY_AUDIT_WINDOW_CACHE;
@@ -49,6 +46,8 @@ export function useAuditWindow(queryState: AuditQueryState) {
     );
   }, [firstPageQuery.data]);
   const cache = extraCache?.queryKey === queryKey ? extraCache.cache : initialCache;
+  const backgroundError =
+    backgroundWindowError?.queryKey === queryKey ? backgroundWindowError.error : undefined;
   const rows = useMemo(() => cache.windows.flatMap((window) => window.rows), [cache]);
 
   const loadVisibleRange = useCallback(
@@ -60,25 +59,29 @@ export function useAuditWindow(queryState: AuditQueryState) {
       }
 
       const requestId = (requestIdRef.current += 1);
-      void queryClient
-        .fetchQuery({
-          queryKey: ["audit-window", queryKey, request],
-          queryFn: ({ signal }) => fetchAuditPage({ request, signal, state: queryState }),
-          staleTime: 30_000,
-        })
-        .then(
-          (page) => {
-            if (requestId !== requestIdRef.current) {
-              return;
-            }
+      setBackgroundWindowError(undefined);
+      void queryClient.fetchQuery(auditWindowOptions(queryState, request)).then(
+        (page) => {
+          if (requestId !== requestIdRef.current) {
+            return;
+          }
 
-            setExtraCache({
-              cache: mergeAuditWindow(cache, request, page),
-              queryKey,
-            });
-          },
-          () => undefined,
-        );
+          setExtraCache({
+            cache: mergeAuditWindow(cache, request, page),
+            queryKey,
+          });
+        },
+        (error: unknown) => {
+          if (requestId !== requestIdRef.current) {
+            return;
+          }
+
+          setBackgroundWindowError({
+            error: error instanceof Error ? error : new Error("Failed to load audit rows"),
+            queryKey,
+          });
+        },
+      );
     },
     [cache, queryClient, queryKey, queryState],
   );
@@ -86,9 +89,11 @@ export function useAuditWindow(queryState: AuditQueryState) {
   const resetWindowCache = useCallback(() => {
     requestIdRef.current += 1;
     setExtraCache(undefined);
+    setBackgroundWindowError(undefined);
   }, []);
 
   return {
+    backgroundError,
     cache,
     facets: facetsQuery.data,
     hasError: firstPageQuery.isError,

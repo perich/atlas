@@ -24,6 +24,7 @@ type AuditVirtualItem = {
 };
 
 export function AuditTablePanel({
+  backgroundError,
   cache,
   draggedColumnId,
   hasError,
@@ -39,6 +40,7 @@ export function AuditTablePanel({
   virtualizerTotalSize,
   visibleColumns,
 }: {
+  backgroundError: Error | undefined;
   cache: AuditWindowCache;
   draggedColumnId: AuditColumnId | undefined;
   hasError: boolean;
@@ -60,6 +62,12 @@ export function AuditTablePanel({
         <div className="border-b border-rose-300/20 bg-rose-950/25 px-4 py-3 text-sm text-rose-100">
           Audit backend unavailable. Filters and layout remain usable while the data request
           recovers.
+        </div>
+      ) : null}
+      {backgroundError !== undefined && !hasError ? (
+        <div className="border-b border-amber-300/20 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
+          Additional audit rows could not be loaded. Already loaded Audit Entries remain visible
+          while the window request can be retried.
         </div>
       ) : null}
       <div className="flex h-9 items-center gap-2.5 border-b border-white/[0.08] bg-bankops-sidebar px-4">
