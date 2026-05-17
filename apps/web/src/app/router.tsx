@@ -1,13 +1,22 @@
 import React from "react";
-import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import { QueryClient } from "@tanstack/react-query";
+import {
+  createRootRouteWithContext,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
 
-import { validateAuditSearch } from "./audit/audit-query-state";
+import { auditFacetsOptions, auditWindowOptions } from "./audit/audit-query-options";
+import { auditSearchToQueryState, validateAuditSearch } from "./audit/audit-query-state";
 import { AppShell } from "./AppShell";
 import { AnalystRoute } from "./routes/AnalystRoute";
 import { AuditRoute } from "./routes/AuditRoute";
 import { OpsRoute } from "./routes/OpsRoute";
 
-const rootRoute = createRootRoute({
+export const queryClient = new QueryClient();
+
+const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: AppShell,
 });
 
@@ -26,6 +35,13 @@ const opsRoute = createRoute({
 const auditRoute = createRoute({
   component: AuditRoute,
   getParentRoute: () => rootRoute,
+  loaderDeps: ({ search }) => auditSearchToQueryState(search),
+  loader: async ({ context, deps }) => {
+    await Promise.allSettled([
+      context.queryClient.ensureQueryData(auditWindowOptions(deps, { direction: "initial" })),
+      context.queryClient.ensureQueryData(auditFacetsOptions(deps)),
+    ]);
+  },
   path: "/audit",
   validateSearch: validateAuditSearch,
 });
@@ -40,6 +56,10 @@ const routeTree = rootRoute.addChildren([indexRoute, opsRoute, auditRoute, analy
 
 const router = createRouter({
   defaultPreload: "intent",
+  defaultPreloadStaleTime: 0,
+  context: {
+    queryClient,
+  },
   routeTree,
 });
 
