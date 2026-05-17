@@ -11,11 +11,7 @@ import {
 } from "./audit.js";
 
 export function toJsonAuditEntry(entry: AuditEntry): JsonAuditEntry {
-  return jsonAuditEntrySchema.parse({
-    ...entry,
-    amountMinor: entry.amountMinor?.toString(),
-    detail: toJsonAuditDetail(entry.detail),
-  });
+  return jsonAuditEntrySchema.parse(toAuditApiJson(entry));
 }
 
 export function toJsonAuditPage(page: AuditPage): JsonAuditPage {
@@ -29,30 +25,10 @@ export function toJsonAuditFacets(facets: AuditFacets): JsonAuditFacets {
   return jsonAuditFacetsSchema.parse(facets);
 }
 
-function toJsonAuditDetail(detail: AuditEntry["detail"]): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(detail)
-      .filter(([, item]) => item !== undefined)
-      .map(([key, item]) => [key, toJsonValue(item)]),
+function toAuditApiJson(value: AuditEntry | AuditPage): unknown {
+  return JSON.parse(
+    JSON.stringify(value, (_key, item: unknown) =>
+      typeof item === "bigint" ? item.toString() : item,
+    ),
   );
-}
-
-function toJsonValue(value: unknown): unknown {
-  if (typeof value === "bigint") {
-    return value.toString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(toJsonValue);
-  }
-
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([, item]) => item !== undefined)
-        .map(([key, item]) => [key, toJsonValue(item)]),
-    );
-  }
-
-  return value;
 }
