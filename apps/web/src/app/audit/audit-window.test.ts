@@ -21,13 +21,15 @@ describe("audit window cache", () => {
 
     expect(cache.windows).toHaveLength(AUDIT_MAX_WINDOWS);
     expect(cache.windows[0].start).toBe(2);
-    expect(cache.windows.flatMap((window) => window.rows).map((entry) => entry.id)).toEqual([
-      "row-2",
-      "row-3",
-      "row-4",
-      "row-5",
-      "row-6",
-    ]);
+    const rowIds: string[] = [];
+
+    for (const window of cache.windows) {
+      for (const row of window.rows) {
+        rowIds.push(row.id);
+      }
+    }
+
+    expect(rowIds).toEqual(["row-2", "row-3", "row-4", "row-5", "row-6"]);
   });
 
   it("requests the next page near the bottom of the loaded window", () => {
@@ -69,6 +71,16 @@ describe("audit window cache", () => {
     expect(jumpedCache.windows[0].rows[0].id).toBe("row-870");
   });
 
+  it("keeps the newest matching Audit Entry timestamp from the server page", () => {
+    const cache = mergeAuditWindow(
+      EMPTY_AUDIT_WINDOW_CACHE,
+      { direction: "initial" },
+      page(0, 1, 1_778_600_000_000),
+    );
+
+    expect(cache.newestTs).toBe(1_778_600_000_000);
+  });
+
   it("can refetch a pruned previous region from the first retained cursor", () => {
     const cache = {
       ...EMPTY_AUDIT_WINDOW_CACHE,
@@ -85,9 +97,10 @@ describe("audit window cache", () => {
   });
 });
 
-function page(index: number, rowCount = 1): JsonAuditPage {
+function page(index: number, rowCount = 1, newestTs?: number): JsonAuditPage {
   return {
     nextCursor: `next-${index}`,
+    ...(newestTs === undefined ? {} : { newestTs }),
     offset: index,
     prevCursor: index === 0 ? undefined : `prev-${index}`,
     queryMs: 1,
