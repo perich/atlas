@@ -67,6 +67,7 @@ export function AuditRoute() {
     (index: number) => rowByIndex.get(index)?.id ?? `placeholder-${index}`,
     [rowByIndex],
   );
+  // oxlint-disable-next-line react-hooks-js/incompatible-library -- TanStack Virtual returns imperative functions by design; the route keeps them local to the table surface.
   const virtualizer = useVirtualizer({
     count: cache.totalMatched || rows.length,
     estimateSize: () => ROW_HEIGHT,
