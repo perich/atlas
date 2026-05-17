@@ -1,17 +1,18 @@
 import {
   DEFAULT_STREAM_RATE,
-  type AggregateChartPointFrame,
   type BalanceSheetBucket,
+  type OpsAggregateChartPointFrame,
+  type OpsStreamRateControlFrame,
   type Rail,
   type RailHealthFrame,
   type StreamRate,
-  type StreamRateControlFrame,
 } from "@bankops/contracts";
 
 export type OpsConnectionStatus = "connecting" | "open" | "reconnecting" | "degraded";
 
 export type OpsStreamSnapshot = {
   connectionStatus: OpsConnectionStatus;
+  streamIssue?: string;
   streamRate: StreamRate;
   seq: string;
   eventRate: number;
@@ -27,7 +28,7 @@ export type OpsStreamSnapshot = {
 
 export type RailHealthSnapshot = RailHealthFrame;
 
-export type OpsChartPoint = AggregateChartPointFrame;
+export type OpsChartPoint = OpsAggregateChartPointFrame;
 
 export type RailBucketHeatmapCell = {
   rail: Rail;
@@ -59,6 +60,7 @@ export type TapeCanvasLayout = {
 
 export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
   connectionStatus: "connecting",
+  streamIssue: undefined,
   streamRate: DEFAULT_STREAM_RATE,
   seq: "0",
   eventRate: 0,
@@ -85,7 +87,7 @@ export type OpsWorkerCommand =
   | { type: "canvas.resize"; layout: TapeCanvasLayout }
   | { type: "connect" }
   | { type: "disconnect" }
-  | StreamRateControlFrame;
+  | OpsStreamRateControlFrame;
 
 export type OpsWorkerMessage = {
   type: "snapshot";

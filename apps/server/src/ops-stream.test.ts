@@ -1,7 +1,7 @@
 import {
-  decodeMovementBatch,
-  readAggregateSnapshotFrame,
-  type AggregateSnapshotFrame,
+  decodeOpsMovementBatch,
+  readOpsAggregateSnapshotFrame,
+  type OpsAggregateSnapshotFrame,
 } from "@bankops/contracts";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
@@ -24,7 +24,7 @@ describe("/stream", () => {
   it("emits binary hot movement batches and warm aggregate snapshots", async () => {
     const socket = await connect();
 
-    const hotBatch = decodeMovementBatch(await nextBinary(socket));
+    const hotBatch = decodeOpsMovementBatch(await nextBinary(socket));
     const firstSnapshot = await nextSnapshot(socket);
     const secondSnapshot = await nextSnapshot(socket);
 
@@ -42,14 +42,14 @@ describe("/stream", () => {
 
     socket.send(JSON.stringify({ type: "stream.rate.set", targetRate: 1 }));
 
-    const slowBatch = decodeMovementBatch(
-      await nextBinary(socket, (data) => decodeMovementBatch(data).movements.length <= 1),
+    const slowBatch = decodeOpsMovementBatch(
+      await nextBinary(socket, (data) => decodeOpsMovementBatch(data).movements.length <= 1),
     );
 
     socket.send(JSON.stringify({ type: "stream.rate.set", targetRate: 10_000 }));
 
-    const fastBatch = decodeMovementBatch(
-      await nextBinary(socket, (data) => decodeMovementBatch(data).movements.length >= 160),
+    const fastBatch = decodeOpsMovementBatch(
+      await nextBinary(socket, (data) => decodeOpsMovementBatch(data).movements.length >= 160),
     );
 
     expect(slowBatch.movements.length).toBeLessThanOrEqual(1);
@@ -60,15 +60,38 @@ describe("/stream", () => {
 
   it("starts a fresh sequence after reconnect", async () => {
     const firstSocket = await connect();
-    const firstBatch = decodeMovementBatch(await nextBinary(firstSocket));
+    const firstBatch = decodeOpsMovementBatch(await nextBinary(firstSocket));
     firstSocket.close();
 
     const secondSocket = await connect();
-    const secondBatch = decodeMovementBatch(await nextBinary(secondSocket));
+    const secondBatch = decodeOpsMovementBatch(await nextBinary(secondSocket));
     secondSocket.close();
 
     expect(firstBatch.fromSeq).toBe(1n);
     expect(secondBatch.fromSeq).toBe(1n);
+  });
+
+  it("rejects malformed stream controls without destabilizing the session", async () => {
+    const socket = await connect();
+
+    socket.send(JSON.stringify({ type: "stream.rate.set", targetRate: 42 }));
+
+    expect(
+      JSON.parse(await nextText(socket, (text) => text.includes("ops.control.rejected"))),
+    ).toMatchObject({
+      reason: "invalid_stream_control",
+      type: "ops.control.rejected",
+    });
+
+    socket.send(JSON.stringify({ type: "stream.rate.set", targetRate: 1 }));
+
+    const slowBatch = decodeOpsMovementBatch(
+      await nextBinary(socket, (data) => decodeOpsMovementBatch(data).movements.length <= 1),
+    );
+
+    expect(slowBatch.movements.length).toBeLessThanOrEqual(1);
+
+    socket.close();
   });
 });
 
@@ -100,17 +123,41 @@ function nextBinary(
   });
 }
 
-function nextSnapshot(socket: WebSocket): Promise<AggregateSnapshotFrame> {
+function nextSnapshot(socket: WebSocket): Promise<OpsAggregateSnapshotFrame> {
   return new Promise((resolve) => {
     const onMessage = (data: RawData, isBinary: boolean) => {
       if (isBinary) {
         return;
       }
 
-      const parsed = readAggregateSnapshotFrame(rawDataToText(data));
+      const parsed = readOpsAggregateSnapshotFrame(rawDataToText(data));
 
       socket.off("message", onMessage);
       resolve(parsed);
+    };
+
+    socket.on("message", onMessage);
+  });
+}
+
+function nextText(
+  socket: WebSocket,
+  predicate: (data: string) => boolean = () => true,
+): Promise<string> {
+  return new Promise((resolve) => {
+    const onMessage = (data: RawData, isBinary: boolean) => {
+      if (isBinary) {
+        return;
+      }
+
+      const text = rawDataToText(data);
+
+      if (!predicate(text)) {
+        return;
+      }
+
+      socket.off("message", onMessage);
+      resolve(text);
     };
 
     socket.on("message", onMessage);
