@@ -10,6 +10,7 @@ describe("audit query model", () => {
     expect(page.rows.map((row) => row.id)).toEqual(["aud_f", "aud_d", "aud_c", "aud_b"]);
     expect(page.offset).toBe(0);
     expect(page.totalMatched).toBe(6);
+    expect(page.newestTs).toBe(3_000);
     expect(page.nextCursor).toEqual(expect.any(String));
     expect(page.prevCursor).toBeUndefined();
   });

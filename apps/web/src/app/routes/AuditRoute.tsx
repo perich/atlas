@@ -26,7 +26,7 @@ export function AuditRoute() {
   const search = auditRouteApi.useSearch();
   const navigate = useNavigate({ from: "/audit" });
   const queryState = useMemo(() => auditSearchToQueryState(search), [search]);
-  const { cache, hasError, isFetching, loadVisibleRange, resetWindowCache, rows } =
+  const { cache, facets, hasError, isFetching, loadVisibleRange, resetWindowCache, rows } =
     useAuditWindow(queryState);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draggedColumnId, setDraggedColumnId] = useState<AuditColumnId>();
@@ -67,7 +67,7 @@ export function AuditRoute() {
   const firstVirtualIndex = firstVirtualRow?.index;
   const lastVirtualIndex = lastVirtualRow?.index;
   const mountedRows = virtualRows.length;
-  const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, rows[0]?.ts);
+  const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, cache.newestTs);
   const setQueryState = useCallback(
     (nextState: AuditQueryState) => {
       resetWindowCache();
@@ -100,7 +100,8 @@ export function AuditRoute() {
 
       <AuditFilterPanel
         columnLayout={columnLayout}
-        newestRowTs={rows[0]?.ts}
+        facets={facets}
+        newestRowTs={cache.newestTs}
         onColumnLayoutChange={setColumnLayout}
         queryState={queryState}
         renderTrace={

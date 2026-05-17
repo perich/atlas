@@ -69,6 +69,16 @@ describe("audit window cache", () => {
     expect(jumpedCache.windows[0].rows[0].id).toBe("row-870");
   });
 
+  it("keeps the newest matching Audit Entry timestamp from the server page", () => {
+    const cache = mergeAuditWindow(
+      EMPTY_AUDIT_WINDOW_CACHE,
+      { direction: "initial" },
+      page(0, 1, 1_778_600_000_000),
+    );
+
+    expect(cache.newestTs).toBe(1_778_600_000_000);
+  });
+
   it("can refetch a pruned previous region from the first retained cursor", () => {
     const cache = {
       ...EMPTY_AUDIT_WINDOW_CACHE,
@@ -85,9 +95,10 @@ describe("audit window cache", () => {
   });
 });
 
-function page(index: number, rowCount = 1): JsonAuditPage {
+function page(index: number, rowCount = 1, newestTs?: number): JsonAuditPage {
   return {
     nextCursor: `next-${index}`,
+    ...(newestTs === undefined ? {} : { newestTs }),
     offset: index,
     prevCursor: index === 0 ? undefined : `prev-${index}`,
     queryMs: 1,
