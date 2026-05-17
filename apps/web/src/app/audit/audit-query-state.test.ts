@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  auditQueryStateWithRailFilter,
+  auditQueryStateWithSeverityFilter,
+  auditQueryStateWithStatusFilter,
+  auditQueryStateWithTimeBounds,
+  auditQueryStateWithToggledSort,
   auditSearchToQueryState,
   readAuditQueryState,
   serializeAuditQueryState,
@@ -56,5 +61,35 @@ describe("audit query state", () => {
     });
 
     expect(state.sort).toEqual({ dir: "desc", field: "ts" });
+  });
+
+  it("applies named Audit Query state filter transitions", () => {
+    const initial = readAuditQueryState("?rail=wire&severity=critical&tsFrom=100&tsTo=200");
+    const withoutSeverity = auditQueryStateWithSeverityFilter(initial, undefined);
+    const withRail = auditQueryStateWithRailFilter(withoutSeverity, "ach");
+    const withStatus = auditQueryStateWithStatusFilter(withRail, "failed");
+    const withTime = auditQueryStateWithTimeBounds(withStatus, { tsFrom: 500 });
+
+    expect(withTime).toEqual({
+      filters: {
+        rail: ["ach"],
+        status: ["failed"],
+        tsFrom: 500,
+      },
+      sort: { dir: "desc", field: "ts" },
+    });
+  });
+
+  it("toggles Audit Query sort direction for the selected field", () => {
+    const state = readAuditQueryState("?sortField=status");
+
+    expect(auditQueryStateWithToggledSort(state, "status").sort).toEqual({
+      dir: "asc",
+      field: "status",
+    });
+    expect(auditQueryStateWithToggledSort(state, "rail").sort).toEqual({
+      dir: "desc",
+      field: "rail",
+    });
   });
 });
