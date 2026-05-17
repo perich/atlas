@@ -1,4 +1,4 @@
-import type { BalanceSheetMovement } from "@bankops/contracts";
+import { movementMagnitudeMinorNumber, type BalanceSheetMovement } from "@bankops/contracts";
 
 import type { OpsStreamSnapshot, TapeCanvasLayout } from "./ops-stream-messages";
 
@@ -242,7 +242,7 @@ export class OpsTapeRenderer {
   ) {
     const x = magnitudeBarInsetX;
     const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
-    const amountMinor = Math.abs(Number(movement.amountMinor));
+    const amountMinor = movementMagnitudeMinorNumber(movement);
     const intensity = amountScaleMinor === 0 ? 0 : amountMinor / amountScaleMinor;
     const width = Math.max(3, maxWidth * Math.min(1, intensity));
     const height = rowHeight - magnitudeBarInsetY * 2;
@@ -305,7 +305,7 @@ function movementCells(movement: BalanceSheetMovement) {
 }
 
 function formatMinorUsd(value: bigint) {
-  return `$${(Number(value < 0n ? -value : value) / 100).toLocaleString("en-US", {
+  return `$${(movementMagnitudeMinorNumber({ amountMinor: value }) / 100).toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   })}`;

@@ -1,6 +1,9 @@
 import {
   ASSETS,
   RAILS,
+  createBalanceSheetMovementFlags,
+  isExceptionQueueMovement,
+  movementMagnitudeMinor,
   type Asset,
   type BalanceSheetMovement,
   type MovementStatus,
@@ -28,12 +31,6 @@ export const DEFAULT_OPS_TAPE_SEED = 0xb40f_2026;
 export const DEFAULT_CUSTOMER_COUNT = 96;
 export const DEFAULT_LIQUIDITY_RESERVE_MINOR = 2_500_000_000_00n;
 export const DEFAULT_ROLLING_WINDOW_TICKS = 60;
-
-const MOVEMENT_FLAG_FAILED = 1;
-const MOVEMENT_FLAG_HELD = 2;
-const MOVEMENT_FLAG_STABLECOIN = 4;
-const MOVEMENT_FLAG_LARGE_AMOUNT = 8;
-const MOVEMENT_FLAG_HIGH_RISK = 16;
 
 export type { CustomerIndustry };
 
@@ -177,7 +174,12 @@ export class OpsTapeSimulator {
       latencyMs: randomInt(this.random, profile.minLatencyMs, profile.maxLatencyMs),
       status,
       riskTier: customer.riskTier,
-      flags: movementFlags(profile.rail, status, customer.riskTier, unsignedAmount),
+      flags: createBalanceSheetMovementFlags({
+        amountMinor,
+        rail: profile.rail,
+        riskTier: customer.riskTier,
+        status,
+      }),
       traceId: traceId(seq, customer.id),
       customerName: customer.name,
       accountLabel: account.label,
@@ -218,7 +220,7 @@ export class OpsTapeSimulator {
   }
 
   private recordMovement(movement: SimulatedBalanceSheetMovement) {
-    const amountAbs = movement.amountMinor < 0n ? -movement.amountMinor : movement.amountMinor;
+    const amountAbs = movementMagnitudeMinor(movement);
 
     if (movement.side === "credit") {
       this.cumulativeCreditsMinor += amountAbs;
@@ -231,11 +233,7 @@ export class OpsTapeSimulator {
       this.liquidityReserveMinor = nextLiquidityReserve > 0n ? nextLiquidityReserve : 0n;
     }
 
-    if (
-      movement.kind === "exception_hold" ||
-      movement.status === "failed" ||
-      movement.status === "held"
-    ) {
+    if (isExceptionQueueMovement(movement)) {
       this.exceptionQueueDepth += 1;
     }
 
@@ -284,7 +282,7 @@ export class OpsTapeSimulator {
     let debitMinor = 0n;
 
     for (const movement of movements) {
-      const amountAbs = movement.amountMinor < 0n ? -movement.amountMinor : movement.amountMinor;
+      const amountAbs = movementMagnitudeMinor(movement);
 
       railCounts[movement.rail] += 1;
       railLatencies[movement.rail].push(movement.latencyMs);
@@ -415,38 +413,6 @@ function nextRandom(random: RandomState): number {
 
 function randomInt(random: RandomState, min: number, max: number): number {
   return Math.floor(nextRandom(random) * (max - min + 1)) + min;
-}
-
-function movementFlags(
-  rail: Rail,
-  status: MovementStatus,
-  riskTier: RiskTier,
-  amountMinor: bigint,
-): number {
-  // Flags pack hot-path booleans into one integer for the binary stream record.
-  let flags = 0;
-
-  if (status === "failed") {
-    flags |= MOVEMENT_FLAG_FAILED;
-  }
-
-  if (status === "held") {
-    flags |= MOVEMENT_FLAG_HELD;
-  }
-
-  if (rail === "stablecoin") {
-    flags |= MOVEMENT_FLAG_STABLECOIN;
-  }
-
-  if (amountMinor >= 1_000_000_00n) {
-    flags |= MOVEMENT_FLAG_LARGE_AMOUNT;
-  }
-
-  if (riskTier === 3) {
-    flags |= MOVEMENT_FLAG_HIGH_RISK;
-  }
-
-  return flags;
 }
 
 function traceId(seq: bigint, customerId: number): string {
