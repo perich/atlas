@@ -44,13 +44,15 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
   await expect(page.getByTestId("audit-row").first()).toBeVisible();
   await expect(page.getByTestId("audit-rows-cached")).toBeVisible();
 
-  const firstHeaderBottom = await page
-    .getByTestId("audit-column-header-ts")
-    .evaluate((element) => element.getBoundingClientRect().bottom);
-  const firstRowTop = await page
-    .getByTestId("audit-row")
-    .first()
-    .evaluate((element) => element.getBoundingClientRect().top);
+  const [firstHeaderBottom, firstRowTop] = await Promise.all([
+    page
+      .getByTestId("audit-column-header-ts")
+      .evaluate((element) => element.getBoundingClientRect().bottom),
+    page
+      .getByTestId("audit-row")
+      .first()
+      .evaluate((element) => element.getBoundingClientRect().top),
+  ]);
 
   expect(Math.abs(firstRowTop - firstHeaderBottom)).toBeLessThanOrEqual(1);
 

@@ -42,7 +42,7 @@ export type RailBucketHeatmapCell = {
   intensity: number;
 };
 
-export type OpsRendererMetrics = {
+type OpsRendererMetrics = {
   supported: boolean;
   fps: number;
   frameCostMs: number;

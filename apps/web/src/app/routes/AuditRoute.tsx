@@ -55,9 +55,14 @@ export function AuditRoute() {
 
     return map;
   }, [cache.windows]);
+  const getAuditRowKey = useCallback(
+    (index: number) => rowByIndex.get(index)?.id ?? `placeholder-${index}`,
+    [rowByIndex],
+  );
   const virtualizer = useVirtualizer({
     count: cache.totalMatched || rows.length,
     estimateSize: () => ROW_HEIGHT,
+    getItemKey: getAuditRowKey,
     getScrollElement: () => scrollRef.current,
     overscan: 24,
   });
@@ -86,7 +91,7 @@ export function AuditRoute() {
     }
 
     const timeoutId = window.setTimeout(() => {
-      void loadVisibleRange({ start: firstVirtualIndex, end: lastVirtualIndex });
+      loadVisibleRange({ start: firstVirtualIndex, end: lastVirtualIndex });
     }, AUDIT_SCROLL_LOAD_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timeoutId);
