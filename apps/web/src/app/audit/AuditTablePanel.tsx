@@ -4,8 +4,8 @@ import { AuditHeaderCell, AuditRowCell } from "./AuditTableCells";
 import type { ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditEntry } from "./audit-api";
 import {
+  AuditColumnCellContent,
   moveAuditColumn,
-  renderAuditColumnCell,
   resizeAuditColumn,
   type AuditColumnId,
   type SizedAuditColumn,
@@ -192,7 +192,7 @@ function AuditVirtualRow({
     >
       {visibleColumns.map((column) => (
         <AuditRowCell column={column} key={column.id}>
-          {renderAuditColumnCell(column, row)}
+          <AuditColumnCellContent column={column} row={row} />
         </AuditRowCell>
       ))}
     </div>
