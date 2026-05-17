@@ -26,8 +26,16 @@ export function AuditRoute() {
   const search = auditRouteApi.useSearch();
   const navigate = useNavigate({ from: "/audit" });
   const queryState = useMemo(() => auditSearchToQueryState(search), [search]);
-  const { cache, facets, hasError, isFetching, loadVisibleRange, resetWindowCache, rows } =
-    useAuditWindow(queryState);
+  const {
+    backgroundError,
+    cache,
+    facets,
+    hasError,
+    isFetching,
+    loadVisibleRange,
+    resetWindowCache,
+    rows,
+  } = useAuditWindow(queryState);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draggedColumnId, setDraggedColumnId] = useState<AuditColumnId>();
   const [columnLayout, setColumnLayoutValue] = useState(() => readAuditColumnLayout());
@@ -124,6 +132,7 @@ export function AuditRoute() {
       />
 
       <AuditTablePanel
+        backgroundError={backgroundError}
         cache={cache}
         draggedColumnId={draggedColumnId}
         hasError={hasError}
