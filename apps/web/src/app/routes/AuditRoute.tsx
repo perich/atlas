@@ -26,8 +26,16 @@ export function AuditRoute() {
   const search = auditRouteApi.useSearch();
   const navigate = useNavigate({ from: "/audit" });
   const queryState = useMemo(() => auditSearchToQueryState(search), [search]);
-  const { cache, hasError, isFetching, loadVisibleRange, resetWindowCache, rows } =
-    useAuditWindow(queryState);
+  const {
+    backgroundError,
+    cache,
+    facets,
+    hasError,
+    isFetching,
+    loadVisibleRange,
+    resetWindowCache,
+    rows,
+  } = useAuditWindow(queryState);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draggedColumnId, setDraggedColumnId] = useState<AuditColumnId>();
   const [columnLayout, setColumnLayoutValue] = useState(() => readAuditColumnLayout());
@@ -55,9 +63,15 @@ export function AuditRoute() {
 
     return map;
   }, [cache.windows]);
+  const getAuditRowKey = useCallback(
+    (index: number) => rowByIndex.get(index)?.id ?? `placeholder-${index}`,
+    [rowByIndex],
+  );
+  // oxlint-disable-next-line react-hooks-js/incompatible-library -- TanStack Virtual returns imperative functions by design; the route keeps them local to the table surface.
   const virtualizer = useVirtualizer({
     count: cache.totalMatched || rows.length,
     estimateSize: () => ROW_HEIGHT,
+    getItemKey: getAuditRowKey,
     getScrollElement: () => scrollRef.current,
     overscan: 24,
   });
@@ -67,7 +81,7 @@ export function AuditRoute() {
   const firstVirtualIndex = firstVirtualRow?.index;
   const lastVirtualIndex = lastVirtualRow?.index;
   const mountedRows = virtualRows.length;
-  const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, rows[0]?.ts);
+  const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, cache.newestTs);
   const setQueryState = useCallback(
     (nextState: AuditQueryState) => {
       resetWindowCache();
@@ -86,7 +100,7 @@ export function AuditRoute() {
     }
 
     const timeoutId = window.setTimeout(() => {
-      void loadVisibleRange({ start: firstVirtualIndex, end: lastVirtualIndex });
+      loadVisibleRange({ start: firstVirtualIndex, end: lastVirtualIndex });
     }, AUDIT_SCROLL_LOAD_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timeoutId);
@@ -95,12 +109,13 @@ export function AuditRoute() {
   return (
     <div className="min-h-[calc(100vh-5.25rem)] rounded-md border border-white/[0.08] bg-bankops-bg">
       <div className="border-b border-white/[0.08] bg-bankops-sidebar px-6 py-5">
-        <PageHeader eyebrow="Bank Core Audit" title="Balance Sheet Movement History" />
+        <PageHeader eyebrow="Bank Core Audit" title="Audit Entry History" />
       </div>
 
       <AuditFilterPanel
         columnLayout={columnLayout}
-        newestRowTs={rows[0]?.ts}
+        facets={facets}
+        newestRowTs={cache.newestTs}
         onColumnLayoutChange={setColumnLayout}
         queryState={queryState}
         renderTrace={
@@ -118,6 +133,7 @@ export function AuditRoute() {
       />
 
       <AuditTablePanel
+        backgroundError={backgroundError}
         cache={cache}
         draggedColumnId={draggedColumnId}
         hasError={hasError}

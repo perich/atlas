@@ -1,4 +1,11 @@
-import type { BalanceSheetBucket, BalanceSheetMovement, Rail } from "@bankops/contracts";
+import {
+  isExceptionPressureMovement,
+  movementAmountByBalanceSheetSide,
+  movementMagnitudeMinorNumber,
+  type BalanceSheetBucket,
+  type BalanceSheetMovement,
+  type Rail,
+} from "@bankops/contracts";
 
 import type { RailBucketHeatmapCell } from "./ops-stream-messages";
 
@@ -47,22 +54,15 @@ export class OpsMovementWindow {
           movementCount: 0,
           rail: movement.rail,
         } satisfies HeatmapDelta);
-      const amountMinor = Math.abs(Number(movement.amountMinor));
+      const amountMinor = movementMagnitudeMinorNumber(movement);
+      const sideAmount = movementAmountByBalanceSheetSide(movement);
 
       bin.maxAmountMinor = Math.max(bin.maxAmountMinor, amountMinor);
       cell.movementCount += 1;
+      cell.creditMinor += sideAmount.creditMinor;
+      cell.debitMinor += sideAmount.debitMinor;
 
-      if (movement.side === "credit") {
-        cell.creditMinor += amountMinor;
-      } else {
-        cell.debitMinor += amountMinor;
-      }
-
-      if (
-        movement.status === "failed" ||
-        movement.status === "held" ||
-        movement.status === "pending"
-      ) {
+      if (isExceptionPressureMovement(movement)) {
         cell.exceptionCount += 1;
       }
 

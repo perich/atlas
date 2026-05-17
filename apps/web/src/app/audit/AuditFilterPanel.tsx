@@ -1,26 +1,21 @@
 import React from "react";
-import type { AuditEntry } from "@bankops/contracts";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
+import type { JsonAuditFacets } from "./audit-api";
 import type { AuditColumnLayout } from "./audit-columns";
+import {
+  auditQueryStateWithRailFilter,
+  auditQueryStateWithSeverityFilter,
+  auditQueryStateWithStatusFilter,
+  auditQueryStateWithTimeBounds,
+} from "./audit-query-state";
 import { TIME_RANGES, type TimeRangeValue } from "./audit-time-range";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
+import { formatCount } from "../../design/format";
 
 const TIME_OPTIONS = TIME_RANGES.map((range) => ({ label: range.label, value: range.value }));
-const SEVERITY_OPTIONS = [
-  { label: "All", value: "all" },
-  ...AUDIT_SEVERITIES.map((value) => ({ label: value, value })),
-] satisfies FilterOption<"all" | AuditEntry["severity"]>[];
-const RAIL_OPTIONS = [
-  { label: "All", value: "all" },
-  ...RAILS.map((value) => ({ label: value, value })),
-] satisfies FilterOption<"all" | NonNullable<AuditEntry["rail"]>>[];
-const STATUS_OPTIONS = [
-  { label: "All", value: "all" },
-  ...AUDIT_STATUSES.map((value) => ({ label: value, value })),
-] satisfies FilterOption<"all" | AuditEntry["status"]>[];
 
 type FilterOption<T extends string> = {
   label: string;
@@ -29,6 +24,7 @@ type FilterOption<T extends string> = {
 
 export function AuditFilterPanel({
   columnLayout,
+  facets,
   newestRowTs,
   onColumnLayoutChange,
   queryState,
@@ -37,6 +33,7 @@ export function AuditFilterPanel({
   setQueryState,
 }: {
   columnLayout: AuditColumnLayout;
+  facets: JsonAuditFacets | undefined;
   newestRowTs: number | undefined;
   onColumnLayoutChange: (update: ColumnLayoutUpdate) => void;
   queryState: AuditQueryState;
@@ -44,6 +41,10 @@ export function AuditFilterPanel({
   selectedTimeRange: TimeRangeValue;
   setQueryState: (state: AuditQueryState) => void;
 }) {
+  const severityOptions = auditFilterOptions(AUDIT_SEVERITIES, facets?.severity);
+  const railOptions = auditFilterOptions(RAILS, facets?.rail);
+  const statusOptions = auditFilterOptions(AUDIT_STATUSES, facets?.status);
+
   return (
     <Panel className="m-4 mb-0 overflow-hidden p-0">
       {renderTrace}
@@ -53,16 +54,15 @@ export function AuditFilterPanel({
           label="Time"
           onChange={(value) => {
             const range = TIME_RANGES.find((item) => item.value === value);
-            const nextFilters = { ...queryState.filters };
 
-            delete nextFilters.tsFrom;
-            delete nextFilters.tsTo;
-
-            if (range?.durationMs !== undefined && newestRowTs !== undefined) {
-              nextFilters.tsFrom = newestRowTs - range.durationMs;
-            }
-
-            setQueryState({ filters: nextFilters, sort: queryState.sort });
+            setQueryState(
+              auditQueryStateWithTimeBounds(queryState, {
+                tsFrom:
+                  range?.durationMs !== undefined && newestRowTs !== undefined
+                    ? newestRowTs - range.durationMs
+                    : undefined,
+              }),
+            );
           }}
           options={TIME_OPTIONS}
           value={selectedTimeRange}
@@ -71,45 +71,33 @@ export function AuditFilterPanel({
         <FilterSelect
           label="Severity"
           onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                severity: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
+            setQueryState(
+              auditQueryStateWithSeverityFilter(queryState, value === "all" ? undefined : value),
+            )
           }
-          options={SEVERITY_OPTIONS}
+          options={severityOptions}
           value={queryState.filters.severity?.[0] ?? "all"}
         />
 
         <FilterSelect
           label="Rail"
           onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                rail: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
+            setQueryState(
+              auditQueryStateWithRailFilter(queryState, value === "all" ? undefined : value),
+            )
           }
-          options={RAIL_OPTIONS}
+          options={railOptions}
           value={queryState.filters.rail?.[0] ?? "all"}
         />
 
         <FilterSelect
           label="Status"
           onChange={(value) =>
-            setQueryState({
-              filters: {
-                ...queryState.filters,
-                status: value === "all" ? undefined : [value],
-              },
-              sort: queryState.sort,
-            })
+            setQueryState(
+              auditQueryStateWithStatusFilter(queryState, value === "all" ? undefined : value),
+            )
           }
-          options={STATUS_OPTIONS}
+          options={statusOptions}
           value={queryState.filters.status?.[0] ?? "all"}
         />
 
@@ -118,6 +106,19 @@ export function AuditFilterPanel({
       </div>
     </Panel>
   );
+}
+
+function auditFilterOptions<const T extends string>(
+  values: readonly T[],
+  counts: Record<string, number> | undefined,
+): FilterOption<"all" | T>[] {
+  return [
+    { label: "All", value: "all" },
+    ...values.map((value) => ({
+      label: counts === undefined ? value : `${value} (${formatCount(counts[value] ?? 0)})`,
+      value,
+    })),
+  ];
 }
 
 function FilterSelect<T extends string>({

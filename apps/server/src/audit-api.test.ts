@@ -28,6 +28,7 @@ describe("/api/audit", () => {
     expect(page.queryMs).toEqual(expect.any(Number));
     expect(page.nextCursor).toEqual(expect.any(String));
     expect(page.prevCursor).toBeUndefined();
+    expect(page.newestTs).toEqual(expect.any(Number));
     expect(page.rows[0].ts).toBeGreaterThan(page.rows[1].ts);
     expect(typeof page.rows[0].amountMinor).toBe("string");
   });

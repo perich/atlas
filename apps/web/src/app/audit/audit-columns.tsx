@@ -92,12 +92,14 @@ const auditColumnIdListSchema = z
   .catch([])
   .transform((values) => {
     const ids: AuditColumnId[] = [];
+    const seenIds = new Set<AuditColumnId>();
 
     for (const value of values) {
       const parsed = auditColumnIdSchema.safeParse(value);
 
-      if (parsed.success && !ids.includes(parsed.data)) {
+      if (parsed.success && !seenIds.has(parsed.data)) {
         ids.push(parsed.data);
+        seenIds.add(parsed.data);
       }
     }
 
@@ -207,10 +209,11 @@ export function setAuditColumnVisible(
   });
 }
 
-export function normalizeAuditColumnLayout(value: unknown): AuditColumnLayout {
+function normalizeAuditColumnLayout(value: unknown): AuditColumnLayout {
   const layout = auditColumnLayoutSchema.parse(value);
   const order = layout.order;
-  const fullOrder = [...order, ...AUDIT_COLUMN_IDS.filter((id) => !order.includes(id))];
+  const orderedIds = new Set(order);
+  const fullOrder = [...order, ...AUDIT_COLUMN_IDS.filter((id) => !orderedIds.has(id))];
   const widths: AuditColumnLayout["widths"] = {};
 
   for (const id of AUDIT_COLUMN_IDS) {
@@ -238,7 +241,13 @@ export function auditColumnStyle(column: SizedAuditColumn): React.CSSProperties 
   };
 }
 
-export function renderAuditColumnCell(column: AuditColumn, row: JsonAuditEntry): React.ReactNode {
+export function AuditColumnCellContent({
+  column,
+  row,
+}: {
+  column: AuditColumn;
+  row: JsonAuditEntry;
+}) {
   switch (column.id) {
     case "ts": {
       const timestamp = formatTimestamp(row.ts);

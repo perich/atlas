@@ -1,4 +1,4 @@
-import type { BalanceSheetMovement } from "@bankops/contracts";
+import { movementMagnitudeMinorNumber, type BalanceSheetMovement } from "@bankops/contracts";
 
 import type { OpsStreamSnapshot, TapeCanvasLayout } from "./ops-stream-messages";
 
@@ -96,11 +96,13 @@ export class OpsTapeRenderer {
   }
 
   metrics(): RendererMetrics {
+    const visibleRows = this.visibleRowCount();
+
     return {
       supported: this.canvasContext !== null,
       fps: this.frameCount * 4,
       frameCostMs: this.frameCount === 0 ? 0 : this.frameCostTotal / this.frameCount,
-      backlog: 0,
+      backlog: Math.max(0, this.rows.length - visibleRows),
       sequenceLag: 0,
       decodedRate: 0,
       renderedRowRate: this.renderedRowCount * 4,
@@ -119,7 +121,7 @@ export class OpsTapeRenderer {
     }
 
     const startedAt = performance.now();
-    const visibleRows = Math.floor((this.layout.height - headerHeight) / rowHeight);
+    const visibleRows = this.visibleRowCount();
 
     this.canvasContext.setTransform(this.layout.dpr, 0, 0, this.layout.dpr, 0, 0);
     this.drawBackdrop(this.canvasContext);
@@ -242,7 +244,7 @@ export class OpsTapeRenderer {
   ) {
     const x = magnitudeBarInsetX;
     const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
-    const amountMinor = Math.abs(Number(movement.amountMinor));
+    const amountMinor = movementMagnitudeMinorNumber(movement);
     const intensity = amountScaleMinor === 0 ? 0 : amountMinor / amountScaleMinor;
     const width = Math.max(3, maxWidth * Math.min(1, intensity));
     const height = rowHeight - magnitudeBarInsetY * 2;
@@ -258,6 +260,10 @@ export class OpsTapeRenderer {
     columns.slice(1).forEach((_, index) => {
       context.fillRect(columnX(index + 1) - 10, 0, 1, this.layout.height);
     });
+  }
+
+  private visibleRowCount() {
+    return Math.max(0, Math.floor((this.layout.height - headerHeight) / rowHeight));
   }
 }
 
@@ -305,7 +311,7 @@ function movementCells(movement: BalanceSheetMovement) {
 }
 
 function formatMinorUsd(value: bigint) {
-  return `$${(Number(value < 0n ? -value : value) / 100).toLocaleString("en-US", {
+  return `$${(movementMagnitudeMinorNumber({ amountMinor: value }) / 100).toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   })}`;
