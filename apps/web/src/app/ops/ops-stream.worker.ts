@@ -1,7 +1,6 @@
 import {
   decodeOpsStreamServerFrame,
   DEFAULT_STREAM_RATE,
-  encodeOpsStreamControlFrame,
   OpsStreamDecodeError,
   type OpsAggregateSnapshotFrame,
   type StreamRate,
@@ -14,6 +13,7 @@ import {
   type OpsWorkerCommand,
 } from "./ops-stream-messages";
 import { OpsMovementWindow } from "./ops-movement-window";
+import { sendOpsStreamControlFrame } from "./ops-stream-session";
 import { OpsTapeRenderer } from "./ops-tape-renderer";
 
 let socket: WebSocket | undefined;
@@ -43,7 +43,7 @@ self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
       return;
     case "stream.rate.set":
       streamRate = command.targetRate;
-      socket?.send(encodeOpsStreamControlFrame(command));
+      sendOpsStreamControlFrame(socket, command);
       publish({ ...snapshot, streamRate });
       return;
   }
@@ -57,7 +57,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   socket.binaryType = "arraybuffer";
 
   socket.onopen = () => {
-    socket?.send(encodeOpsStreamControlFrame({ type: "stream.rate.set", targetRate: streamRate }));
+    sendOpsStreamControlFrame(socket, { type: "stream.rate.set", targetRate: streamRate });
     publish({ ...snapshot, connectionStatus: "open", streamIssue: undefined, streamRate });
   };
 
