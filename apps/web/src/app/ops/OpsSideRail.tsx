@@ -61,6 +61,14 @@ export function OpsSideRail({
               {statusLabels[snapshot.connectionStatus]}
             </span>
           </div>
+          {snapshot.streamIssue !== undefined ? (
+            <p
+              className="rounded-sm border border-amber-300/15 bg-amber-300/[0.06] px-2 py-1 font-mono text-[10px] text-amber-200"
+              data-testid="ops-stream-issue"
+            >
+              {snapshot.streamIssue}
+            </p>
+          ) : null}
 
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs text-bankops-muted">Sequence</span>

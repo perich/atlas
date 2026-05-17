@@ -1,11 +1,11 @@
 import {
   ASSETS,
   RAILS,
-  type AggregateChartPointInput,
-  type AggregateSnapshotInput,
   type Asset,
   type BalanceSheetMovement,
   type MovementStatus,
+  type OpsAggregateChartPointInput,
+  type OpsAggregateSnapshotInput,
   type Rail,
   type RailHealthFrame,
   type RiskTier,
@@ -67,8 +67,8 @@ export type OpsTapeBatch = {
 
 export type RailHealthStatus = RailHealthFrame["status"];
 export type RailHealthSnapshot = RailHealthFrame;
-export type OpsTapeChartPoint = AggregateChartPointInput;
-export type OpsTapeAggregateSnapshot = AggregateSnapshotInput;
+export type OpsTapeChartPoint = OpsAggregateChartPointInput;
+export type OpsTapeAggregateSnapshot = OpsAggregateSnapshotInput;
 
 type RandomState = {
   value: number;
