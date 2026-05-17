@@ -64,9 +64,15 @@ describe("audit column layout", () => {
   });
 
   it("keeps sortable column metadata aligned with audit query fields", () => {
-    expect(
-      AUDIT_COLUMNS.filter((column) => column.sortField !== undefined).map((column) => column.id),
-    ).toEqual(["ts", "severity", "kind", "rail", "status"]);
+    const sortableColumnIds = [];
+
+    for (const column of AUDIT_COLUMNS) {
+      if (column.sortField !== undefined) {
+        sortableColumnIds.push(column.id);
+      }
+    }
+
+    expect(sortableColumnIds).toEqual(["ts", "severity", "kind", "rail", "status"]);
   });
 
   it("defines loading skeleton widths for every column", () => {

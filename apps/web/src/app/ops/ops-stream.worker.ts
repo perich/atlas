@@ -1,8 +1,8 @@
 import {
-  decodeMovementBatch,
+  decodeOpsStreamServerFrame,
   DEFAULT_STREAM_RATE,
-  encodeStreamRateControlFrame,
-  readAggregateSnapshotFrame,
+  OpsStreamDecodeError,
+  type OpsAggregateSnapshotFrame,
   type StreamRate,
 } from "@bankops/contracts";
 
@@ -13,6 +13,7 @@ import {
   type OpsWorkerCommand,
 } from "./ops-stream-messages";
 import { OpsMovementWindow } from "./ops-movement-window";
+import { sendOpsStreamControlFrame } from "./ops-stream-session";
 import { OpsTapeRenderer } from "./ops-tape-renderer";
 
 let socket: WebSocket | undefined;
@@ -42,7 +43,7 @@ self.onmessage = (event: MessageEvent<OpsWorkerCommand>) => {
       return;
     case "stream.rate.set":
       streamRate = command.targetRate;
-      socket?.send(encodeStreamRateControlFrame(command));
+      sendOpsStreamControlFrame(socket, command);
       publish({ ...snapshot, streamRate });
       return;
   }
@@ -56,52 +57,35 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   socket.binaryType = "arraybuffer";
 
   socket.onopen = () => {
-    socket?.send(encodeStreamRateControlFrame({ type: "stream.rate.set", targetRate: streamRate }));
-    publish({ ...snapshot, connectionStatus: "open", streamRate });
+    sendOpsStreamControlFrame(socket, { type: "stream.rate.set", targetRate: streamRate });
+    publish({ ...snapshot, connectionStatus: "open", streamIssue: undefined, streamRate });
   };
 
   socket.onmessage = (event) => {
-    if (typeof event.data === "string") {
-      const warmSnapshot = readAggregateSnapshotFrame(event.data);
-      const rendererMetrics = renderer.metrics();
-      const decodedRate = decodedCount * 4;
+    try {
+      const frame = decodeOpsStreamServerFrame(event.data);
 
+      switch (frame.kind) {
+        case "aggregate_snapshot":
+          publishWarmSnapshot(frame.snapshot);
+          return;
+        case "movement_batch":
+          decodedCount += frame.batch.movements.length;
+          latestSeq = frame.batch.toSeq;
+          renderer.pushRows(frame.batch.movements);
+          movementWindow.record(frame.batch.movements);
+          return;
+      }
+
+      const exhaustive: never = frame;
+      throw new Error(`Unsupported OpsStream frame ${String(exhaustive)}`);
+    } catch (error) {
       publish({
         ...snapshot,
-        connectionStatus: "open",
-        eventRate: warmSnapshot.eventRate,
-        cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
-        cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
-        liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
-        exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
-        railHealth: warmSnapshot.railHealth,
-        chart: warmSnapshot.chart,
-        seq: warmSnapshot.seq,
-        streamRate,
-        railBucketHeatmap: movementWindow.heatmapSnapshot(),
-        renderer: {
-          ...rendererMetrics,
-          sequenceLag:
-            latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
-          decodedRate,
-        },
+        connectionStatus: "degraded",
+        streamIssue: streamIssueFor(error),
       });
-      decodedCount = 0;
-      renderer.resetMetrics();
-      return;
     }
-
-    if (event.data instanceof ArrayBuffer) {
-      const batch = decodeMovementBatch(event.data);
-
-      decodedCount += batch.movements.length;
-      latestSeq = batch.toSeq;
-      renderer.pushRows(batch.movements);
-      movementWindow.record(batch.movements);
-      return;
-    }
-
-    throw new Error("Unsupported SettlementStream message payload");
   };
 
   socket.onclose = () => {
@@ -112,7 +96,7 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
   };
 
   socket.onerror = () => {
-    publish({ ...snapshot, connectionStatus: "degraded" });
+    publish({ ...snapshot, connectionStatus: "degraded", streamIssue: "transport:error" });
   };
 }
 
@@ -135,9 +119,49 @@ function resizeCanvas(layout: TapeCanvasLayout) {
   renderer.resize(layout);
 }
 
+function publishWarmSnapshot(warmSnapshot: OpsAggregateSnapshotFrame) {
+  const rendererMetrics = renderer.metrics();
+  const decodedRate = decodedCount * 4;
+
+  publish({
+    ...snapshot,
+    connectionStatus: "open",
+    streamIssue: undefined,
+    eventRate: warmSnapshot.eventRate,
+    cumulativeCreditsMinor: warmSnapshot.cumulativeCreditsMinor,
+    cumulativeDebitsMinor: warmSnapshot.cumulativeDebitsMinor,
+    liquidityReserveMinor: warmSnapshot.liquidityReserveMinor,
+    exceptionQueueDepth: warmSnapshot.exceptionQueueDepth,
+    railHealth: warmSnapshot.railHealth,
+    chart: warmSnapshot.chart,
+    seq: warmSnapshot.seq,
+    streamRate,
+    railBucketHeatmap: movementWindow.heatmapSnapshot(),
+    renderer: {
+      ...rendererMetrics,
+      sequenceLag: latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
+      decodedRate,
+    },
+  });
+  decodedCount = 0;
+  renderer.resetMetrics();
+}
+
 function publish(nextSnapshot: OpsStreamSnapshot) {
   snapshot = nextSnapshot;
   self.postMessage({ type: "snapshot", snapshot });
+}
+
+function streamIssueFor(error: unknown): string {
+  if (error instanceof OpsStreamDecodeError) {
+    return `protocol:${error.reason}`;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "protocol:unknown";
 }
 
 function streamUrl() {

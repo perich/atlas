@@ -4,12 +4,13 @@ import { AuditHeaderCell, AuditRowCell } from "./AuditTableCells";
 import type { ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditEntry } from "./audit-api";
 import {
+  AuditColumnCellContent,
   moveAuditColumn,
-  renderAuditColumnCell,
   resizeAuditColumn,
   type AuditColumnId,
   type SizedAuditColumn,
 } from "./audit-columns";
+import { auditQueryStateWithToggledSort } from "./audit-query-state";
 import type { AuditWindowCache } from "./audit-window";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
@@ -24,6 +25,7 @@ type AuditVirtualItem = {
 };
 
 export function AuditTablePanel({
+  backgroundError,
   cache,
   draggedColumnId,
   hasError,
@@ -39,6 +41,7 @@ export function AuditTablePanel({
   virtualizerTotalSize,
   visibleColumns,
 }: {
+  backgroundError: Error | undefined;
   cache: AuditWindowCache;
   draggedColumnId: AuditColumnId | undefined;
   hasError: boolean;
@@ -60,6 +63,12 @@ export function AuditTablePanel({
         <div className="border-b border-rose-300/20 bg-rose-950/25 px-4 py-3 text-sm text-rose-100">
           Audit backend unavailable. Filters and layout remain usable while the data request
           recovers.
+        </div>
+      ) : null}
+      {backgroundError !== undefined && !hasError ? (
+        <div className="border-b border-amber-300/20 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
+          Additional audit rows could not be loaded. Already loaded Audit Entries remain visible
+          while the window request can be retried.
         </div>
       ) : null}
       <div className="flex h-9 items-center gap-2.5 border-b border-white/[0.08] bg-bankops-sidebar px-4">
@@ -102,18 +111,7 @@ export function AuditTablePanel({
                 onSort={
                   sortField === undefined
                     ? undefined
-                    : () => {
-                        setQueryState({
-                          filters: queryState.filters,
-                          sort: {
-                            field: sortField,
-                            dir:
-                              queryState.sort.field === sortField && queryState.sort.dir === "desc"
-                                ? "asc"
-                                : "desc",
-                          },
-                        });
-                      }
+                    : () => setQueryState(auditQueryStateWithToggledSort(queryState, sortField))
                 }
                 sortable={sortField !== undefined}
                 sortDir={queryState.sort.field === sortField ? queryState.sort.dir : undefined}
@@ -192,7 +190,7 @@ function AuditVirtualRow({
     >
       {visibleColumns.map((column) => (
         <AuditRowCell column={column} key={column.id}>
-          {renderAuditColumnCell(column, row)}
+          <AuditColumnCellContent column={column} row={row} />
         </AuditRowCell>
       ))}
     </div>

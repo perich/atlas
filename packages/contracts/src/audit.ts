@@ -114,6 +114,7 @@ export type AuditPage = {
   nextCursor?: string;
   prevCursor?: string;
   totalMatched: number;
+  newestTs?: number;
   queryMs: number;
 };
 
@@ -156,6 +157,7 @@ export const jsonAuditPageSchema = z.object({
   nextCursor: z.string().optional(),
   prevCursor: z.string().optional(),
   totalMatched: z.int().nonnegative(),
+  newestTs: z.number().finite().optional(),
   queryMs: z.number().finite().nonnegative(),
 });
 

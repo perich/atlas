@@ -10,7 +10,7 @@ import {
   type OpsWorkerCommand,
   type OpsWorkerMessage,
 } from "./ops-stream-messages";
-import { createOpsStreamStore } from "./ops-stream-store";
+import { createOpsStreamSelectionGetter, createOpsStreamStore } from "./ops-stream-store";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -110,6 +110,25 @@ describe("ops stream store", () => {
     unsubscribe();
     vi.advanceTimersByTime(100);
   });
+
+  it("memoizes selected snapshots by selector equality", () => {
+    let snapshot = opsSnapshot({ seq: "1" });
+    const getSelection = createOpsStreamSelectionGetter(
+      () => snapshot,
+      (currentSnapshot) => ({ seq: currentSnapshot.seq }),
+      (left, right) => left.seq === right.seq,
+    );
+
+    const firstSelection = getSelection();
+
+    snapshot = { ...snapshot, eventRate: 10_000 };
+
+    expect(getSelection()).toBe(firstSelection);
+
+    snapshot = { ...snapshot, seq: "2" };
+
+    expect(getSelection()).not.toBe(firstSelection);
+  });
 });
 
 describe("OpsRoute", () => {
@@ -196,12 +215,14 @@ describe("OpsRoute", () => {
         snapshot: opsSnapshot({
           connectionStatus: "degraded",
           renderer: { ...INITIAL_OPS_STREAM_SNAPSHOT.renderer, fps: 20, frameCostMs: 24 },
+          streamIssue: "protocol:bad_magic",
         }),
         type: "snapshot",
       });
     });
 
     expect(host?.textContent).toContain("Backend unavailable");
+    expect(host?.textContent).toContain("protocol:bad_magic");
     expect(host?.textContent).toContain("Strained");
   });
 });

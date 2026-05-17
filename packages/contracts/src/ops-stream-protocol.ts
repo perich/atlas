@@ -13,22 +13,22 @@ import {
 } from "./domain.js";
 
 // Fixed-width binary frames keep the hot /ops stream cheap to parse in a worker.
-export const SETTLEMENT_STREAM_MAGIC = 0x424f5053;
-export const SETTLEMENT_STREAM_VERSION = 1;
+export const OPS_STREAM_MAGIC = 0x424f5053;
+export const OPS_STREAM_VERSION = 1;
 export const STREAM_FRAME_HEADER_BYTES = 36;
 export const MOVEMENT_RECORD_BYTES = 33;
 export const STREAM_LITTLE_ENDIAN = true;
 
-export const StreamChannel = {
+export const OpsStreamChannel = {
   MovementBatch: 1,
   AggregateSnapshot: 2,
   Incident: 3,
   ClientControl: 4,
 } as const;
 
-export type StreamChannel = (typeof StreamChannel)[keyof typeof StreamChannel];
+export type OpsStreamChannel = (typeof OpsStreamChannel)[keyof typeof OpsStreamChannel];
 
-export type MovementBatchFrame = {
+export type OpsMovementBatchFrame = {
   fromSeq: bigint;
   toSeq: bigint;
   serverTsMs: number;
@@ -88,7 +88,7 @@ export const aggregateChartPointFrameSchema = z.object({
 });
 
 export const aggregateSnapshotFrameSchema = z.object({
-  channel: z.literal(StreamChannel.AggregateSnapshot),
+  channel: z.literal(OpsStreamChannel.AggregateSnapshot),
   type: z.literal("ops.snapshot"),
   seq: z.string(),
   eventRate: finiteNumberSchema,
@@ -107,26 +107,30 @@ export const streamRateControlFrameSchema = z.object({
 
 export type RailHealthStatus = z.infer<typeof railHealthStatusSchema>;
 export type RailHealthFrame = z.infer<typeof railHealthFrameSchema>;
-export type AggregateChartPointInput = z.infer<typeof aggregateChartPointInputSchema>;
-export type AggregateSnapshotInput = z.infer<typeof aggregateSnapshotInputSchema>;
-export type AggregateChartPointFrame = z.infer<typeof aggregateChartPointFrameSchema>;
-export type AggregateSnapshotFrame = z.infer<typeof aggregateSnapshotFrameSchema>;
-export type StreamRateControlFrame = z.infer<typeof streamRateControlFrameSchema>;
+export type OpsAggregateChartPointInput = z.infer<typeof aggregateChartPointInputSchema>;
+export type OpsAggregateSnapshotInput = z.infer<typeof aggregateSnapshotInputSchema>;
+export type OpsAggregateChartPointFrame = z.infer<typeof aggregateChartPointFrameSchema>;
+export type OpsAggregateSnapshotFrame = z.infer<typeof aggregateSnapshotFrameSchema>;
+export type OpsStreamRateControlFrame = z.infer<typeof streamRateControlFrameSchema>;
+export type OpsStreamServerFrame =
+  | { kind: "movement_batch"; batch: OpsMovementBatchFrame }
+  | { kind: "aggregate_snapshot"; snapshot: OpsAggregateSnapshotFrame };
 
 // Machine-readable reasons let the worker surface bad frames without guesswork.
-export class SettlementStreamDecodeError extends Error {
+export class OpsStreamDecodeError extends Error {
   constructor(
     message: string,
     readonly reason:
       | "bad_magic"
       | "unsupported_version"
       | "unsupported_channel"
+      | "unsupported_payload"
       | "truncated_header"
       | "truncated_record"
       | "invalid_enum_code",
   ) {
     super(message);
-    this.name = "SettlementStreamDecodeError";
+    this.name = "OpsStreamDecodeError";
   }
 }
 
@@ -141,11 +145,13 @@ const uint32Schema = z.int().nonnegative().max(MAX_U32);
 const uint32BigIntSchema = z.bigint().nonnegative().max(MAX_U32_BIGINT);
 const int64Schema = z.bigint().min(MIN_I64).max(MAX_I64);
 
-export function toAggregateSnapshotFrame(snapshot: AggregateSnapshotInput): AggregateSnapshotFrame {
+export function toOpsAggregateSnapshotFrame(
+  snapshot: OpsAggregateSnapshotInput,
+): OpsAggregateSnapshotFrame {
   const parsed = aggregateSnapshotInputSchema.parse(snapshot);
 
   return {
-    channel: StreamChannel.AggregateSnapshot,
+    channel: OpsStreamChannel.AggregateSnapshot,
     type: "ops.snapshot",
     seq: parsed.seq.toString(),
     eventRate: parsed.eventRate,
@@ -168,20 +174,40 @@ export function toAggregateSnapshotFrame(snapshot: AggregateSnapshotInput): Aggr
   };
 }
 
-export function readAggregateSnapshotFrame(raw: string): AggregateSnapshotFrame {
+export function readOpsAggregateSnapshotFrame(raw: string): OpsAggregateSnapshotFrame {
   return aggregateSnapshotFrameSchema.parse(JSON.parse(raw));
 }
 
-export function encodeStreamRateControlFrame(frame: StreamRateControlFrame): string {
+export function encodeOpsStreamControlFrame(frame: OpsStreamRateControlFrame): string {
   return JSON.stringify(streamRateControlFrameSchema.parse(frame));
 }
 
-export function readStreamRateControlFrame(raw: string): StreamRateControlFrame {
+export function readOpsStreamControlFrame(raw: string): OpsStreamRateControlFrame {
   return streamRateControlFrameSchema.parse(JSON.parse(raw));
 }
 
-export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
-  const parsedFrame = parseMovementBatchFrame(frame);
+export function decodeOpsStreamServerFrame(
+  payload: string | ArrayBuffer | ArrayBufferView,
+): OpsStreamServerFrame {
+  if (typeof payload === "string") {
+    return {
+      kind: "aggregate_snapshot",
+      snapshot: readOpsAggregateSnapshotFrame(payload),
+    };
+  }
+
+  if (payload instanceof ArrayBuffer || ArrayBuffer.isView(payload)) {
+    return {
+      kind: "movement_batch",
+      batch: decodeOpsMovementBatch(payload),
+    };
+  }
+
+  throw new OpsStreamDecodeError("OpsStream payload type is not supported", "unsupported_payload");
+}
+
+export function encodeOpsMovementBatch(frame: OpsMovementBatchFrame): ArrayBuffer {
+  const parsedFrame = parseOpsMovementBatchFrame(frame);
 
   const eventCount = parsedFrame.movements.length;
   const bytes = STREAM_FRAME_HEADER_BYTES + eventCount * MOVEMENT_RECORD_BYTES;
@@ -189,9 +215,9 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   const view = new DataView(buffer);
 
   // Header fields apply to the whole batch; records store small deltas from them.
-  view.setUint32(0, SETTLEMENT_STREAM_MAGIC, STREAM_LITTLE_ENDIAN);
-  view.setUint16(4, SETTLEMENT_STREAM_VERSION, STREAM_LITTLE_ENDIAN);
-  view.setUint16(6, StreamChannel.MovementBatch, STREAM_LITTLE_ENDIAN);
+  view.setUint32(0, OPS_STREAM_MAGIC, STREAM_LITTLE_ENDIAN);
+  view.setUint16(4, OPS_STREAM_VERSION, STREAM_LITTLE_ENDIAN);
+  view.setUint16(6, OpsStreamChannel.MovementBatch, STREAM_LITTLE_ENDIAN);
   view.setBigUint64(8, parsedFrame.fromSeq, STREAM_LITTLE_ENDIAN);
   view.setBigUint64(16, parsedFrame.toSeq, STREAM_LITTLE_ENDIAN);
   view.setFloat64(24, parsedFrame.serverTsMs, STREAM_LITTLE_ENDIAN);
@@ -270,42 +296,38 @@ export function encodeMovementBatch(frame: MovementBatchFrame): ArrayBuffer {
   return buffer;
 }
 
-export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): MovementBatchFrame {
+export function decodeOpsMovementBatch(
+  source: ArrayBuffer | ArrayBufferView,
+): OpsMovementBatchFrame {
   const view =
     source instanceof ArrayBuffer
       ? new DataView(source)
       : new DataView(source.buffer, source.byteOffset, source.byteLength);
 
   if (view.byteLength < STREAM_FRAME_HEADER_BYTES) {
-    throw new SettlementStreamDecodeError(
-      "SettlementStream frame header is truncated",
-      "truncated_header",
-    );
+    throw new OpsStreamDecodeError("OpsStream frame header is truncated", "truncated_header");
   }
 
   const magic = view.getUint32(0, STREAM_LITTLE_ENDIAN);
 
-  if (magic !== SETTLEMENT_STREAM_MAGIC) {
-    throw new SettlementStreamDecodeError(
-      "SettlementStream frame has an invalid magic value",
-      "bad_magic",
-    );
+  if (magic !== OPS_STREAM_MAGIC) {
+    throw new OpsStreamDecodeError("OpsStream frame has an invalid magic value", "bad_magic");
   }
 
   const version = view.getUint16(4, STREAM_LITTLE_ENDIAN);
 
-  if (version !== SETTLEMENT_STREAM_VERSION) {
-    throw new SettlementStreamDecodeError(
-      `SettlementStream version ${version} is not supported`,
+  if (version !== OPS_STREAM_VERSION) {
+    throw new OpsStreamDecodeError(
+      `OpsStream version ${version} is not supported`,
       "unsupported_version",
     );
   }
 
   const channel = view.getUint16(6, STREAM_LITTLE_ENDIAN);
 
-  if (channel !== StreamChannel.MovementBatch) {
-    throw new SettlementStreamDecodeError(
-      `SettlementStream channel ${channel} is not a movement batch`,
+  if (channel !== OpsStreamChannel.MovementBatch) {
+    throw new OpsStreamDecodeError(
+      `OpsStream channel ${channel} is not a movement batch`,
       "unsupported_channel",
     );
   }
@@ -317,10 +339,7 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
   const expectedBytes = STREAM_FRAME_HEADER_BYTES + eventCount * MOVEMENT_RECORD_BYTES;
 
   if (view.byteLength < expectedBytes) {
-    throw new SettlementStreamDecodeError(
-      "SettlementStream movement records are truncated",
-      "truncated_record",
-    );
+    throw new OpsStreamDecodeError("OpsStream movement records are truncated", "truncated_record");
   }
 
   const movements: BalanceSheetMovement[] = [];
@@ -331,38 +350,15 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
     offset += 4;
     const dtMs = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    const kindCode = view.getUint8(offset);
-    const kind = MOVEMENT_KINDS[kindCode];
-    if (kind === undefined) {
-      throw new SettlementStreamDecodeError(`Invalid kind code ${kindCode}`, "invalid_enum_code");
-    }
+    const kind = readEnumCode(MOVEMENT_KINDS, view.getUint8(offset), "kind");
     offset += 1;
-    const sideCode = view.getUint8(offset);
-    const side = MOVEMENT_SIDES[sideCode];
-    if (side === undefined) {
-      throw new SettlementStreamDecodeError(`Invalid side code ${sideCode}`, "invalid_enum_code");
-    }
+    const side = readEnumCode(MOVEMENT_SIDES, view.getUint8(offset), "side");
     offset += 1;
-    const bucketCode = view.getUint8(offset);
-    const bucket = BALANCE_SHEET_BUCKETS[bucketCode];
-    if (bucket === undefined) {
-      throw new SettlementStreamDecodeError(
-        `Invalid bucket code ${bucketCode}`,
-        "invalid_enum_code",
-      );
-    }
+    const bucket = readEnumCode(BALANCE_SHEET_BUCKETS, view.getUint8(offset), "bucket");
     offset += 1;
-    const railCode = view.getUint8(offset);
-    const rail = RAILS[railCode];
-    if (rail === undefined) {
-      throw new SettlementStreamDecodeError(`Invalid rail code ${railCode}`, "invalid_enum_code");
-    }
+    const rail = readEnumCode(RAILS, view.getUint8(offset), "rail");
     offset += 1;
-    const assetCode = view.getUint8(offset);
-    const asset = ASSETS[assetCode];
-    if (asset === undefined) {
-      throw new SettlementStreamDecodeError(`Invalid asset code ${assetCode}`, "invalid_enum_code");
-    }
+    const asset = readEnumCode(ASSETS, view.getUint8(offset), "asset");
     offset += 1;
     const customerId = view.getUint32(offset, STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -372,23 +368,13 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
     offset += 8;
     const latencyMs = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    const statusCode = view.getUint8(offset);
-    const status = MOVEMENT_STATUSES[statusCode];
-    if (status === undefined) {
-      throw new SettlementStreamDecodeError(
-        `Invalid status code ${statusCode}`,
-        "invalid_enum_code",
-      );
-    }
+    const status = readEnumCode(MOVEMENT_STATUSES, view.getUint8(offset), "status");
     offset += 1;
     const riskTier = view.getUint8(offset);
     offset += 1;
 
     if (riskTier !== 0 && riskTier !== 1 && riskTier !== 2 && riskTier !== 3) {
-      throw new SettlementStreamDecodeError(
-        `Invalid riskTier code ${riskTier}`,
-        "invalid_enum_code",
-      );
+      throw new OpsStreamDecodeError(`Invalid riskTier code ${riskTier}`, "invalid_enum_code");
     }
 
     const flags = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
@@ -420,7 +406,7 @@ export function decodeMovementBatch(source: ArrayBuffer | ArrayBufferView): Move
   };
 }
 
-function parseMovementBatchFrame(frame: MovementBatchFrame): MovementBatchFrame {
+function parseOpsMovementBatchFrame(frame: OpsMovementBatchFrame): OpsMovementBatchFrame {
   if (!nonnegativeBigIntSchema.safeParse(frame.fromSeq).success || frame.toSeq < frame.fromSeq) {
     throw new RangeError("Movement batch sequence range is invalid");
   }
@@ -450,4 +436,18 @@ function parseRange<T>(schema: z.ZodType<T>, value: unknown, message: string): T
   }
 
   return result.data;
+}
+
+function readEnumCode<const T extends readonly string[]>(
+  values: T,
+  code: number,
+  name: string,
+): T[number] {
+  const value = values[code];
+
+  if (value === undefined) {
+    throw new OpsStreamDecodeError(`Invalid ${name} code ${code}`, "invalid_enum_code");
+  }
+
+  return value;
 }
