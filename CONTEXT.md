@@ -76,6 +76,11 @@ A server-queryable operational envelope rendered in the `/audit` table, with com
 fields and type-specific detail.
 _Avoid_: Transaction, ledger row
 
+**Analyst Report**:
+A validated, read-only analytical view generated from BankOps data in response to an Operator's
+natural-language question.
+_Avoid_: Generated React, app, source-of-truth record
+
 ## Relationships
 
 - A **Customer** owns one or more **Accounts**.
@@ -95,6 +100,10 @@ _Avoid_: Transaction, ledger row
 - An **Audit Entry** has exactly one subject type, such as payment, journal, customer, account,
   rail, settlement, exception, configuration, cutoff, or operator action.
 - A **Facet** counts matching **Audit Entries** without returning those entries.
+- An **Analyst Report** summarizes or visualizes BankOps data, but it does not create, mutate, or
+  become that data.
+- An **Analyst Report** is generated from the enriched **Bank Core Audit Log** in the first analyst
+  implementation.
 
 ## Example Dialogue
 
@@ -117,3 +126,7 @@ _Avoid_: Transaction, ledger row
   they share vocabulary but do not require row-level correspondence.
 - **Balance Sheet Perspective** means a credit increases the referenced balance sheet bucket and a
   debit decreases it; it does not describe whether the Customer feels richer or poorer.
+- An **Analyst Report** is a rendered analysis artifact, not generated React and not an operational
+  source of truth.
+- `/analyst` analyzes enriched **Audit Entries** rather than introducing a separate synthetic data
+  universe.
