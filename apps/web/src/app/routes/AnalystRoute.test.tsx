@@ -37,7 +37,43 @@ describe("AnalystRoute", () => {
     await submit(host);
 
     expect(host.textContent).toContain("Generating Analyst Report");
+    expect(host.textContent).toContain("CodeMode run trace");
     expect(host.querySelector("button[type='submit']")?.getAttribute("disabled")).toBe("");
+
+    act(() => root.unmount());
+  });
+
+  it("renders progress facts and raw runtime traces while running", async () => {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(
+          sse([
+            {
+              at: "2026-05-18T18:00:00.000Z",
+              detail: "100,000 entries, 160 customers",
+              label: "Loaded dataset overview",
+              type: "progress",
+            },
+            {
+              at: "2026-05-18T18:00:01.000Z",
+              detail: "get_dataset_overview result",
+              label: "tool result",
+              source: "tool",
+              type: "trace",
+            },
+          ]),
+          { headers: { "content-type": "text/event-stream" } },
+        ),
+    );
+    const { host, root } = renderRoute();
+
+    await submit(host);
+    await settle();
+
+    expect(host.textContent).toContain("Current execution fact");
+    expect(host.textContent).toContain("Loaded dataset overview");
+    expect(host.textContent).toContain("Raw runtime trace");
+    expect(host.textContent).toContain("tool result");
 
     act(() => root.unmount());
   });

@@ -1,21 +1,32 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { AnalystReportRunPhase, AnalystReportSpec } from "@bankops/contracts";
+import type { AnalystReportRunPhase, AnalystReportSpec, AnalystRunEvent } from "@bankops/contracts";
 
 import { streamAnalystRun } from "./analyst-run-api";
+
+export type AnalystProgressEvent = Extract<AnalystRunEvent, { type: "progress" }>;
+export type AnalystTraceEvent = Extract<AnalystRunEvent, { type: "trace" }>;
 
 type AnalystRunState = {
   error: string | null;
   phase: AnalystReportRunPhase;
+  progressEvents: AnalystProgressEvent[];
   report: AnalystReportSpec | null;
+  startedAt: number | null;
   statusMessage: string | null;
+  traceEvents: AnalystTraceEvent[];
+  validationAttempts: number;
 };
 
 const initialState: AnalystRunState = {
   error: null,
   phase: "idle",
+  progressEvents: [],
   report: null,
+  startedAt: null,
   statusMessage: null,
+  traceEvents: [],
+  validationAttempts: 0,
 };
 
 export function useAnalystRun() {
@@ -31,8 +42,12 @@ export function useAnalystRun() {
       setState((current) => ({
         error: null,
         phase: "generating",
+        progressEvents: [],
         report: current.report,
+        startedAt: Date.now(),
         statusMessage: "Starting CodeMode run",
+        traceEvents: [],
+        validationAttempts: 0,
       }));
 
       try {
@@ -45,11 +60,25 @@ export function useAnalystRun() {
                 statusMessage: event.message ?? statusCopy(event.phase),
               }));
             }
+            if (event.type === "progress") {
+              setState((current) => ({
+                ...current,
+                progressEvents: [...current.progressEvents, event].slice(-24),
+                statusMessage: event.label,
+              }));
+            }
+            if (event.type === "trace") {
+              setState((current) => ({
+                ...current,
+                traceEvents: [...current.traceEvents, event].slice(-80),
+              }));
+            }
             if (event.type === "validation") {
               setState((current) => ({
                 ...current,
                 phase: event.ok ? "validating" : "repairing",
                 statusMessage: event.ok ? "Report validated" : "Repairing report shape",
+                validationAttempts: Math.max(current.validationAttempts, event.attempt),
               }));
             }
           },
@@ -58,12 +87,16 @@ export function useAnalystRun() {
           signal: abortController.signal,
         });
 
-        setState({
+        setState((current) => ({
           error: null,
           phase: "done",
+          progressEvents: current.progressEvents,
           report,
+          startedAt: current.startedAt,
           statusMessage: "Validated report ready",
-        });
+          traceEvents: current.traceEvents,
+          validationAttempts: current.validationAttempts,
+        }));
       } catch (error) {
         if (abortController.signal.aborted) {
           return;

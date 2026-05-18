@@ -31,6 +31,19 @@ export const analystRunEventSchema = z.discriminatedUnion("type", [
     message: z.string().max(400).optional(),
   }),
   z.object({
+    type: z.literal("progress"),
+    at: z.string().datetime(),
+    label: z.string().min(1).max(160),
+    detail: z.string().max(500).optional(),
+  }),
+  z.object({
+    type: z.literal("trace"),
+    at: z.string().datetime(),
+    source: z.enum(["model", "codemode", "tool", "validation", "runtime"]),
+    label: z.string().min(1).max(160),
+    detail: z.string().max(1_500).optional(),
+  }),
+  z.object({
     type: z.literal("code"),
     code: z.string().max(20_000),
   }),
