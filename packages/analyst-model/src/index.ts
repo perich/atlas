@@ -402,6 +402,8 @@ function severityScore(severity: AuditEntry["severity"]) {
 }
 
 function toSampleRow(entry: AuditEntry) {
+  const detail = sampleDetailSummary(entry.detail);
+
   return {
     id: entry.id,
     ts: entry.ts,
@@ -413,7 +415,8 @@ function toSampleRow(entry: AuditEntry) {
     status: entry.status,
     amountMinor: entry.amountMinor?.toString(),
     summary: entry.summary,
-    detailSummary: sampleDetailSummary(entry.detail),
+    detail,
+    detailSummary: detail,
   };
 }
 
