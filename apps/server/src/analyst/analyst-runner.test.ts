@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   analystModelOptions,
-  reasoningTraceDetail,
+  reasoningTraceDelta,
+  reasoningTraceSnippet,
   runAnalystReportAttempts,
 } from "./analyst-runner.js";
 
@@ -16,13 +17,17 @@ describe("Analyst OpenRouter model options", () => {
 });
 
 describe("Analyst reasoning traces", () => {
-  it("extracts reasoning deltas as raw model trace details", () => {
+  it("extracts reasoning deltas as raw model trace input", () => {
     expect(
-      reasoningTraceDetail({ type: "REASONING_MESSAGE_CONTENT", delta: " planning tools " }),
-    ).toBe("planning tools");
+      reasoningTraceDelta({ type: "REASONING_MESSAGE_CONTENT", delta: " planning tools " }),
+    ).toBe(" planning tools ");
     expect(
-      reasoningTraceDetail({ type: "TEXT_MESSAGE_CONTENT", delta: "visible answer" }),
+      reasoningTraceDelta({ type: "TEXT_MESSAGE_CONTENT", delta: "visible answer" }),
     ).toBeUndefined();
+  });
+
+  it("compacts reasoning deltas into readable snippets", () => {
+    expect(reasoningTraceSnippet(" planning\n\n   bounded tools ")).toBe("planning bounded tools");
   });
 });
 
