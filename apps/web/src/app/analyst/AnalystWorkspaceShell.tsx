@@ -18,10 +18,8 @@ export function AnalystWorkspaceShell({
           <div>
             <PageHeader eyebrow="Experimental CodeMode Analyst" title="Analyst workspace" />
             <p className="mt-3 max-w-3xl text-sm leading-6 text-bankops-muted">
-              This is an experimental GenAI workflow for exploring what operational analysis can
-              feel like when an LLM writes and validates report specs against live BankOps data
-              tools. Expect rough edges, occasional bugs, and reports that should be reviewed before
-              acting on them.
+              This is a WIP experiment in building UX with LLM CodeMode. It may have rough edges,
+              but it should give a feel for where generated analysis can go.
             </p>
           </div>
           <span className="inline-flex shrink-0 rounded-full border border-sky-300/25 bg-sky-300/[0.07] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-100">
