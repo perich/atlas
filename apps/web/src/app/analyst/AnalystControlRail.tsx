@@ -52,16 +52,32 @@ export function AnalystControlRail({
         <span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
           {mode === "refine" ? "Change request" : "Ask"}
         </span>
-        <textarea
-          className="mt-2 min-h-28 w-full resize-none rounded-md border border-white/[0.08] bg-black/25 p-3 text-sm leading-6 text-bankops-text outline-none transition-colors placeholder:text-bankops-muted focus:border-white/20"
-          onChange={(event) => onQuestionChange(event.target.value)}
-          placeholder={
-            mode === "refine"
-              ? "Example: focus this report on ACH failures and add a customer priority table..."
-              : "Example: find the most interesting operating pattern in today's audit log..."
-          }
-          value={question}
-        />
+        <div className="mt-2 overflow-hidden rounded-md border border-white/[0.08] bg-black/25 transition-colors focus-within:border-white/20">
+          <textarea
+            className="min-h-28 w-full resize-none border-0 bg-transparent p-3 text-sm leading-6 text-bankops-text outline-none placeholder:text-bankops-muted"
+            onChange={(event) => onQuestionChange(event.target.value)}
+            placeholder={
+              mode === "refine"
+                ? "Example: focus this report on ACH failures and add a customer priority table..."
+                : "Example: find the most interesting operating pattern in today's audit log..."
+            }
+            value={question}
+          />
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-t border-white/[0.08] bg-black/20 p-2">
+            <Button className="w-full" disabled={!question.trim() || isRunning} type="submit">
+              {isRunning ? (
+                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+              ) : (
+                <Play aria-hidden="true" className="size-4" />
+              )}
+              {hasReport ? "Refine" : "Generate"}
+            </Button>
+            <Button disabled={isEmpty || isRunning} onClick={onNewAnalysis} variant="secondary">
+              <RotateCcw aria-hidden="true" className="size-4" />
+              New analysis
+            </Button>
+          </div>
+        </div>
       </label>
 
       {mode === "create" ? (
@@ -73,15 +89,15 @@ export function AnalystControlRail({
             {ANALYST_PROMPT_CHIPS.map((chip) => (
               <button
                 className={cn(
-                  "rounded-full border border-white/[0.1] bg-white/[0.025] px-3 py-1.5 text-left text-[11px] leading-4 text-bankops-muted transition-colors hover:border-sky-300/30 hover:bg-sky-300/[0.05] hover:text-white",
-                  question === chip && "border-sky-300/45 bg-sky-300/[0.09] text-white",
+                  "inline-flex h-6 items-center rounded-full border border-white/[0.1] bg-white/[0.025] px-2 text-[9px] leading-none text-bankops-muted transition-colors hover:border-sky-300/30 hover:bg-sky-300/[0.05] hover:text-white",
+                  question === chip.prompt && "border-sky-300/45 bg-sky-300/[0.09] text-white",
                 )}
                 disabled={isRunning}
-                key={chip}
-                onClick={() => onQuestionChange(chip)}
+                key={chip.label}
+                onClick={() => onQuestionChange(chip.prompt)}
                 type="button"
               >
-                {chip}
+                {chip.label}
               </button>
             ))}
           </div>
@@ -97,21 +113,6 @@ export function AnalystControlRail({
           </p>
         </div>
       )}
-
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-        <Button className="w-full" disabled={!question.trim() || isRunning} type="submit">
-          {isRunning ? (
-            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-          ) : (
-            <Play aria-hidden="true" className="size-4" />
-          )}
-          {hasReport ? "Refine" : "Generate"}
-        </Button>
-        <Button disabled={isEmpty || isRunning} onClick={onNewAnalysis} variant="secondary">
-          <RotateCcw aria-hidden="true" className="size-4" />
-          New analysis
-        </Button>
-      </div>
     </form>
   );
 }
