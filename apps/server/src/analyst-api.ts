@@ -29,7 +29,11 @@ export function registerAnalystApi(app: FastifyInstance) {
 
     const emit = (event: AnalystRunEvent) => writeSse(reply.raw, event);
     const abortController = new AbortController();
-    request.raw.on("aborted", () => abortController.abort());
+    reply.raw.on("close", () => {
+      if (!reply.raw.writableEnded) {
+        abortController.abort();
+      }
+    });
 
     try {
       await runAnalystCodeMode({

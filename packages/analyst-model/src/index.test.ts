@@ -24,6 +24,22 @@ describe("analyst rollups", () => {
     expect(overview.bySeverity).toMatchObject({ critical: 1, warning: 2 });
   });
 
+  it("summarizes target-sized datasets without spreading timestamp arrays", () => {
+    const overview = getDatasetOverview(
+      Array.from({ length: 250_000 }, (_value, index) =>
+        makeEntry({
+          customerId: `cus_${index % 5}`,
+          id: `aud_large_${index}`,
+          ts: index,
+        }),
+      ),
+    );
+
+    expect(overview.totalEntries).toBe(250_000);
+    expect(overview.timeRange).toEqual({ from: 0, to: 249_999 });
+    expect(overview.distinctCustomers).toBe(5);
+  });
+
   it("builds time series and breakdowns with truncation metadata", () => {
     expect(
       getTimeSeries(rows, { grain: "hour", metric: "amountMinor" }).map((point) => point.value),
