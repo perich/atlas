@@ -5,13 +5,11 @@ import {
   type AnalystRunEvent,
 } from "@bankops/contracts";
 
-export type AnalystRunRequest = {
+export async function streamAnalystRun(input: {
   question: string;
   signal: AbortSignal;
   onEvent: (event: AnalystRunEvent) => void;
-};
-
-export async function streamAnalystRun(input: AnalystRunRequest): Promise<AnalystReportSpec> {
+}) {
   const response = await fetch("/api/analyst/runs", {
     body: JSON.stringify({
       question: input.question,

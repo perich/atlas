@@ -13,6 +13,14 @@ export function AnalystRunStatus({
   statusMessage: string | null;
 }) {
   const status = statusMessage ?? (isEmpty ? "Idle" : "Done");
+  const completedDuration =
+    completedDurationSeconds === null
+      ? null
+      : completedDurationSeconds < 60
+        ? `${completedDurationSeconds}s`
+        : `${Math.floor(completedDurationSeconds / 60)}m ${String(
+            completedDurationSeconds % 60,
+          ).padStart(2, "0")}s`;
 
   return (
     <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
@@ -24,10 +32,10 @@ export function AnalystRunStatus({
       </div>
 
       <div className="flex items-center gap-3 font-mono text-xs text-bankops-muted">
-        {completedDurationSeconds !== null ? (
+        {completedDuration ? (
           <span className="inline-flex items-center gap-2">
             <Clock3 className="size-3.5" />
-            Generated in {formatDuration(completedDurationSeconds)}
+            Generated in {completedDuration}
           </span>
         ) : null}
       </div>
@@ -37,15 +45,4 @@ export function AnalystRunStatus({
       ) : null}
     </div>
   );
-}
-
-function formatDuration(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  if (minutes === 0) {
-    return `${seconds}s`;
-  }
-
-  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
