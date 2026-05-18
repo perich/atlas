@@ -1,6 +1,6 @@
 import { chat, maxIterations, toolDefinition, type AnyTextAdapter } from "@tanstack/ai";
 import { createCodeMode } from "@tanstack/ai-code-mode";
-import { createOpenRouterText } from "@tanstack/ai-openrouter";
+import { createOpenRouterText, type OpenRouterTextModelOptions } from "@tanstack/ai-openrouter";
 import {
   analystReportSpecSchema,
   type AnalystReportSpec,
@@ -110,6 +110,7 @@ export async function runAnalystCodeMode({
             content: userPrompt({ previousReport, question, validationError }),
           },
         ],
+        modelOptions: analystModelOptions(),
         systemPrompts: [ANALYST_SYSTEM_PROMPT, CODE_MODE_SCAFFOLD, attemptSystemPrompt],
         tools: [attemptTool],
       });
@@ -126,6 +127,11 @@ export async function runAnalystCodeMode({
         assistantText += text;
         if (text.trim()) {
           emitTrace(emit, "model", "Assistant text", text.trim().slice(0, 1_500));
+        }
+
+        const reasoning = reasoningTraceDetail(event);
+        if (reasoning !== undefined) {
+          emitTrace(emit, "model", "Reasoning trace", reasoning);
         }
 
         if (isCodeModeConsoleEvent(event)) {
@@ -225,6 +231,12 @@ function createAnalystAdapter(model: string, apiKey: string): AnyTextAdapter {
   return createOpenRouterText(model as never, apiKey) as unknown as AnyTextAdapter;
 }
 
+export function analystModelOptions(): OpenRouterTextModelOptions {
+  return {
+    reasoning: { effort: "high" },
+  };
+}
+
 function createSubmitReportTool(onReport: (report: AnalystReportSpec) => void) {
   return toolDefinition({
     description: "Submit the complete AnalystReportSpec for validation and rendering.",
@@ -293,4 +305,18 @@ function textChunk(event: unknown) {
   return candidate.type === "TEXT_MESSAGE_CONTENT" && typeof candidate.delta === "string"
     ? candidate.delta
     : "";
+}
+
+export function reasoningTraceDetail(event: unknown) {
+  if (event === null || typeof event !== "object" || !("type" in event)) {
+    return undefined;
+  }
+
+  const candidate = event as { type?: unknown; delta?: unknown };
+  if (candidate.type !== "REASONING_MESSAGE_CONTENT" || typeof candidate.delta !== "string") {
+    return undefined;
+  }
+
+  const detail = candidate.delta.trim();
+  return detail.length > 0 ? detail.slice(0, 1_500) : undefined;
 }
