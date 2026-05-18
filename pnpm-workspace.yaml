@@ -2,4 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  "@openrouter/sdk": true
   esbuild: true
+  isolated-vm: true
