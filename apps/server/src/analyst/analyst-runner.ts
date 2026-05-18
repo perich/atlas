@@ -38,6 +38,8 @@ Hard constraints:
 - Do not invent hidden scenario labels. Only describe observable audit-log facts returned by tools.
 - Embed all chart, dataTable, timeline, metric, markdown, and summary data in the submitted report.
 - Tables must use type "dataTable" and contain capped rows useful for local rendering.
+- When using external_get_audit_sample for evidence tables, request limit 40-80 unless the user's ask is very narrow.
+- When using external_get_customer_risk_rollup for prioritization views, request limit 40-80 unless the user's ask is very narrow.
 - Narrative text must use type "markdown" or "summary"; never use a block type named "narrative".
 - Metrics must use type "metric" with a nested metric object, or type "metricGrid" with a metrics array.
 - Use version "2026-05-analyst-report" and an ISO datetime generatedAt value.
@@ -46,7 +48,7 @@ Hard constraints:
 const CODE_MODE_SCAFFOLD = `Use this exact shape inside execute_typescript:
 const overview = await external_get_dataset_overview({});
 console.log("loaded dataset overview", overview.totalEntries, "entries");
-const risk = await external_get_customer_risk_rollup({ limit: 8 });
+const risk = await external_get_customer_risk_rollup({ limit: 40 });
 console.log("loaded customer risk rows", risk.rows.length);
 const report = {
   version: "2026-05-analyst-report",
