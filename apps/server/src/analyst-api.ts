@@ -29,7 +29,6 @@ export function registerAnalystApi(app: FastifyInstance) {
 
     const emit = (event: AnalystRunEvent) => writeSse(reply.raw, event);
     const abortController = new AbortController();
-    const timeout = setTimeout(() => abortController.abort(), 420_000);
     request.raw.on("aborted", () => abortController.abort());
 
     try {
@@ -43,7 +42,6 @@ export function registerAnalystApi(app: FastifyInstance) {
       emit({ message, type: "error" });
       emit({ phase: "error", message, type: "phase" });
     } finally {
-      clearTimeout(timeout);
       reply.raw.end();
     }
 
