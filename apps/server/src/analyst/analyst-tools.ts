@@ -1,4 +1,5 @@
 import {
+  DEFAULT_ROLLUP_LIMIT,
   getAuditSample,
   getBreakdown,
   getCustomerRiskRollup,
@@ -7,6 +8,7 @@ import {
   getRailHealthRollup,
   getReconciliationRollup,
   getTimeSeries,
+  MAX_ROLLUP_LIMIT,
 } from "@bankops/analyst-model";
 import { getAuditLogEntries } from "@bankops/audit-log-model";
 import { toolDefinition } from "@tanstack/ai";
@@ -41,7 +43,7 @@ const filtersSchema = z.object({
     .optional(),
   customerId: z.array(z.string()).optional(),
 });
-const limitSchema = z.int().min(1).max(80).optional();
+const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).optional();
 const entries = () => getAuditLogEntries();
 type EmitAnalystEvent = (event: AnalystRunEvent) => void;
 
@@ -114,7 +116,8 @@ export function createAnalystDataTools(emit?: EmitAnalystEvent) {
     ),
     toolDefinition({
       name: "get_audit_sample",
-      description: "Return capped JSON-safe audit samples for investigation tables.",
+      description:
+        "Return capped JSON-safe audit samples for investigation tables. Default limit is 20; request 40-80 when you need evidence rows for a report table.",
       inputSchema: z.object({
         filters: filtersSchema.optional(),
         limit: limitSchema,
@@ -123,7 +126,7 @@ export function createAnalystDataTools(emit?: EmitAnalystEvent) {
     }).server((input) =>
       runAnalystTool({
         emit,
-        inputSummary: `${input.sort ?? "newest"} sample, limit ${input.limit ?? 80}`,
+        inputSummary: `${input.sort ?? "newest"} sample, limit ${input.limit ?? DEFAULT_ROLLUP_LIMIT}`,
         name: "get_audit_sample",
         run: () => getAuditSample(entries(), input),
         summarize: (result) =>
@@ -174,12 +177,13 @@ export function createAnalystDataTools(emit?: EmitAnalystEvent) {
     ),
     toolDefinition({
       name: "get_customer_risk_rollup",
-      description: "Return capped customer risk rollups for prioritization views.",
+      description:
+        "Return capped customer risk rollups for prioritization views. Default limit is 20; request 40-80 for broad customer evidence.",
       inputSchema: z.object({ filters: filtersSchema.optional(), limit: limitSchema }),
     }).server((input) =>
       runAnalystTool({
         emit,
-        inputSummary: `top customer risk rows, limit ${input.limit ?? 80}`,
+        inputSummary: `top customer risk rows, limit ${input.limit ?? DEFAULT_ROLLUP_LIMIT}`,
         name: "get_customer_risk_rollup",
         run: () => getCustomerRiskRollup(entries(), input),
         summarize: (result) =>
