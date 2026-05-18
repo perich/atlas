@@ -5,6 +5,7 @@
     { "path": "./apps/server" },
     { "path": "./packages/contracts" },
     { "path": "./packages/ops-tape-sim" },
-    { "path": "./packages/audit-log-model" }
+    { "path": "./packages/audit-log-model" },
+    { "path": "./packages/analyst-model" }
   ]
 }
