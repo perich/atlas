@@ -2,11 +2,9 @@ import React, { useState } from "react";
 import { AlertTriangle, Bot, Braces, Loader2, Play, RotateCcw, ShieldCheck } from "lucide-react";
 
 import { AnalystReportRenderer } from "../analyst/AnalystReportRenderer";
-import { analystReportFixture } from "../analyst/report-fixture";
+import { useAnalystRun } from "../analyst/useAnalystRun";
 import { Button, PageHeader } from "../../design/components";
 import { cn } from "../../design/utils";
-
-type AnalystShellState = "empty" | "loading" | "success" | "error";
 
 const promptChips = [
   "Find the riskiest operating pattern in today's audit log",
@@ -16,7 +14,8 @@ const promptChips = [
 
 export function AnalystRoute() {
   const [question, setQuestion] = useState(promptChips[0]);
-  const [state, setState] = useState<AnalystShellState>("empty");
+  const analystRun = useAnalystRun();
+  const isEmpty = !analystRun.report && !analystRun.error && !analystRun.isRunning;
 
   return (
     <div className="min-h-[calc(100vh-5.25rem)] rounded-md border border-white/[0.08] bg-bankops-bg">
@@ -35,8 +34,7 @@ export function AnalystRoute() {
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              setState("loading");
-              window.setTimeout(() => setState("success"), 450);
+              void analystRun.run(question.trim());
             }}
           >
             <label className="block">
@@ -62,6 +60,7 @@ export function AnalystRoute() {
                       "rounded-md border border-white/[0.08] bg-black/20 px-3 py-2 text-left text-xs leading-5 text-bankops-muted transition-colors hover:border-white/18 hover:bg-white/[0.04] hover:text-white",
                       question === chip && "border-sky-300/30 bg-sky-300/[0.06] text-white",
                     )}
+                    disabled={analystRun.isRunning}
                     key={chip}
                     onClick={() => setQuestion(chip)}
                     type="button"
@@ -73,18 +72,18 @@ export function AnalystRoute() {
             </div>
 
             <div className="flex gap-2">
-              <Button disabled={!question.trim() || state === "loading"} type="submit">
-                {state === "loading" ? (
+              <Button disabled={!question.trim() || analystRun.isRunning} type="submit">
+                {analystRun.isRunning ? (
                   <Loader2 aria-hidden="true" className="size-4 animate-spin" />
                 ) : (
                   <Play aria-hidden="true" className="size-4" />
                 )}
-                Generate
+                {analystRun.report ? "Refine" : "Generate"}
               </Button>
               <Button
                 onClick={() => {
                   setQuestion("");
-                  setState("empty");
+                  analystRun.reset();
                 }}
                 variant="secondary"
               >
@@ -98,29 +97,40 @@ export function AnalystRoute() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
               Run status
             </p>
-            <p className="mt-2 text-sm text-bankops-text">{statusCopy(state)}</p>
-            {state === "error" ? (
+            <p className="mt-2 text-sm text-bankops-text">
+              {analystRun.statusMessage ?? (isEmpty ? "Idle" : "Done")}
+            </p>
+            {analystRun.error ? (
               <p className="mt-2 flex gap-2 text-xs leading-5 text-rose-200">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                The Analyst Report did not validate.
+                {analystRun.error}
               </p>
             ) : null}
-            <Button className="mt-3 w-full" onClick={() => setState("error")} variant="ghost">
-              Preview error state
-            </Button>
           </div>
         </aside>
 
         <main className="p-5">
-          <AnalystCanvas state={state} />
+          <AnalystCanvas
+            error={analystRun.error}
+            isRunning={analystRun.isRunning}
+            report={analystRun.report}
+          />
         </main>
       </div>
     </div>
   );
 }
 
-function AnalystCanvas({ state }: { state: AnalystShellState }) {
-  if (state === "loading") {
+function AnalystCanvas({
+  error,
+  isRunning,
+  report,
+}: {
+  error: string | null;
+  isRunning: boolean;
+  report: unknown;
+}) {
+  if (isRunning) {
     return (
       <div className="grid min-h-[520px] place-items-center rounded-md border border-white/[0.08] bg-bankops-panel">
         <div className="text-center">
@@ -132,15 +142,15 @@ function AnalystCanvas({ state }: { state: AnalystShellState }) {
     );
   }
 
-  if (state === "success") {
+  if (report) {
     return (
       <div className="rounded-md border border-white/[0.08] bg-black/20 p-5">
-        <AnalystReportRenderer report={analystReportFixture} />
+        <AnalystReportRenderer report={report} />
       </div>
     );
   }
 
-  if (state === "error") {
+  if (error) {
     return (
       <div className="grid min-h-[520px] place-items-center rounded-md border border-rose-300/20 bg-rose-300/[0.04]">
         <div className="max-w-md text-center">
@@ -187,17 +197,4 @@ function StatusPill({
       </div>
     </div>
   );
-}
-
-function statusCopy(state: AnalystShellState) {
-  if (state === "loading") {
-    return "Generating";
-  }
-  if (state === "success") {
-    return "Done";
-  }
-  if (state === "error") {
-    return "Error";
-  }
-  return "Idle";
 }

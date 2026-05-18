@@ -11,7 +11,7 @@ import { createAnalystDataTools } from "./analyst-tools.js";
 import { createAnalystIsolateDriver } from "./isolate-driver.js";
 
 const MAX_ATTEMPTS = 4;
-const CODE_MODE_TIMEOUT_MS = 60_000;
+const CODE_MODE_TIMEOUT_MS = 90_000;
 
 type RunAnalystReportInput = {
   question: string;
@@ -31,6 +31,8 @@ Use execute_typescript to call bounded external_get_* analyst tools, analyze the
 and submit exactly one complete AnalystReportSpec by calling external_submit_report(spec).
 
 Hard constraints:
+- Do all work inside execute_typescript. Do not answer in prose.
+- End the execute_typescript program with: await external_submit_report(report);
 - Do not generate React, JSX, CSS, handlers, subscriptions, watchers, or browser code.
 - Do not invent hidden scenario labels. Only describe observable audit-log facts returned by tools.
 - Embed all chart, table, timeline, metric, and narrative data in the submitted report.
@@ -72,7 +74,7 @@ export async function runAnalystCodeMode({
       const stream = chat({
         adapter: createAnalystAdapter(model, apiKey),
         abortController,
-        agentLoopStrategy: maxIterations(8),
+        agentLoopStrategy: maxIterations(16),
         maxTokens: 8192,
         messages: [
           {
