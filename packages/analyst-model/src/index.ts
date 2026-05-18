@@ -40,17 +40,25 @@ export const MAX_ROLLUP_LIMIT = 80;
 
 export function getDatasetOverview(entries: readonly AuditEntry[], filters: AnalystFilters = {}) {
   const rows = filteredEntries(entries, filters);
-  const tsValues = rows.map((entry) => entry.ts);
+  const distinctCustomers = new Set<string>();
+  let tsFrom: number | undefined;
+  let tsTo: number | undefined;
+
+  for (const entry of rows) {
+    if (entry.customerId) {
+      distinctCustomers.add(entry.customerId);
+    }
+    tsFrom = tsFrom === undefined ? entry.ts : Math.min(tsFrom, entry.ts);
+    tsTo = tsTo === undefined ? entry.ts : Math.max(tsTo, entry.ts);
+  }
 
   return {
     totalEntries: rows.length,
     timeRange: {
-      from: tsValues.length ? Math.min(...tsValues) : undefined,
-      to: tsValues.length ? Math.max(...tsValues) : undefined,
+      from: tsFrom,
+      to: tsTo,
     },
-    distinctCustomers: new Set(
-      rows.flatMap((entry) => (entry.customerId ? [entry.customerId] : [])),
-    ).size,
+    distinctCustomers: distinctCustomers.size,
     amountMinorTotal: amountTotal(rows).toString(),
     byRail: countBy(rows, (entry) => entry.rail ?? "none"),
     bySeverity: countBy(rows, (entry) => entry.severity),
