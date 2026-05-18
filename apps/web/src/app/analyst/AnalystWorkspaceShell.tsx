@@ -1,4 +1,5 @@
 import React from "react";
+import { Sparkles } from "lucide-react";
 
 import { PageHeader } from "../../design/components";
 
@@ -17,10 +18,13 @@ export function AnalystWorkspaceShell({
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <PageHeader eyebrow="Experimental CodeMode Analyst" title="Analyst workspace" />
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-bankops-muted">
-              This is a WIP experiment in building UX with LLM CodeMode. It may have rough edges,
-              but it should give a feel for where generated analysis can go.
-            </p>
+            <div className="mt-3 flex max-w-3xl items-start gap-2.5 rounded-md border border-sky-300/15 bg-sky-300/[0.04] px-3 py-2 text-sm leading-6 text-sky-100/85">
+              <Sparkles className="mt-1 size-3.5 shrink-0 text-sky-300" />
+              <p>
+                This is a WIP experiment in building UX with LLM CodeMode. It may have rough edges,
+                but it should give a feel for where generated analysis can go :)
+              </p>
+            </div>
           </div>
           <span className="inline-flex shrink-0 rounded-full border border-sky-300/25 bg-sky-300/[0.07] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-100">
             Experimental
