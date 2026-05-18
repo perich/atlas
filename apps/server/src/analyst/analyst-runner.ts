@@ -36,8 +36,10 @@ Hard constraints:
 - End the execute_typescript program with: await external_submit_report(report);
 - Do not generate React, JSX, CSS, handlers, subscriptions, watchers, or browser code.
 - Do not invent hidden scenario labels. Only describe observable audit-log facts returned by tools.
-- Embed all chart, table, timeline, metric, and narrative data in the submitted report.
-- Tables must contain capped rows useful for local rendering.
+- Embed all chart, dataTable, timeline, metric, markdown, and summary data in the submitted report.
+- Tables must use type "dataTable" and contain capped rows useful for local rendering.
+- Narrative text must use type "markdown" or "summary"; never use a block type named "narrative".
+- Metrics must use type "metric" with a nested metric object, or type "metricGrid" with a metrics array.
 - Use version "2026-05-analyst-report" and an ISO datetime generatedAt value.
 - If a previous report is provided, return a full replacement report, not a patch.`;
 
@@ -52,9 +54,65 @@ const report = {
   generatedAt: new Date().toISOString(),
   question: "copy the user's question",
   summary: "...",
-  blocks: [...]
+  blocks: [
+    {
+      type: "metricGrid",
+      title: "Current posture",
+      metrics: [
+        { label: "Failed rate", value: "8.6%", delta: "+210 bps", tone: "warning" },
+        { label: "Impacted customers", value: 12, tone: "neutral" }
+      ]
+    },
+    {
+      type: "barChart",
+      title: "Exception pressure by rail",
+      xKey: "rail",
+      series: [{ key: "exceptions", label: "Exceptions" }],
+      data: [
+        { rail: "ACH", exceptions: 120 },
+        { rail: "Wire", exceptions: 38 }
+      ]
+    },
+    {
+      type: "dataTable",
+      title: "Customers needing review",
+      columns: [
+        { key: "customer", label: "Customer" },
+        { key: "risk", label: "Risk", align: "right" },
+        { key: "reason", label: "Reason" }
+      ],
+      rows: [
+        { customer: "Aster Payroll", risk: 92, reason: "High failed-count and exception pressure" }
+      ]
+    },
+    {
+      type: "markdown",
+      title: "Operational readout",
+      markdown: "The riskiest pattern is **ACH exception pressure** concentrated near cutoff."
+    },
+    {
+      type: "summary",
+      items: ["Prioritize customers with critical failures.", "Keep unaffected rails moving."]
+    }
+  ]
 };
-await external_submit_report(report);`;
+await external_submit_report(report);
+
+Valid block types only:
+- "summary": { type, title?, items: string[] }
+- "markdown": { type, title?, markdown }
+- "callout": { type, title, body, tone?: "info" | "warning" | "critical" | "success" }
+- "metric": { type, metric: { label, value, delta?, tone?: "neutral" | "good" | "warning" | "critical" } }
+- "metricGrid": { type, title?, metrics: metric[] }
+- "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline": { type, title, xKey, series: [{ key, label? }], data }
+- "dataTable": { type, title, columns: [{ key, label, align?: "left" | "right" }], rows }
+- "timeline": { type, title, events: [{ ts: number, title, detail?, tone? }] }
+- "railMatrix": { type, title, rails, metrics, cells: [{ rail, metric, value, tone? }] }
+- "customerList" | "customerCarousel": { type, title, customers: [{ id, name, metric, detail?, tone? }] }
+- "section" | "grid" | "stack": container blocks with nested blocks arrays.
+
+Never use these invalid block types: "table", "narrative", "chart", "text".
+Never put title/value/delta directly on a "metric" block; put them inside block.metric.`;
 
 export async function runAnalystCodeMode({
   emit,
@@ -80,6 +138,14 @@ export async function runAnalystCodeMode({
     runAttempt: async ({ attempt, validationError }) => {
       let submittedReport: AnalystReportSpec | undefined;
       let assistantText = "";
+      let reasoningBuffer = "";
+      const flushReasoningTrace = () => {
+        const detail = reasoningTraceSnippet(reasoningBuffer);
+        reasoningBuffer = "";
+        if (detail !== undefined) {
+          emitTrace(emit, "model", "Reasoning trace", detail);
+        }
+      };
       const submitTool = createSubmitReportTool((report) => {
         emitProgress(emit, "Submitting AnalystReportSpec", `${report.blocks.length} report blocks`);
         emitTrace(emit, "runtime", "external_submit_report", report.title);
@@ -129,9 +195,12 @@ export async function runAnalystCodeMode({
           emitTrace(emit, "model", "Assistant text", text.trim().slice(0, 1_500));
         }
 
-        const reasoning = reasoningTraceDetail(event);
+        const reasoning = reasoningTraceDelta(event);
         if (reasoning !== undefined) {
-          emitTrace(emit, "model", "Reasoning trace", reasoning);
+          reasoningBuffer += reasoning;
+          if (reasoningBuffer.length >= 180) {
+            flushReasoningTrace();
+          }
         }
 
         if (isCodeModeConsoleEvent(event)) {
@@ -140,6 +209,8 @@ export async function runAnalystCodeMode({
           emit({ type: "code", code: event.data.message });
         }
       }
+
+      flushReasoningTrace();
 
       if (submittedReport === undefined) {
         throw new Error(
@@ -307,7 +378,7 @@ function textChunk(event: unknown) {
     : "";
 }
 
-export function reasoningTraceDetail(event: unknown) {
+export function reasoningTraceDelta(event: unknown) {
   if (event === null || typeof event !== "object" || !("type" in event)) {
     return undefined;
   }
@@ -317,6 +388,10 @@ export function reasoningTraceDetail(event: unknown) {
     return undefined;
   }
 
-  const detail = candidate.delta.trim();
+  return candidate.delta;
+}
+
+export function reasoningTraceSnippet(value: string) {
+  const detail = value.replace(/\s+/g, " ").trim();
   return detail.length > 0 ? detail.slice(0, 1_500) : undefined;
 }
