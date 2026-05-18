@@ -32,6 +32,7 @@ and submit exactly one complete AnalystReportSpec by calling external_submit_rep
 
 Hard constraints:
 - Do all work inside execute_typescript. Do not answer in prose.
+- Use console.log for short safe milestones before tool calls, after tool results, before report assembly, and before final submit.
 - End the execute_typescript program with: await external_submit_report(report);
 - Do not generate React, JSX, CSS, handlers, subscriptions, watchers, or browser code.
 - Do not invent hidden scenario labels. Only describe observable audit-log facts returned by tools.
@@ -42,7 +43,9 @@ Hard constraints:
 
 const CODE_MODE_SCAFFOLD = `Use this exact shape inside execute_typescript:
 const overview = await external_get_dataset_overview({});
+console.log("loaded dataset overview", overview.totalEntries, "entries");
 const risk = await external_get_customer_risk_rollup({ limit: 8 });
+console.log("loaded customer risk rows", risk.rows.length);
 const report = {
   version: "2026-05-analyst-report",
   title: "...",
@@ -67,22 +70,34 @@ export async function runAnalystCodeMode({
     throw new Error("OPENROUTER_API_KEY and ANALYST_MODEL must be configured");
   }
 
+  emitProgress(emit, "Starting CodeMode run", "Opening server-side OpenRouter CodeMode session");
+  emitTrace(emit, "runtime", "Configured analyst model", model);
   const driver = await createAnalystIsolateDriver();
+  emitProgress(emit, "Prepared sandbox", "Node isolate driver ready for bounded analyst tools");
 
   return runAnalystReportAttempts({
     emit,
-    runAttempt: async ({ validationError }) => {
+    runAttempt: async ({ attempt, validationError }) => {
       let submittedReport: AnalystReportSpec | undefined;
       let assistantText = "";
       const submitTool = createSubmitReportTool((report) => {
+        emitProgress(emit, "Submitting AnalystReportSpec", `${report.blocks.length} report blocks`);
+        emitTrace(emit, "runtime", "external_submit_report", report.title);
         submittedReport = report;
       });
       const { tool: attemptTool, systemPrompt: attemptSystemPrompt } = createCodeMode({
         driver,
         memoryLimit: 128,
         timeout: CODE_MODE_TIMEOUT_MS,
-        tools: [...createAnalystDataTools(), submitTool],
+        tools: [...createAnalystDataTools(emit), submitTool],
       });
+
+      emitProgress(
+        emit,
+        attempt === 1 ? "Planning bounded analyst queries" : "Repairing report submission",
+        validationError ?? "CodeMode can call capped BankOps analyst tools only",
+      );
+      emitTrace(emit, "runtime", `Attempt ${attempt}`, validationError ?? question);
 
       const stream = chat({
         adapter: createAnalystAdapter(model, apiKey),
@@ -103,12 +118,19 @@ export async function runAnalystCodeMode({
         const runError = runErrorMessage(event);
 
         if (runError !== undefined) {
+          emitTrace(emit, "runtime", "Run error", runError);
           throw new Error(runError);
         }
 
-        assistantText += textChunk(event);
+        const text = textChunk(event);
+        assistantText += text;
+        if (text.trim()) {
+          emitTrace(emit, "model", "Assistant text", text.trim().slice(0, 1_500));
+        }
 
         if (isCodeModeConsoleEvent(event)) {
+          emitProgress(emit, "CodeMode milestone", event.data.message.slice(0, 500));
+          emitTrace(emit, "codemode", "console.log", event.data.message);
           emit({ type: "code", code: event.data.message });
         }
       }
@@ -137,21 +159,33 @@ export async function runAnalystReportAttempts({
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     emit({ type: "phase", phase: attempt === 1 ? "generating" : "repairing" });
+    emitTrace(
+      emit,
+      "runtime",
+      attempt === 1 ? "Generation attempt started" : "Repair attempt started",
+      `Attempt ${attempt} of ${MAX_ATTEMPTS}`,
+    );
 
     try {
       // oxlint-disable-next-line eslint/no-await-in-loop -- repair attempts must use the previous validation error.
       const candidate = await runAttempt({ attempt, validationError });
       emit({ type: "phase", phase: "validating" });
+      emitProgress(emit, "Validating AnalystReportSpec", `Attempt ${attempt}`);
       const report = analystReportSpecSchema.parse(candidate);
 
       emit({ attempt, ok: true, type: "validation" });
+      emitProgress(emit, `Validation attempt ${attempt} passed`, report.title);
+      emitTrace(emit, "validation", "Report validation passed", `${report.blocks.length} blocks`);
       emit({ report, type: "report" });
+      emitProgress(emit, "Rendering validated report", "Swapping in complete report snapshot");
       emit({ type: "phase", phase: "done" });
 
       return report;
     } catch (error) {
       validationError = error instanceof Error ? error.message : "Invalid Analyst Report";
       emit({ attempt, message: validationError, ok: false, type: "validation" });
+      emitProgress(emit, `Validation attempt ${attempt} failed`, validationError);
+      emitTrace(emit, "validation", "Report validation failed", validationError);
 
       if (attempt === MAX_ATTEMPTS) {
         throw new Error(validationError, { cause: error });
@@ -160,6 +194,30 @@ export async function runAnalystReportAttempts({
   }
 
   throw new Error("Analyst Report generation failed");
+}
+
+function emitProgress(emit: (event: AnalystRunEvent) => void, label: string, detail?: string) {
+  emit({
+    at: new Date().toISOString(),
+    detail: detail?.slice(0, 500),
+    label: label.slice(0, 160),
+    type: "progress",
+  });
+}
+
+function emitTrace(
+  emit: (event: AnalystRunEvent) => void,
+  source: Extract<AnalystRunEvent, { type: "trace" }>["source"],
+  label: string,
+  detail?: string,
+) {
+  emit({
+    at: new Date().toISOString(),
+    detail: detail?.slice(0, 1_500),
+    label: label.slice(0, 160),
+    source,
+    type: "trace",
+  });
 }
 
 function createAnalystAdapter(model: string, apiKey: string): AnyTextAdapter {

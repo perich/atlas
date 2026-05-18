@@ -126,6 +126,23 @@ describe("Analyst Report contract", () => {
     expect(() =>
       analystRunEventSchema.parse({ type: "validation", attempt: 5, ok: false }),
     ).toThrow();
+    expect(
+      analystRunEventSchema.parse({
+        at: "2026-05-18T18:00:00.000Z",
+        detail: "100,000 entries",
+        label: "Loaded dataset overview",
+        type: "progress",
+      }).type,
+    ).toBe("progress");
+    expect(
+      analystRunEventSchema.parse({
+        at: "2026-05-18T18:00:00.000Z",
+        detail: "get_dataset_overview",
+        label: "tool result",
+        source: "tool",
+        type: "trace",
+      }).type,
+    ).toBe("trace");
   });
 });
 
