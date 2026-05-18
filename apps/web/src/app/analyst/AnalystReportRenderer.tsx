@@ -6,6 +6,8 @@ import {
   type AnalystReportSpec,
 } from "@bankops/contracts";
 
+import { AnalystReportChart } from "./AnalystReportChart";
+import { AnalystReportTable } from "./AnalystReportTable";
 import { cn } from "../../design/utils";
 
 export function AnalystReportRenderer({ report }: { report: unknown }) {
@@ -150,54 +152,18 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
     case "areaChart":
     case "donutChart":
     case "sparkline":
-      return <SimpleChart block={block} />;
+      return <AnalystReportChart block={block} title={block.title} />;
     case "dataTable":
-      return (
-        <Panel title={block.title}>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-left text-xs">
-              <thead className="text-[10px] uppercase tracking-[0.12em] text-bankops-muted">
-                <tr>
-                  {block.columns.map((column) => (
-                    <th
-                      className={cn(
-                        "border-b border-white/[0.08] px-3 py-2",
-                        column.align === "right" && "text-right",
-                      )}
-                      key={column.key}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {block.rows.map((row, rowIndex) => (
-                  <tr className="text-bankops-text" key={rowKey(row, rowIndex)}>
-                    {block.columns.map((column) => (
-                      <td
-                        className={cn(
-                          "border-b border-white/[0.055] px-3 py-2",
-                          column.align === "right" && "text-right",
-                        )}
-                        key={column.key}
-                      >
-                        {String(row[column.key] ?? "")}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
-      );
+      return <AnalystReportTable block={block} />;
     case "timeline":
       return (
         <Panel title={block.title}>
-          <ol className="space-y-3">
+          <ol className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
             {block.events.map((event) => (
-              <li className="border-l border-white/[0.1] pl-3" key={`${event.ts}-${event.title}`}>
+              <li
+                className={cn("border-l pl-3", toneBorder(event.tone) ?? "border-white/[0.1]")}
+                key={`${event.ts}-${event.title}`}
+              >
                 <time className="font-mono text-[11px] text-bankops-muted">
                   {new Date(event.ts).toLocaleString()}
                 </time>
@@ -213,20 +179,53 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
     case "railMatrix":
       return (
         <Panel title={block.title}>
-          <div className="grid gap-2">
-            {block.cells.map((cell) => (
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[640px] gap-2">
               <div
-                className={cn(
-                  "flex items-center justify-between gap-3 border border-white/[0.07] bg-black/20 px-3 py-2 text-xs",
-                  toneBorder(cell.tone),
-                )}
-                key={`${cell.rail}-${cell.metric}`}
+                className="grid gap-2"
+                style={{
+                  gridTemplateColumns: `120px repeat(${block.metrics.length}, minmax(120px, 1fr))`,
+                }}
               >
-                <span className="font-medium text-white">{cell.rail}</span>
-                <span className="text-bankops-muted">{cell.metric}</span>
-                <span className="font-mono text-bankops-text">{cell.value}</span>
+                <div />
+                {block.metrics.map((metric) => (
+                  <div
+                    className="text-[10px] font-semibold uppercase tracking-[0.12em] text-bankops-muted"
+                    key={metric}
+                  >
+                    {metric}
+                  </div>
+                ))}
               </div>
-            ))}
+              {block.rails.map((rail) => (
+                <div
+                  className="grid gap-2"
+                  key={rail}
+                  style={{
+                    gridTemplateColumns: `120px repeat(${block.metrics.length}, minmax(120px, 1fr))`,
+                  }}
+                >
+                  <div className="truncate text-xs font-semibold text-white">{rail}</div>
+                  {block.metrics.map((metric) => {
+                    const cell = block.cells.find(
+                      (candidate) => candidate.rail === rail && candidate.metric === metric,
+                    );
+                    return (
+                      <div
+                        className={cn(
+                          "truncate border border-white/[0.07] bg-black/20 px-3 py-2 font-mono text-xs text-bankops-text",
+                          toneBorder(cell?.tone),
+                        )}
+                        key={`${rail}-${metric}`}
+                        title={String(cell?.value ?? "")}
+                      >
+                        {cell?.value ?? "-"}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         </Panel>
       );
@@ -234,11 +233,19 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
     case "customerCarousel":
       return (
         <Panel title={block.title}>
-          <div className="grid gap-2 md:grid-cols-2">
+          <div
+            className={cn(
+              "gap-2",
+              block.type === "customerCarousel"
+                ? "flex snap-x overflow-x-auto pb-1"
+                : "grid md:grid-cols-2",
+            )}
+          >
             {block.customers.map((customer) => (
               <div
                 className={cn(
                   "border border-white/[0.08] bg-black/20 p-3",
+                  block.type === "customerCarousel" && "min-w-72 snap-start",
                   toneBorder(customer.tone),
                 )}
                 key={customer.id}
@@ -258,7 +265,10 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
     case "empty":
     case "error":
       return (
-        <Panel title={block.title}>
+        <Panel
+          className={block.type === "error" ? "border-rose-300/24" : undefined}
+          title={block.title}
+        >
           <p className="text-sm leading-6 text-bankops-muted">{block.body}</p>
         </Panel>
       );
@@ -267,50 +277,6 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
       return exhaustive;
     }
   }
-}
-
-function SimpleChart({
-  block,
-}: {
-  block: Extract<
-    AnalystReportBlock,
-    { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
-  >;
-}) {
-  const series = block.series[0];
-  const max = Math.max(
-    ...block.data.map((point) => {
-      const value = point[series.key];
-      return typeof value === "number" ? value : 0;
-    }),
-    1,
-  );
-
-  return (
-    <Panel title={block.title}>
-      <div className="flex h-44 items-end gap-2">
-        {block.data.map((point) => {
-          const rawValue = point[series.key];
-          const value = typeof rawValue === "number" ? rawValue : 0;
-          return (
-            <div
-              className="flex min-w-8 flex-1 flex-col items-center gap-2"
-              key={String(point[block.xKey])}
-            >
-              <div
-                aria-label={`${String(point[block.xKey])}: ${value}`}
-                className="w-full border border-sky-300/30 bg-sky-300/35"
-                style={{ height: `${Math.max((value / max) * 100, 4)}%` }}
-              />
-              <span className="max-w-16 truncate font-mono text-[10px] text-bankops-muted">
-                {String(point[block.xKey])}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </Panel>
-  );
 }
 
 function MetricCard({
@@ -393,8 +359,4 @@ function toneBorder(tone?: "neutral" | "good" | "warning" | "critical" | "succes
 function blockKey(block: AnalystReportBlock, index: number) {
   const title = "title" in block ? block.title : undefined;
   return `${block.type}-${title ?? index}`;
-}
-
-function rowKey(row: Record<string, unknown>, index: number) {
-  return `${index}-${Object.values(row).join("|")}`;
 }
