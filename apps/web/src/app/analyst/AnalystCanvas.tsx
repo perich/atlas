@@ -3,35 +3,23 @@ import { Bot, Braces, Database, ShieldCheck } from "lucide-react";
 
 import { AnalystReportRenderer } from "./AnalystReportRenderer";
 import { AnalystRunTracePanel } from "./AnalystRunTracePanel";
-import type { AnalystProgressEvent, AnalystTraceEvent } from "./useAnalystRun";
+import type { AnalystRunTimeline } from "./analyst-run-timeline";
 
 export function AnalystCanvas({
   error,
   isRunning,
-  progressEvents,
   report,
   startedAt,
-  traceEvents,
-  validationAttempts,
+  timeline,
 }: {
   error: string | null;
   isRunning: boolean;
-  progressEvents: AnalystProgressEvent[];
   report: unknown;
   startedAt: number | null;
-  traceEvents: AnalystTraceEvent[];
-  validationAttempts: number;
+  timeline: AnalystRunTimeline;
 }) {
   if (isRunning) {
-    return (
-      <AnalystRunTracePanel
-        error={null}
-        progressEvents={progressEvents}
-        startedAt={startedAt}
-        traceEvents={traceEvents}
-        validationAttempts={validationAttempts}
-      />
-    );
+    return <AnalystRunTracePanel error={null} startedAt={startedAt} timeline={timeline} />;
   }
 
   if (report) {
@@ -43,15 +31,7 @@ export function AnalystCanvas({
   }
 
   if (error) {
-    return (
-      <AnalystRunTracePanel
-        error={error}
-        progressEvents={progressEvents}
-        startedAt={startedAt}
-        traceEvents={traceEvents}
-        validationAttempts={validationAttempts}
-      />
-    );
+    return <AnalystRunTracePanel error={error} startedAt={startedAt} timeline={timeline} />;
   }
 
   return (

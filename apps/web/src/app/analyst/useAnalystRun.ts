@@ -1,34 +1,30 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { AnalystReportRunPhase, AnalystReportSpec, AnalystRunEvent } from "@bankops/contracts";
+import type { AnalystReportRunPhase, AnalystReportSpec } from "@bankops/contracts";
 
 import { streamAnalystRun } from "./analyst-run-api";
-
-export type AnalystProgressEvent = Extract<AnalystRunEvent, { type: "progress" }>;
-export type AnalystTraceEvent = Extract<AnalystRunEvent, { type: "trace" }>;
+import {
+  applyAnalystRunEvent,
+  createAnalystRunTimeline,
+  type AnalystRunTimeline,
+} from "./analyst-run-timeline";
 
 type AnalystRunState = {
   completedDurationSeconds: number | null;
   error: string | null;
   phase: AnalystReportRunPhase;
-  progressEvents: AnalystProgressEvent[];
   report: AnalystReportSpec | null;
   startedAt: number | null;
-  statusMessage: string | null;
-  traceEvents: AnalystTraceEvent[];
-  validationAttempts: number;
+  timeline: AnalystRunTimeline;
 };
 
 const initialState: AnalystRunState = {
   completedDurationSeconds: null,
   error: null,
   phase: "idle",
-  progressEvents: [],
   report: null,
   startedAt: null,
-  statusMessage: null,
-  traceEvents: [],
-  validationAttempts: 0,
+  timeline: createAnalystRunTimeline(),
 };
 
 export function useAnalystRun() {
@@ -44,12 +40,9 @@ export function useAnalystRun() {
       completedDurationSeconds: null,
       error: null,
       phase: "generating",
-      progressEvents: [],
       report: null,
       startedAt: Date.now(),
-      statusMessage: "Starting CodeMode run",
-      traceEvents: [],
-      validationAttempts: 0,
+      timeline: createAnalystRunTimeline("Starting CodeMode run"),
     });
 
     try {
@@ -59,30 +52,20 @@ export function useAnalystRun() {
             setState((current) => ({
               ...current,
               phase: event.phase,
-              statusMessage: event.message ?? statusCopy(event.phase),
+              timeline: applyAnalystRunEvent(current.timeline, event),
             }));
+            return;
           }
-          if (event.type === "progress") {
-            setState((current) => ({
-              ...current,
-              progressEvents: [...current.progressEvents, event].slice(-24),
-              statusMessage: event.label,
-            }));
-          }
-          if (event.type === "trace") {
-            setState((current) => ({
-              ...current,
-              traceEvents: [...current.traceEvents, event].slice(-80),
-            }));
-          }
-          if (event.type === "validation") {
-            setState((current) => ({
-              ...current,
-              phase: event.ok ? "validating" : "repairing",
-              statusMessage: event.ok ? "Report validated" : "Repairing report shape",
-              validationAttempts: Math.max(current.validationAttempts, event.attempt),
-            }));
-          }
+          setState((current) => ({
+            ...current,
+            phase:
+              event.type === "validation" && !event.ok
+                ? "repairing"
+                : event.type === "validation"
+                  ? "validating"
+                  : current.phase,
+            timeline: applyAnalystRunEvent(current.timeline, event),
+          }));
         },
         question,
         signal: abortController.signal,
@@ -95,12 +78,12 @@ export function useAnalystRun() {
             : Math.max(0, Math.round((Date.now() - current.startedAt) / 1000)),
         error: null,
         phase: "done",
-        progressEvents: current.progressEvents,
         report,
         startedAt: current.startedAt,
-        statusMessage: "Validated report ready",
-        traceEvents: current.traceEvents,
-        validationAttempts: current.validationAttempts,
+        timeline: {
+          ...current.timeline,
+          statusMessage: "Validated report ready",
+        },
       }));
     } catch (error) {
       if (abortController.signal.aborted) {
@@ -110,7 +93,10 @@ export function useAnalystRun() {
         ...current,
         error: error instanceof Error ? error.message : "Analyst run failed",
         phase: "error",
-        statusMessage: "Run failed",
+        timeline: {
+          ...current.timeline,
+          statusMessage: "Run failed",
+        },
       }));
     }
   }, []);
@@ -131,23 +117,4 @@ export function useAnalystRun() {
     reset,
     run,
   };
-}
-
-function statusCopy(phase: AnalystReportRunPhase) {
-  if (phase === "querying") {
-    return "Querying analyst tools";
-  }
-  if (phase === "validating") {
-    return "Validating report";
-  }
-  if (phase === "repairing") {
-    return "Repairing report";
-  }
-  if (phase === "done") {
-    return "Done";
-  }
-  if (phase === "error") {
-    return "Error";
-  }
-  return "Generating report";
 }
