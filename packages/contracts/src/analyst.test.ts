@@ -116,6 +116,51 @@ describe("Analyst Report contract", () => {
     ).toThrow(/nesting/);
   });
 
+  it("rejects charts with missing series keys and malformed table rows", () => {
+    expect(() =>
+      analystReportSpecSchema.parse({
+        ...baseReport,
+        blocks: [
+          {
+            type: "barChart",
+            title: "Entries by rail",
+            xKey: "rail",
+            series: [{ key: "entries" }],
+            data: [{ rail: "ach" }],
+          },
+        ],
+      }),
+    ).toThrow(/series key/);
+
+    expect(() =>
+      analystReportSpecSchema.parse({
+        ...baseReport,
+        blocks: [
+          {
+            type: "dataTable",
+            title: "Evidence",
+            columns: [{ key: "detail", label: "Detail" }],
+            rows: [{ detail: "[object Object]" }],
+          },
+        ],
+      }),
+    ).toThrow(/object placeholder/);
+
+    expect(() =>
+      analystReportSpecSchema.parse({
+        ...baseReport,
+        blocks: [
+          {
+            type: "dataTable",
+            title: "Evidence",
+            columns: [{ key: "status", label: "Status" }],
+            rows: [{ severity: "critical" }],
+          },
+        ],
+      }),
+    ).toThrow(/missing column key/);
+  });
+
   it("validates run events", () => {
     const event = analystRunEventSchema.parse({ type: "phase", phase: "generating" });
 

@@ -37,7 +37,10 @@ Hard constraints:
 - Do not generate React, JSX, CSS, handlers, subscriptions, watchers, or browser code.
 - Do not invent hidden scenario labels. Only describe observable audit-log facts returned by tools.
 - Embed all chart, dataTable, timeline, metric, markdown, and summary data in the submitted report.
+- Chart data must contain every declared xKey and series key on every row. Use numeric values for series fields.
+- For get_breakdown outputs, convert rows like { key, value } into chart rows like { label: key, count: Number(value) } and set xKey/series to those exact property names.
 - Tables must use type "dataTable" and contain capped rows useful for local rendering.
+- Table cells must be primitive strings, numbers, booleans, or null. Never place raw objects in table cells; use summary/detail strings instead.
 - When using external_get_audit_sample for evidence tables, request limit 40-80 unless the user's ask is very narrow.
 - When using external_get_customer_risk_rollup for prioritization views, request limit 40-80 unless the user's ask is very narrow.
 - Narrative text must use type "markdown" or "summary"; never use a block type named "narrative".
