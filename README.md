@@ -31,8 +31,8 @@ The result is a product surface that is fast, bank-flavored, and measurable:
 - React snapshots via `useSyncExternalStore`, not one React update per event
 - server-backed audit API over a 100k-row synthetic bank-core log
 - virtualized audit table with bounded row cache, URL filters/sort, and local column preferences
-- planned OpenRouter-backed CodeMode analyst route that returns validated Analyst Reports over
-  enriched audit-log data
+- OpenRouter-backed CodeMode analyst route that returns validated Analyst Reports over enriched
+  audit-log data
 - Render single-service deploy serving SPA, HTTP API, health check, and WebSocket from one origin
 
 ## Product Routes
@@ -86,14 +86,21 @@ Implemented surfaces:
 
 ### `/analyst` — Analyst Workspace
 
-The Analyst route is planned as a constrained CodeMode-style analyst surface over enriched Bank Core
-Audit Log data.
+The Analyst route is a constrained CodeMode-style analyst surface over enriched Bank Core Audit Log
+data.
 
-The intended flow is: an Operator asks a natural-language question, the server runs real
-OpenRouter-backed CodeMode inference against bounded BankOps analyst tools, and the route renders a
-complete validated Analyst Report. The model writes sandboxed TypeScript for analysis, but it does
-not generate React, JSX, browser handlers, subscriptions, or post-render data sources. Rendering and
-layout remain owned by the app.
+The flow is: an Operator asks a natural-language question, the server runs real OpenRouter-backed
+CodeMode inference against bounded BankOps analyst tools, and the route renders a complete validated
+Analyst Report. The model writes sandboxed TypeScript for analysis, but it does not generate React,
+JSX, browser handlers, subscriptions, or post-render data sources. Rendering and layout remain owned
+by the app. There is no fake or precomputed product fallback; if the server is missing model
+configuration or the provider fails, `/analyst` shows an error state.
+
+Curated prompts in the UI exercise different report shapes:
+
+- `Find the riskiest operating pattern in today's audit log`
+- `Show rail health and exception pressure by hour`
+- `Which customers need operations attention before cutoff?`
 
 ## Architecture
 
@@ -189,8 +196,12 @@ Requirements:
 
 Analyst route model configuration:
 
-- `OPENROUTER_API_KEY`
-- `ANALYST_MODEL`
+- `OPENROUTER_API_KEY`: OpenRouter API key used only by the Fastify server.
+- `ANALYST_MODEL`: single OpenRouter model slug selected by the server.
+
+Copy `.env.example` to `.env` for local development and set both values before using `/analyst`.
+Do not prefix them with `VITE_`; the browser must not receive provider credentials or choose the
+model.
 
 Install dependencies:
 
@@ -223,6 +234,9 @@ pnpm test:run
 pnpm test:e2e
 ```
 
+`pnpm test:e2e` includes a real `/analyst` CodeMode happy-path test that is skipped unless
+`OPENROUTER_API_KEY` and `ANALYST_MODEL` are present in the Playwright process environment.
+
 ## Production Shape
 
 Production uses one Render Web Service running `@bankops/server`.
@@ -233,6 +247,9 @@ Production uses one Render Web Service running `@bankops/server`.
 buildCommand: npm install -g pnpm@11.1.0 && pnpm install --frozen-lockfile && pnpm build
 startCommand: pnpm start
 healthCheckPath: /healthz
+NODE_VERSION: 24
+OPENROUTER_API_KEY: set in Render dashboard
+ANALYST_MODEL: set in Render dashboard
 ```
 
 Render terminates public TLS. The app, HTTP API, and WebSocket stream are same-origin:
@@ -253,6 +270,7 @@ The test suite is aimed at the architecture and UX claims this project makes:
 - audit query filtering, sorting, cursors, facets, and URL-state serialization
 - audit window cache behavior and scroll-window request planning
 - route smoke coverage for `/ops`, `/audit`, and `/analyst`
+- gated real-model `/analyst` happy-path browser smoke when OpenRouter credentials are present
 - nonblank Balance Sheet Tape canvas rendering
 - audit virtualization, bounded cache behavior, sort/filter URL state, and column persistence
 - graceful route-level backend-unavailable state

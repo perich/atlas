@@ -33,7 +33,8 @@ describe("single-service production deploy behavior", () => {
     const audit = await app.inject({ method: "GET", url: "/api/audit?limit=1" });
     const asset = await app.inject({ method: "GET", url: "/assets/app.js" });
     const root = await app.inject({ method: "GET", url: "/" });
-    const spaRoute = await app.inject({ method: "GET", url: "/audit?sortField=rail" });
+    const auditRoute = await app.inject({ method: "GET", url: "/audit?sortField=rail" });
+    const analystRoute = await app.inject({ method: "GET", url: "/analyst" });
     const streamHttp = await app.inject({ method: "GET", url: "/stream" });
     const socket = await app.injectWS("/stream");
 
@@ -44,8 +45,10 @@ describe("single-service production deploy behavior", () => {
     expect(asset.body).toContain("window.__bankops");
     expect(root.statusCode).toBe(200);
     expect(root.body).toContain("BankOps shell");
-    expect(spaRoute.statusCode).toBe(200);
-    expect(spaRoute.body).toContain("BankOps shell");
+    expect(auditRoute.statusCode).toBe(200);
+    expect(auditRoute.body).toContain("BankOps shell");
+    expect(analystRoute.statusCode).toBe(200);
+    expect(analystRoute.body).toContain("BankOps shell");
     expect(streamHttp.statusCode).toBe(404);
 
     socket.close();

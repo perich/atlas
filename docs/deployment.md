@@ -41,13 +41,25 @@ NODE_VERSION: 24
 The production server binds to `process.env.PORT` and `0.0.0.0`. Local dev stays on
 `127.0.0.1:8787` through the `apps/server` dev script.
 
-The deploy runtime should use Node 24 so CodeMode can use the Node isolate driver. The analyst route
-also requires real model configuration:
+The deploy runtime must use Node 24 so CodeMode can use the Node isolate driver. The analyst route
+also requires real server-side model configuration:
 
 ```txt
 OPENROUTER_API_KEY=...
 ANALYST_MODEL=...
 ```
+
+`OPENROUTER_API_KEY` is the OpenRouter API key. `ANALYST_MODEL` is the single OpenRouter model slug
+used by the server. The browser does not receive either value and cannot select a model. `/analyst`
+has no fake or precomputed report fallback; missing or failing model configuration should surface as
+an Analyst run error.
+
+Good manual analyst prompts for Render/local smoke:
+
+- `Find the riskiest operating pattern in today's audit log`
+- `Show rail health and exception pressure by hour`
+- `Which customers need operations attention before cutoff?`
+- `Create a report with one bar chart, one data table, a rail matrix, and a customer carousel.`
 
 ## Smoke Checks
 
@@ -66,7 +78,11 @@ curl -f http://127.0.0.1:8787/audit
 curl -f http://127.0.0.1:8787/analyst
 ```
 
-The automated server smoke test covers health, static asset serving, SPA fallback, `/api/audit`, and
-the `/stream` WebSocket upgrade on the same Fastify app.
+The automated server smoke test covers health, static asset serving, SPA fallback for `/audit` and
+`/analyst`, `/api/audit`, and the `/stream` WebSocket upgrade on the same Fastify app.
+
+The Playwright suite includes a real `/analyst` CodeMode happy-path test. It is skipped unless
+`OPENROUTER_API_KEY` and `ANALYST_MODEL` are present in the Playwright process environment because it
+does live OpenRouter inference.
 
 Do not add PM2, nginx, Docker Compose, or a database service for the first deploy.
