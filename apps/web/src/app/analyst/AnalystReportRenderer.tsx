@@ -152,7 +152,7 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
     case "areaChart":
     case "donutChart":
     case "sparkline":
-      return <AnalystReportChart block={block} title={block.title} />;
+      return <AnalystReportChart block={block} />;
     case "dataTable":
       return <AnalystReportTable block={block} />;
     case "timeline":

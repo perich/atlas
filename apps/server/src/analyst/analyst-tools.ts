@@ -1,9 +1,11 @@
 import { toolDefinition } from "@tanstack/ai";
-import type { AnalystRunEvent } from "@bankops/contracts";
 
+import {
+  emitAnalystProgress,
+  emitAnalystTrace,
+  type EmitAnalystEvent,
+} from "./analyst-run-events.js";
 import { createAnalystToolCatalog, type AnalystToolCatalogItem } from "./analyst-tool-catalog.js";
-
-type EmitAnalystEvent = (event: AnalystRunEvent) => void;
 
 export function createAnalystDataTools(emit?: EmitAnalystEvent) {
   return createAnalystToolCatalog().map((catalogItem) =>
@@ -24,44 +26,19 @@ function runAnalystTool({
   emit?: EmitAnalystEvent;
   rawInput: unknown;
 }) {
-  const input = catalogItem.inputSchema.parse(rawInput);
-  const inputSummary = catalogItem.inputSummary(input);
+  const preparedTool = catalogItem.prepare(rawInput);
 
-  emitProgress(emit, `Calling ${catalogItem.name}`, inputSummary);
-  emitTrace(emit, "tool", catalogItem.name, inputSummary);
+  emitAnalystProgress(emit, `Calling ${catalogItem.name}`, preparedTool.inputSummary);
+  emitAnalystTrace(emit, "tool", catalogItem.name, preparedTool.inputSummary);
 
   const started = performance.now();
-  const { result, resultSummary } = catalogItem.run(input);
+  const { result, resultSummary } = preparedTool.run();
   const detail = `${resultSummary} in ${Math.round(performance.now() - started)}ms`;
 
-  emitProgress(emit, `Loaded ${toolLabel(catalogItem.name)}`, detail);
-  emitTrace(emit, "tool", `${catalogItem.name} result`, detail);
+  emitAnalystProgress(emit, `Loaded ${toolLabel(catalogItem.name)}`, detail);
+  emitAnalystTrace(emit, "tool", `${catalogItem.name} result`, detail);
 
   return result;
-}
-
-function emitProgress(emit: EmitAnalystEvent | undefined, label: string, detail?: string) {
-  emit?.({
-    at: new Date().toISOString(),
-    detail: detail?.slice(0, 500),
-    label: label.slice(0, 160),
-    type: "progress",
-  });
-}
-
-function emitTrace(
-  emit: EmitAnalystEvent | undefined,
-  source: Extract<AnalystRunEvent, { type: "trace" }>["source"],
-  label: string,
-  detail?: string,
-) {
-  emit?.({
-    at: new Date().toISOString(),
-    detail: detail?.slice(0, 1_500),
-    label: label.slice(0, 160),
-    source,
-    type: "trace",
-  });
 }
 
 function toolLabel(name: string) {

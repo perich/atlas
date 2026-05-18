@@ -79,12 +79,8 @@ export function AnalystRunTracePanel({
           </p>
           <div className="space-y-2">
             {timelineView.observableFacts.length ? (
-              timelineView.observableFacts.map((event, index) => (
-                <TraceFact
-                  event={event}
-                  isCurrent={false}
-                  key={`${event.at}-${event.label}-${timelineView.observableFacts.length - index}`}
-                />
+              timelineView.observableFacts.map((event) => (
+                <TraceFact event={event} key={`${event.at}-${event.label}-${event.detail ?? ""}`} />
               ))
             ) : (
               <p className="text-sm text-bankops-muted">No earlier execution facts yet.</p>
@@ -99,10 +95,10 @@ export function AnalystRunTracePanel({
           </p>
           <div className="space-y-2">
             {timelineView.rawTrace.length ? (
-              timelineView.rawTrace.map((event, index) => (
+              timelineView.rawTrace.map((event) => (
                 <RawTrace
                   event={event}
-                  key={`${event.at}-${event.source}-${event.label}-${timelineView.rawTrace.length - index}`}
+                  key={`${event.at}-${event.source}-${event.label}-${event.detail ?? ""}`}
                 />
               ))
             ) : (
