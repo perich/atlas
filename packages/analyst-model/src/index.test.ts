@@ -94,7 +94,9 @@ describe("analyst rollups", () => {
         customerId: "cus_a",
         exceptionPressure: 26,
         failedCount: 1,
+        risk: 54,
         riskProfile: "elevated",
+        riskScore: 54,
         segment: "payroll",
       }),
     ]);

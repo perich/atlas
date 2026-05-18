@@ -185,7 +185,7 @@ export function createAnalystDataTools(emit?: EmitAnalystEvent) {
     toolDefinition({
       name: "get_customer_risk_rollup",
       description:
-        "Return capped customer risk rollups for prioritization views. Default limit is 20; request 40-80 for broad customer evidence.",
+        "Return capped customer risk rollups for prioritization views. Rows include risk and riskScore numeric aliases plus failedCount, exceptionPressure, riskReviewVolume, and customer attributes. Default limit is 20; request 40-80 for broad customer evidence.",
       inputSchema: customerRiskInputSchema,
     }).server((rawInput) => {
       const input = customerRiskInputSchema.parse(rawInput);
