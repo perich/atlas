@@ -413,22 +413,31 @@ function toSampleRow(entry: AuditEntry) {
     status: entry.status,
     amountMinor: entry.amountMinor?.toString(),
     summary: entry.summary,
-    detail: jsonSafeDetail(entry.detail),
+    detailSummary: sampleDetailSummary(entry.detail),
   };
 }
 
-function jsonSafeDetail(detail: Record<string, unknown>): Record<string, unknown> {
-  const parsed: unknown = JSON.parse(
-    JSON.stringify(detail, (_key, value: unknown) =>
-      typeof value === "bigint" ? value.toString() : value,
-    ),
-  );
+function sampleDetailSummary(detail: Record<string, unknown>) {
+  const parts = Object.entries(detail)
+    .flatMap(([key, value]) => {
+      if (key === "customer") {
+        const name =
+          value !== null && typeof value === "object" && !Array.isArray(value)
+            ? stringField(Object.fromEntries(Object.entries(value)), "name")
+            : undefined;
+        return name === undefined ? [] : [`customer=${name}`];
+      }
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        return [`${key}=${String(value)}`];
+      }
+      if (typeof value === "bigint") {
+        return [`${key}=${value.toString()}`];
+      }
+      return [];
+    })
+    .slice(0, 6);
 
-  if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-    return Object.fromEntries(Object.entries(parsed));
-  }
-
-  return {};
+  return parts.join("; ");
 }
 
 function sumDetailNumber(entries: readonly AuditEntry[], key: string) {
