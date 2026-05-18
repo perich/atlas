@@ -26,7 +26,6 @@ export function AnalystRoute() {
       }
       controlRail={
         <AnalystControlRail
-          hasReport={analystRun.report !== null}
           isEmpty={isEmpty}
           isRunning={analystRun.isRunning}
           onNewAnalysis={() => {
