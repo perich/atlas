@@ -124,7 +124,7 @@ export function createAnalystDataTools(emit?: EmitAnalystEvent) {
     toolDefinition({
       name: "get_audit_sample",
       description:
-        "Return capped JSON-safe audit samples for investigation tables. Default limit is 20; request 40-80 when you need evidence rows for a report table.",
+        "Return capped audit samples for investigation tables. Rows contain primitive table-ready fields plus detailSummary; no raw detail objects are returned. Default limit is 20; request 40-80 when you need evidence rows for a report table.",
       inputSchema: auditSampleInputSchema,
     }).server((rawInput) => {
       const input = auditSampleInputSchema.parse(rawInput);
