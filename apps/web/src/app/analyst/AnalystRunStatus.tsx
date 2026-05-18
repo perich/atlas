@@ -1,45 +1,26 @@
 import React from "react";
-import { AlertTriangle, CheckCircle2, Clock3, Loader2 } from "lucide-react";
-
-import { cn } from "../../design/utils";
+import { Clock3 } from "lucide-react";
 
 export function AnalystRunStatus({
   completedDurationSeconds,
   error,
   isEmpty,
-  isRunning,
   statusMessage,
 }: {
   completedDurationSeconds: number | null;
   error: string | null;
   isEmpty: boolean;
-  isRunning: boolean;
   statusMessage: string | null;
 }) {
   const status = statusMessage ?? (isEmpty ? "Idle" : "Done");
-  const Icon = error ? AlertTriangle : isRunning ? Loader2 : CheckCircle2;
 
   return (
     <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <span
-          className={cn(
-            "inline-flex size-7 shrink-0 items-center justify-center rounded-md border",
-            error
-              ? "border-rose-300/20 bg-rose-300/[0.06] text-rose-200"
-              : isRunning
-                ? "border-sky-300/20 bg-sky-300/[0.06] text-sky-200"
-                : "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-200",
-          )}
-        >
-          <Icon className={cn("size-3.5", isRunning && "animate-spin")} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
-            Run status
-          </p>
-          <p className="truncate text-sm text-bankops-text">{status}</p>
-        </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
+          Run status
+        </p>
+        <p className="truncate text-sm text-bankops-text">{status}</p>
       </div>
 
       <div className="flex items-center gap-3 font-mono text-xs text-bankops-muted">

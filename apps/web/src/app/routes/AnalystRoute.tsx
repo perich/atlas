@@ -52,7 +52,6 @@ export function AnalystRoute() {
           completedDurationSeconds={analystRun.completedDurationSeconds}
           error={analystRun.error}
           isEmpty={isEmpty}
-          isRunning={analystRun.isRunning}
           statusMessage={analystRun.statusMessage}
         />
       }
