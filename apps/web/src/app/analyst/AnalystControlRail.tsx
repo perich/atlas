@@ -69,12 +69,12 @@ export function AnalystControlRail({
           <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
             Starter prompts
           </p>
-          <div className="grid gap-2">
+          <div className="flex flex-wrap gap-2">
             {ANALYST_PROMPT_CHIPS.map((chip) => (
               <button
                 className={cn(
-                  "rounded-md border border-white/[0.08] bg-black/15 px-2.5 py-1.5 text-left text-[11px] leading-4 text-bankops-muted transition-colors hover:border-white/18 hover:bg-white/[0.04] hover:text-white",
-                  question === chip && "border-sky-300/30 bg-sky-300/[0.06] text-white",
+                  "rounded-full border border-white/[0.1] bg-white/[0.025] px-3 py-1.5 text-left text-[11px] leading-4 text-bankops-muted transition-colors hover:border-sky-300/30 hover:bg-sky-300/[0.05] hover:text-white",
+                  question === chip && "border-sky-300/45 bg-sky-300/[0.09] text-white",
                 )}
                 disabled={isRunning}
                 key={chip}
