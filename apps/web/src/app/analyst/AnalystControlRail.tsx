@@ -63,7 +63,7 @@ export function AnalystControlRail({
             }
             value={question}
           />
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-t border-white/[0.08] bg-black/20 p-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_2rem] gap-2 border-t border-white/[0.08] bg-black/20 p-2">
             <Button className="w-full" disabled={!question.trim() || isRunning} type="submit">
               {isRunning ? (
                 <Loader2 aria-hidden="true" className="size-4 animate-spin" />
@@ -72,10 +72,17 @@ export function AnalystControlRail({
               )}
               {hasReport ? "Refine" : "Generate"}
             </Button>
-            <Button disabled={isEmpty || isRunning} onClick={onNewAnalysis} variant="secondary">
+            <button
+              aria-label="New analysis"
+              className="inline-flex size-8 items-center justify-center border border-white/[0.08] bg-[#1a1c1f] text-bankops-muted transition-colors hover:border-white/18 hover:bg-white/[0.06] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
+              disabled={isEmpty || isRunning}
+              onClick={onNewAnalysis}
+              title="New analysis"
+              type="button"
+            >
               <RotateCcw aria-hidden="true" className="size-4" />
-              New analysis
-            </Button>
+              <span className="sr-only">New analysis</span>
+            </button>
           </div>
         </div>
       </label>
