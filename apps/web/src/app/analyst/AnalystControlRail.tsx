@@ -96,14 +96,13 @@ export function AnalystControlRail({
             {ANALYST_PROMPT_CHIPS.map((chip) => (
               <button
                 className={cn(
-                  "inline-flex h-6 items-center rounded-full border border-white/[0.12] bg-[#15191d] px-2.5 font-semibold uppercase tracking-[0.12em] text-bankops-muted shadow-[0_1px_0_rgba(255,255,255,0.05)_inset,0_6px_14px_rgba(0,0,0,0.16)] transition-colors hover:border-sky-300/35 hover:bg-[#18222a] hover:text-white",
+                  "inline-flex h-6 items-center rounded-full border border-white/[0.12] bg-[#15191d] px-2.5 text-xs font-semibold uppercase leading-none tracking-[0.12em] text-bankops-muted shadow-[0_1px_0_rgba(255,255,255,0.05)_inset,0_6px_14px_rgba(0,0,0,0.16)] transition-colors hover:border-sky-300/35 hover:bg-[#18222a] hover:text-white",
                   question === chip.prompt &&
                     "border-sky-300/50 bg-sky-300/[0.1] text-sky-100 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_0_0_1px_rgba(125,211,252,0.08)]",
                 )}
                 disabled={isRunning}
                 key={chip.label}
                 onClick={() => onQuestionChange(chip.prompt)}
-                style={{ fontSize: 12, lineHeight: 1 }}
                 type="button"
               >
                 {chip.label}
