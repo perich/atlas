@@ -1,7 +1,7 @@
 export const ANALYST_PROMPT_CHIPS = [
-  "Find the riskiest operating pattern in today's audit log",
-  "Show rail health and exception pressure by hour",
-  "Which customers need operations attention before cutoff?",
+  "Summarize entries by rail and status.",
+  "Show where failures, critical severity, and exception pressure are concentrated.",
+  "Which customers or rails should operations investigate first, and why?",
 ];
 
 export const DEFAULT_ANALYST_PROMPT = ANALYST_PROMPT_CHIPS[0];
