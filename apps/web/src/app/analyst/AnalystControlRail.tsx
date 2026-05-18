@@ -96,7 +96,7 @@ export function AnalystControlRail({
             {ANALYST_PROMPT_CHIPS.map((chip) => (
               <button
                 className={cn(
-                  "inline-flex h-6 items-center rounded-full border border-white/[0.1] bg-white/[0.025] px-2 text-[9px] leading-none text-bankops-muted transition-colors hover:border-sky-300/30 hover:bg-sky-300/[0.05] hover:text-white",
+                  "inline-flex h-5 items-center rounded-full border border-white/[0.1] bg-white/[0.025] px-2 text-[8px] leading-none text-bankops-muted transition-colors hover:border-sky-300/30 hover:bg-sky-300/[0.05] hover:text-white",
                   question === chip.prompt && "border-sky-300/45 bg-sky-300/[0.09] text-white",
                 )}
                 disabled={isRunning}
