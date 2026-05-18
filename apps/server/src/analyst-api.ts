@@ -1,4 +1,4 @@
-import { analystReportSpecSchema, type AnalystRunEvent } from "@bankops/contracts";
+import type { AnalystRunEvent } from "@bankops/contracts";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
@@ -6,7 +6,6 @@ import { runAnalystCodeMode } from "./analyst/analyst-runner.js";
 
 const analystRunRequestSchema = z.object({
   question: z.string().min(1).max(2_000),
-  previousReport: analystReportSpecSchema.optional(),
 });
 
 export function registerAnalystApi(app: FastifyInstance) {
@@ -37,7 +36,6 @@ export function registerAnalystApi(app: FastifyInstance) {
       await runAnalystCodeMode({
         abortController,
         emit,
-        previousReport: body.previousReport,
         question: body.question,
       });
     } catch (error) {

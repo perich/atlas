@@ -15,7 +15,6 @@ const CODE_MODE_TIMEOUT_MS = 120_000;
 
 type RunAnalystReportInput = {
   question: string;
-  previousReport?: AnalystReportSpec;
   emit: (event: AnalystRunEvent) => void;
   env?: NodeJS.ProcessEnv;
   abortController?: AbortController;
@@ -47,7 +46,7 @@ Hard constraints:
 - Narrative text must use type "markdown" or "summary"; never use a block type named "narrative".
 - Metrics must use type "metric" with a nested metric object, or type "metricGrid" with a metrics array.
 - Use version "2026-05-analyst-report" and an ISO datetime generatedAt value.
-- If a previous report is provided, return a full replacement report, not a patch.`;
+`;
 
 const CODE_MODE_SCAFFOLD = `Use this exact shape inside execute_typescript:
 const overview = await external_get_dataset_overview({});
@@ -124,7 +123,6 @@ export async function runAnalystCodeMode({
   emit,
   abortController,
   env = process.env,
-  previousReport,
   question,
 }: RunAnalystReportInput): Promise<AnalystReportSpec> {
   const apiKey = env.OPENROUTER_API_KEY;
@@ -179,7 +177,7 @@ export async function runAnalystCodeMode({
         messages: [
           {
             role: "user",
-            content: userPrompt({ previousReport, question, validationError }),
+            content: userPrompt({ question, validationError }),
           },
         ],
         modelOptions: analystModelOptions(),
@@ -326,22 +324,13 @@ function createSubmitReportTool(onReport: (report: AnalystReportSpec) => void) {
   });
 }
 
-function userPrompt({
-  previousReport,
-  question,
-  validationError,
-}: {
-  question: string;
-  previousReport?: AnalystReportSpec;
-  validationError?: string;
-}) {
+function userPrompt({ question, validationError }: { question: string; validationError?: string }) {
   return JSON.stringify({
     question,
-    previousReport,
     repairInstruction:
       validationError === undefined
         ? undefined
-        : `The previous report failed validation: ${validationError}. Submit a corrected full report.`,
+        : `The submitted report failed validation: ${validationError}. Submit a corrected full report.`,
   });
 }
 

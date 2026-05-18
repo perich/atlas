@@ -314,10 +314,8 @@ Required surfaces:
 Interaction model:
 
 - The route starts with one free-form prompt.
-- After a report renders, the prompt can refine the active report.
-- Refinement sends the previous validated Analyst Report as context and returns a full replacement
-  report, not a patch.
-- A "New analysis" control clears the active report and starts over.
+- A new prompt starts a fresh analysis and replaces the active report after validation.
+- A "New analysis" control clears the active report and prompt state.
 - No report history or localStorage persistence in the first implementation.
 
 CodeMode boundary:

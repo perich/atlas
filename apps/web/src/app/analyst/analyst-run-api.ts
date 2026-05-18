@@ -7,7 +7,6 @@ import {
 
 export type AnalystRunRequest = {
   question: string;
-  previousReport?: AnalystReportSpec;
   signal: AbortSignal;
   onEvent: (event: AnalystRunEvent) => void;
 };
@@ -15,7 +14,6 @@ export type AnalystRunRequest = {
 export async function streamAnalystRun(input: AnalystRunRequest): Promise<AnalystReportSpec> {
   const response = await fetch("/api/analyst/runs", {
     body: JSON.stringify({
-      previousReport: input.previousReport,
       question: input.question,
     }),
     headers: { "content-type": "application/json" },

@@ -35,89 +35,85 @@ export function useAnalystRun() {
   const abortRef = useRef<AbortController | null>(null);
   const [state, setState] = useState<AnalystRunState>(initialState);
 
-  const run = useCallback(
-    async (question: string) => {
-      abortRef.current?.abort();
-      const abortController = new AbortController();
-      abortRef.current = abortController;
+  const run = useCallback(async (question: string) => {
+    abortRef.current?.abort();
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+
+    setState({
+      completedDurationSeconds: null,
+      error: null,
+      phase: "generating",
+      progressEvents: [],
+      report: null,
+      startedAt: Date.now(),
+      statusMessage: "Starting CodeMode run",
+      traceEvents: [],
+      validationAttempts: 0,
+    });
+
+    try {
+      const report = await streamAnalystRun({
+        onEvent: (event) => {
+          if (event.type === "phase") {
+            setState((current) => ({
+              ...current,
+              phase: event.phase,
+              statusMessage: event.message ?? statusCopy(event.phase),
+            }));
+          }
+          if (event.type === "progress") {
+            setState((current) => ({
+              ...current,
+              progressEvents: [...current.progressEvents, event].slice(-24),
+              statusMessage: event.label,
+            }));
+          }
+          if (event.type === "trace") {
+            setState((current) => ({
+              ...current,
+              traceEvents: [...current.traceEvents, event].slice(-80),
+            }));
+          }
+          if (event.type === "validation") {
+            setState((current) => ({
+              ...current,
+              phase: event.ok ? "validating" : "repairing",
+              statusMessage: event.ok ? "Report validated" : "Repairing report shape",
+              validationAttempts: Math.max(current.validationAttempts, event.attempt),
+            }));
+          }
+        },
+        question,
+        signal: abortController.signal,
+      });
 
       setState((current) => ({
-        completedDurationSeconds: null,
+        completedDurationSeconds:
+          current.startedAt === null
+            ? null
+            : Math.max(0, Math.round((Date.now() - current.startedAt) / 1000)),
         error: null,
-        phase: "generating",
-        progressEvents: [],
-        report: current.report,
-        startedAt: Date.now(),
-        statusMessage: "Starting CodeMode run",
-        traceEvents: [],
-        validationAttempts: 0,
+        phase: "done",
+        progressEvents: current.progressEvents,
+        report,
+        startedAt: current.startedAt,
+        statusMessage: "Validated report ready",
+        traceEvents: current.traceEvents,
+        validationAttempts: current.validationAttempts,
       }));
-
-      try {
-        const report = await streamAnalystRun({
-          onEvent: (event) => {
-            if (event.type === "phase") {
-              setState((current) => ({
-                ...current,
-                phase: event.phase,
-                statusMessage: event.message ?? statusCopy(event.phase),
-              }));
-            }
-            if (event.type === "progress") {
-              setState((current) => ({
-                ...current,
-                progressEvents: [...current.progressEvents, event].slice(-24),
-                statusMessage: event.label,
-              }));
-            }
-            if (event.type === "trace") {
-              setState((current) => ({
-                ...current,
-                traceEvents: [...current.traceEvents, event].slice(-80),
-              }));
-            }
-            if (event.type === "validation") {
-              setState((current) => ({
-                ...current,
-                phase: event.ok ? "validating" : "repairing",
-                statusMessage: event.ok ? "Report validated" : "Repairing report shape",
-                validationAttempts: Math.max(current.validationAttempts, event.attempt),
-              }));
-            }
-          },
-          previousReport: state.report ?? undefined,
-          question,
-          signal: abortController.signal,
-        });
-
-        setState((current) => ({
-          completedDurationSeconds:
-            current.startedAt === null
-              ? null
-              : Math.max(0, Math.round((Date.now() - current.startedAt) / 1000)),
-          error: null,
-          phase: "done",
-          progressEvents: current.progressEvents,
-          report,
-          startedAt: current.startedAt,
-          statusMessage: "Validated report ready",
-          traceEvents: current.traceEvents,
-          validationAttempts: current.validationAttempts,
-        }));
-      } catch (error) {
-        if (abortController.signal.aborted) {
-          return;
-        }
-        setState((current) => ({
-          ...current,
-          error: error instanceof Error ? error.message : "Analyst run failed",
-          phase: "error",
-          statusMessage: "Run failed",
-        }));
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
       }
-    },
-    [state.report],
-  );
+      setState((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : "Analyst run failed",
+        phase: "error",
+        statusMessage: "Run failed",
+      }));
+    }
+  }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();

@@ -103,10 +103,9 @@ describe("AnalystRoute", () => {
 
     expect(host.textContent).toContain("Validated report ready");
     expect(host.textContent).toContain("ACH return wave containment");
-    expect(host.textContent).toContain("Revise report");
-    expect(host.textContent).toContain("Follow-up examples");
+    expect(host.textContent).toContain("Create report");
+    expect(host.textContent).toContain("Starter prompts");
     expect(host.textContent).toContain("Generated in");
-    expect(host.textContent).not.toContain("Starter prompts");
     expect(host.querySelector("textarea")?.value).toBe("");
 
     act(() => root.unmount());
@@ -127,43 +126,6 @@ describe("AnalystRoute", () => {
 
     expect(host.textContent).toContain("Run failed");
     expect(host.textContent).toContain("Model unavailable");
-
-    act(() => root.unmount());
-  });
-
-  it("sends the active report for follow-up replacement", async () => {
-    const replacementReport = {
-      ...analystReportFixture,
-      question: "Show only customer risk",
-      summary: "Customer risk replacement report.",
-      title: "Customer Risk Replacement",
-    };
-    const requests: unknown[] = [];
-
-    globalThis.fetch = vi.fn(async (_url, init) => {
-      requests.push(JSON.parse(String(init?.body)));
-      const report = requests.length === 1 ? analystReportFixture : replacementReport;
-      return new Response(
-        sse([
-          { type: "phase", phase: "generating" },
-          { type: "validation", ok: true, attempt: 1 },
-          { type: "report", report },
-          { type: "phase", phase: "done" },
-        ]),
-        { headers: { "content-type": "text/event-stream" } },
-      );
-    });
-    const { host, root } = renderRoute();
-
-    await editQuestion(host, "Show rail health");
-    await submit(host);
-    await settle();
-    await editQuestion(host, "Show only customer risk");
-    await submit(host);
-    await settle();
-
-    expect(JSON.stringify(requests[1])).toContain(analystReportFixture.title);
-    expect(host.textContent).toContain("Customer Risk Replacement");
 
     act(() => root.unmount());
   });
