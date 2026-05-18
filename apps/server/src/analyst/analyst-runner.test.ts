@@ -1,7 +1,30 @@
 import { ANALYST_REPORT_VERSION, type AnalystRunEvent } from "@bankops/contracts";
 import { describe, expect, it } from "vitest";
 
-import { runAnalystReportAttempts } from "./analyst-runner.js";
+import {
+  analystModelOptions,
+  reasoningTraceDetail,
+  runAnalystReportAttempts,
+} from "./analyst-runner.js";
+
+describe("Analyst OpenRouter model options", () => {
+  it("enables explicit high-effort reasoning", () => {
+    expect(analystModelOptions()).toEqual({
+      reasoning: { effort: "high" },
+    });
+  });
+});
+
+describe("Analyst reasoning traces", () => {
+  it("extracts reasoning deltas as raw model trace details", () => {
+    expect(
+      reasoningTraceDetail({ type: "REASONING_MESSAGE_CONTENT", delta: " planning tools " }),
+    ).toBe("planning tools");
+    expect(
+      reasoningTraceDetail({ type: "TEXT_MESSAGE_CONTENT", delta: "visible answer" }),
+    ).toBeUndefined();
+  });
+});
 
 describe("Analyst CodeMode repair loop", () => {
   it("captures the first valid submitted report", async () => {
