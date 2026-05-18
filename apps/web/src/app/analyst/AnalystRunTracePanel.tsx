@@ -89,7 +89,7 @@ export function AnalystRunTracePanel({
                 <TraceFact
                   event={event}
                   isCurrent={index === 0}
-                  key={`${event.at}-${event.label}`}
+                  key={`${event.at}-${event.label}-${progressEvents.length - index}`}
                 />
               ))
             ) : (
@@ -105,8 +105,11 @@ export function AnalystRunTracePanel({
           </p>
           <div className="space-y-2">
             {recentTrace.length ? (
-              recentTrace.map((event) => (
-                <RawTrace event={event} key={`${event.at}-${event.source}-${event.label}`} />
+              recentTrace.map((event, index) => (
+                <RawTrace
+                  event={event}
+                  key={`${event.at}-${event.source}-${event.label}-${traceEvents.length - index}`}
+                />
               ))
             ) : (
               <p className="text-sm text-bankops-muted">Waiting for model or tool trace output.</p>
