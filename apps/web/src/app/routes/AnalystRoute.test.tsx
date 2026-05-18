@@ -105,6 +105,7 @@ describe("AnalystRoute", () => {
     expect(host.textContent).toContain("ACH return wave containment");
     expect(host.textContent).toContain("Revise report");
     expect(host.textContent).toContain("Follow-up examples");
+    expect(host.textContent).toContain("Generated in");
     expect(host.textContent).not.toContain("Starter prompts");
     expect(host.querySelector("textarea")?.value).toBe("");
 

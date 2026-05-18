@@ -8,6 +8,7 @@ export type AnalystProgressEvent = Extract<AnalystRunEvent, { type: "progress" }
 export type AnalystTraceEvent = Extract<AnalystRunEvent, { type: "trace" }>;
 
 type AnalystRunState = {
+  completedDurationSeconds: number | null;
   error: string | null;
   phase: AnalystReportRunPhase;
   progressEvents: AnalystProgressEvent[];
@@ -19,6 +20,7 @@ type AnalystRunState = {
 };
 
 const initialState: AnalystRunState = {
+  completedDurationSeconds: null,
   error: null,
   phase: "idle",
   progressEvents: [],
@@ -40,6 +42,7 @@ export function useAnalystRun() {
       abortRef.current = abortController;
 
       setState((current) => ({
+        completedDurationSeconds: null,
         error: null,
         phase: "generating",
         progressEvents: [],
@@ -88,6 +91,10 @@ export function useAnalystRun() {
         });
 
         setState((current) => ({
+          completedDurationSeconds:
+            current.startedAt === null
+              ? null
+              : Math.max(0, Math.round((Date.now() - current.startedAt) / 1000)),
           error: null,
           phase: "done",
           progressEvents: current.progressEvents,

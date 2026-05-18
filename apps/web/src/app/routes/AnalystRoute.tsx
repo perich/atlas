@@ -25,6 +25,7 @@ export function AnalystRoute() {
       }
       controlRail={
         <AnalystControlRail
+          completedDurationSeconds={analystRun.completedDurationSeconds}
           error={analystRun.error}
           hasReport={analystRun.report !== null}
           isEmpty={isEmpty}

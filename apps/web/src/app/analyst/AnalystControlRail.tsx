@@ -6,6 +6,7 @@ import { cn } from "../../design/utils";
 import { ANALYST_PROMPT_CHIPS } from "./analyst-prompts";
 
 export function AnalystControlRail({
+  completedDurationSeconds,
   error,
   hasReport,
   isEmpty,
@@ -16,6 +17,7 @@ export function AnalystControlRail({
   question,
   statusMessage,
 }: {
+  completedDurationSeconds: number | null;
   error: string | null;
   hasReport: boolean;
   isEmpty: boolean;
@@ -126,6 +128,11 @@ export function AnalystControlRail({
         <p className="mt-2 text-sm text-bankops-text">
           {statusMessage ?? (isEmpty ? "Idle" : "Done")}
         </p>
+        {completedDurationSeconds !== null ? (
+          <p className="mt-2 font-mono text-xs text-bankops-muted">
+            Generated in {formatDuration(completedDurationSeconds)}
+          </p>
+        ) : null}
         {error ? (
           <p className="mt-2 flex gap-2 text-xs leading-5 text-rose-200">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -135,4 +142,15 @@ export function AnalystControlRail({
       </div>
     </>
   );
+}
+
+function formatDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes === 0) {
+    return `${seconds}s`;
+  }
+
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
