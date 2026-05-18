@@ -139,36 +139,55 @@ export function getReconciliationRollup(
   filters: AnalystFilters = {},
 ) {
   const rows = filteredEntries(entries, { ...filters, kind: ["reconciliation"] });
+  const byRail = groupedByRail(rows, (railRows) => ({
+    events: railRows.length,
+    exceptionPressure: sumDetailNumber(railRows, "exceptionPressure"),
+    matchedCount: sumDetailNumber(railRows, "matchedCount"),
+    unmatchedCount: sumDetailNumber(railRows, "unmatchedCount"),
+  }));
 
   return {
     runs: rows.length,
     matchedCount: sumDetailNumber(rows, "matchedCount"),
     unmatchedCount: sumDetailNumber(rows, "unmatchedCount"),
     exceptionPressure: sumDetailNumber(rows, "exceptionPressure"),
-    byRail: countBy(rows, (entry) => entry.rail ?? "none"),
+    byRail,
   };
 }
 
 export function getLiquidityRollup(entries: readonly AuditEntry[], filters: AnalystFilters = {}) {
   const rows = filteredEntries(entries, { ...filters, kind: ["liquidity"] });
+  const byRail = groupedByRail(rows, (railRows) => ({
+    events: railRows.length,
+    latestReserveAfterMinor: latestDetailBigInt(railRows, "reserveAfterMinor")?.toString(),
+    reserveDeltaMinor: sumDetailBigInt(railRows, "reserveDeltaMinor").toString(),
+    stress: countBy(railRows, (entry) => detailString(entry, "liquidityStress")),
+  }));
 
   return {
     events: rows.length,
     reserveDeltaMinor: sumDetailBigInt(rows, "reserveDeltaMinor").toString(),
     latestReserveAfterMinor: latestDetailBigInt(rows, "reserveAfterMinor")?.toString(),
     byStress: countBy(rows, (entry) => detailString(entry, "liquidityStress")),
+    byRail,
   };
 }
 
 export function getRailHealthRollup(entries: readonly AuditEntry[], filters: AnalystFilters = {}) {
   const rows = filteredEntries(entries, { ...filters, kind: ["rail_health"] });
+  const byRail = groupedByRail(rows, (railRows) => ({
+    events: railRows.length,
+    errorRateBpsMax: maxDetailNumber(railRows, "errorRateBps"),
+    p95LatencyMsMax: maxDetailNumber(railRows, "p95LatencyMs"),
+    pendingDepthMax: maxDetailNumber(railRows, "pendingDepth"),
+  }));
 
   return {
     events: rows.length,
     p95LatencyMsMax: maxDetailNumber(rows, "p95LatencyMs"),
     errorRateBpsMax: maxDetailNumber(rows, "errorRateBps"),
     pendingDepthMax: maxDetailNumber(rows, "pendingDepth"),
-    byRail: countBy(rows, (entry) => entry.rail ?? "none"),
+    byRail,
   };
 }
 
@@ -283,6 +302,23 @@ function countBy(entries: readonly AuditEntry[], keyFor: (entry: AuditEntry) => 
   }
 
   return counts;
+}
+
+function groupedByRail<T>(entries: readonly AuditEntry[], summarize: (rows: AuditEntry[]) => T) {
+  const groups = new Map<string, AuditEntry[]>();
+
+  for (const entry of entries) {
+    const rail = entry.rail ?? "none";
+    const rows = groups.get(rail) ?? [];
+    rows.push(entry);
+    groups.set(rail, rows);
+  }
+
+  return Object.fromEntries(
+    [...groups.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([rail, railRows]) => [rail, summarize(railRows)]),
+  );
 }
 
 function amountTotal(entries: readonly AuditEntry[]) {
