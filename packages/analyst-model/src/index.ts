@@ -242,10 +242,17 @@ export function getCustomerRiskRollup(
   return capped(
     [...grouped.values()]
       .sort((left, right) => right.exceptionPressure - left.exceptionPressure)
-      .map((customer) => ({
-        ...customer,
-        amountMinor: customer.amountMinor.toString(),
-      })),
+      .map((customer) => {
+        const riskScore =
+          customer.exceptionPressure + customer.failedCount * 10 + customer.riskReviewVolume;
+
+        return {
+          ...customer,
+          amountMinor: customer.amountMinor.toString(),
+          risk: riskScore,
+          riskScore,
+        };
+      }),
     limit,
   );
 }

@@ -42,6 +42,7 @@ Hard constraints:
 - Table cells must be primitive strings, numbers, booleans, or null. Never place raw objects in table cells; use summary/detail strings instead.
 - external_get_audit_sample rows expose detail and detailSummary as safe strings for evidence tables. Use row.summary, row.detail, or row.detailSummary; never stringify whole row objects.
 - When using external_get_audit_sample for evidence tables, request limit 40-80 unless the user's ask is very narrow.
+- external_get_customer_risk_rollup rows expose numeric risk and riskScore aliases; use those for priority/risk columns.
 - When using external_get_customer_risk_rollup for prioritization views, request limit 40-80 unless the user's ask is very narrow.
 - Narrative text must use type "markdown" or "summary"; never use a block type named "narrative".
 - Metrics must use type "metric" with a nested metric object, or type "metricGrid" with a metrics array.
