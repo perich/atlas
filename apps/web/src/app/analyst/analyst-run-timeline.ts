@@ -10,14 +10,6 @@ export type AnalystRunTimeline = {
   validationAttempts: number;
 };
 
-export type AnalystRunTimelineView = {
-  currentFact: AnalystProgressEvent | null;
-  observableFacts: AnalystProgressEvent[];
-  rawTrace: AnalystTraceEvent[];
-  statusMessage: string | null;
-  validationAttempts: number;
-};
-
 const DEFAULT_FACT_LIMIT = 9;
 const DEFAULT_TRACE_LIMIT = 5;
 
@@ -67,7 +59,7 @@ export function applyAnalystRunEvent(
   return timeline;
 }
 
-export function projectAnalystRunTimeline(timeline: AnalystRunTimeline): AnalystRunTimelineView {
+export function projectAnalystRunTimeline(timeline: AnalystRunTimeline) {
   const currentFact = timeline.progressEvents.at(-1) ?? null;
 
   return {

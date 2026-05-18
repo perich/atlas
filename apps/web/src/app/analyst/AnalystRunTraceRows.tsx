@@ -3,20 +3,9 @@ import React from "react";
 import { cn } from "../../design/utils";
 import type { AnalystProgressEvent, AnalystTraceEvent } from "./analyst-run-timeline";
 
-export function TraceFact({
-  event,
-  isCurrent,
-}: {
-  event: AnalystProgressEvent;
-  isCurrent: boolean;
-}) {
+export function TraceFact({ event }: { event: AnalystProgressEvent }) {
   return (
-    <div
-      className={cn(
-        "rounded-md border px-3 py-2",
-        isCurrent ? "border-sky-300/24 bg-sky-300/[0.06]" : "border-white/[0.06] bg-black/20",
-      )}
-    >
+    <div className="rounded-md border border-white/[0.06] bg-black/20 px-3 py-2">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-white">{event.label}</p>
         <time className="shrink-0 font-mono text-[10px] text-bankops-muted">

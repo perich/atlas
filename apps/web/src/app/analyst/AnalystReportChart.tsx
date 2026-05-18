@@ -25,14 +25,14 @@ type ChartBlock = Extract<
 
 const chartColors = ["#7dd3fc", "#86efac", "#fbbf24", "#fda4af", "#c4b5fd", "#67e8f9"];
 
-export function AnalystReportChart({ block, title }: { block: ChartBlock; title: string }) {
+export function AnalystReportChart({ block }: { block: ChartBlock }) {
   const data = block.data;
   const height = block.type === "sparkline" ? 96 : 240;
 
   return (
     <section className="rounded-md border border-white/[0.08] bg-bankops-panel p-4">
       <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-        {title}
+        {block.title}
       </h3>
       <div className="overflow-x-auto">
         <div className={cn("min-w-[640px]", block.type === "sparkline" && "min-w-[360px]")}>

@@ -12,5 +12,3 @@ export const ANALYST_PROMPT_CHIPS = [
     prompt: "Which customers or rails should operations investigate first, and why?",
   },
 ];
-
-export const DEFAULT_ANALYST_PROMPT = ANALYST_PROMPT_CHIPS[0]?.prompt ?? "";

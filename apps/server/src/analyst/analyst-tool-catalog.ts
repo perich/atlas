@@ -11,45 +11,35 @@ import {
   MAX_ROLLUP_LIMIT,
 } from "@bankops/analyst-model";
 import { getAuditLogEntries } from "@bankops/audit-log-model";
-import type { AuditEntry } from "@bankops/contracts";
+import {
+  auditEntryKindSchema,
+  auditSeveritySchema,
+  auditStatusSchema,
+  railSchema,
+  type AuditEntry,
+} from "@bankops/contracts";
 import { z } from "zod";
-
-type AuditEntriesProvider = () => readonly AuditEntry[];
 
 export type AnalystToolCatalogItem = {
   description: string;
   inputSchema: z.ZodType;
-  inputSummary: (input: unknown) => string;
   name: string;
-  run: (input: unknown) => { result: unknown; resultSummary: string };
+  prepare: (input: unknown) => {
+    inputSummary: string;
+    run: () => {
+      result: unknown;
+      resultSummary: string;
+    };
+  };
 };
 
 const filtersSchema = z.object({
   tsFrom: z.number().finite().optional(),
   tsTo: z.number().finite().optional(),
-  rail: z
-    .array(z.enum(["ach", "wire", "instant", "card", "internal_ledger", "stablecoin"]))
-    .optional(),
-  severity: z.array(z.enum(["info", "notice", "warning", "critical"])).optional(),
-  status: z
-    .array(z.enum(["accepted", "pending", "posted", "settled", "failed", "reversed"]))
-    .optional(),
-  kind: z
-    .array(
-      z.enum([
-        "payment",
-        "journal",
-        "settlement",
-        "reconciliation",
-        "risk",
-        "liquidity",
-        "rail_health",
-        "cutoff",
-        "configuration",
-        "operator_action",
-      ]),
-    )
-    .optional(),
+  rail: z.array(railSchema).optional(),
+  severity: z.array(auditSeveritySchema).optional(),
+  status: z.array(auditStatusSchema).optional(),
+  kind: z.array(auditEntryKindSchema).optional(),
   customerId: z.array(z.string()).optional(),
 });
 const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).optional();
@@ -83,7 +73,7 @@ const filtersInputSchema = z.object({ filters: filtersSchema.optional() });
 const customerRiskInputSchema = z.object({ filters: filtersSchema.optional(), limit: limitSchema });
 
 export function createAnalystToolCatalog(
-  entries: AuditEntriesProvider = getAuditLogEntries,
+  entries: () => readonly AuditEntry[] = getAuditLogEntries,
 ): AnalystToolCatalogItem[] {
   return [
     analystTool({
@@ -188,15 +178,20 @@ function analystTool<TInput, TResult>({
   return {
     description,
     inputSchema,
-    inputSummary: (input) => inputSummary(parseInput(input)),
     name,
-    run: (input) => {
+    prepare: (input) => {
       const parsedInput = parseInput(input);
-      const result = run(parsedInput);
 
       return {
-        result,
-        resultSummary: resultSummary(result, parsedInput),
+        inputSummary: inputSummary(parsedInput),
+        run: () => {
+          const result = run(parsedInput);
+
+          return {
+            result,
+            resultSummary: resultSummary(result, parsedInput),
+          };
+        },
       };
     },
   };

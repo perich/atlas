@@ -17,6 +17,7 @@ import {
   reasoningTraceDelta,
   reasoningTraceSnippet,
 } from "./analyst-run-policy.js";
+import { emitAnalystProgress, emitAnalystTrace } from "./analyst-run-events.js";
 import { createAnalystDataTools } from "./analyst-tools.js";
 import { createAnalystIsolateDriver } from "./isolate-driver.js";
 
@@ -44,10 +45,18 @@ export async function runAnalystCodeMode({
     throw new Error("OPENROUTER_API_KEY and ANALYST_MODEL must be configured");
   }
 
-  emitProgress(emit, "Starting CodeMode run", "Opening server-side OpenRouter CodeMode session");
-  emitTrace(emit, "runtime", "Configured analyst model", model);
+  emitAnalystProgress(
+    emit,
+    "Starting CodeMode run",
+    "Opening server-side OpenRouter CodeMode session",
+  );
+  emitAnalystTrace(emit, "runtime", "Configured analyst model", model);
   const driver = await createAnalystIsolateDriver();
-  emitProgress(emit, "Prepared sandbox", "Node isolate driver ready for bounded analyst tools");
+  emitAnalystProgress(
+    emit,
+    "Prepared sandbox",
+    "Node isolate driver ready for bounded analyst tools",
+  );
 
   return runAnalystReportAttempts({
     emit,
@@ -59,12 +68,16 @@ export async function runAnalystCodeMode({
         const detail = reasoningTraceSnippet(reasoningBuffer);
         reasoningBuffer = "";
         if (detail !== undefined) {
-          emitTrace(emit, "model", "Reasoning trace", detail);
+          emitAnalystTrace(emit, "model", "Reasoning trace", detail);
         }
       };
       const submitTool = createSubmitReportTool((report) => {
-        emitProgress(emit, "Submitting AnalystReportSpec", `${report.blocks.length} report blocks`);
-        emitTrace(emit, "runtime", "external_submit_report", report.title);
+        emitAnalystProgress(
+          emit,
+          "Submitting AnalystReportSpec",
+          `${report.blocks.length} report blocks`,
+        );
+        emitAnalystTrace(emit, "runtime", "external_submit_report", report.title);
         submittedReport = report;
       });
       const { tool: attemptTool, systemPrompt: attemptSystemPrompt } = createCodeMode({
@@ -74,12 +87,12 @@ export async function runAnalystCodeMode({
         tools: [...createAnalystDataTools(emit), submitTool],
       });
 
-      emitProgress(
+      emitAnalystProgress(
         emit,
         attempt === 1 ? "Planning bounded analyst queries" : "Repairing report submission",
         validationError ?? "CodeMode can call capped BankOps analyst tools only",
       );
-      emitTrace(emit, "runtime", `Attempt ${attempt}`, validationError ?? question);
+      emitAnalystTrace(emit, "runtime", `Attempt ${attempt}`, validationError ?? question);
 
       const stream = chat({
         adapter: createAnalystAdapter(model, apiKey),
@@ -101,14 +114,14 @@ export async function runAnalystCodeMode({
         const runError = runErrorMessage(event);
 
         if (runError !== undefined) {
-          emitTrace(emit, "runtime", "Run error", runError);
+          emitAnalystTrace(emit, "runtime", "Run error", runError);
           throw new Error(runError);
         }
 
         const text = textChunk(event);
         assistantText += text;
         if (text.trim()) {
-          emitTrace(emit, "model", "Assistant text", text.trim().slice(0, 1_500));
+          emitAnalystTrace(emit, "model", "Assistant text", text.trim().slice(0, 1_500));
         }
 
         const reasoning = reasoningTraceDelta(event);
@@ -120,8 +133,8 @@ export async function runAnalystCodeMode({
         }
 
         if (isCodeModeConsoleEvent(event)) {
-          emitProgress(emit, "CodeMode milestone", event.data.message.slice(0, 500));
-          emitTrace(emit, "codemode", "console.log", event.data.message);
+          emitAnalystProgress(emit, "CodeMode milestone", event.data.message.slice(0, 500));
+          emitAnalystTrace(emit, "codemode", "console.log", event.data.message);
           emit({ type: "code", code: event.data.message });
         }
       }
@@ -152,7 +165,7 @@ export async function runAnalystReportAttempts({
 
   for (let attempt = 1; attempt <= ANALYST_MAX_ATTEMPTS; attempt += 1) {
     emit({ type: "phase", phase: attempt === 1 ? "generating" : "repairing" });
-    emitTrace(
+    emitAnalystTrace(
       emit,
       "runtime",
       attempt === 1 ? "Generation attempt started" : "Repair attempt started",
@@ -163,22 +176,31 @@ export async function runAnalystReportAttempts({
       // oxlint-disable-next-line eslint/no-await-in-loop -- repair attempts must use the previous validation error.
       const candidate = await runAttempt({ attempt, validationError });
       emit({ type: "phase", phase: "validating" });
-      emitProgress(emit, "Validating AnalystReportSpec", `Attempt ${attempt}`);
+      emitAnalystProgress(emit, "Validating AnalystReportSpec", `Attempt ${attempt}`);
       const report = analystReportSpecSchema.parse(candidate);
 
       emit({ attempt, ok: true, type: "validation" });
-      emitProgress(emit, `Validation attempt ${attempt} passed`, report.title);
-      emitTrace(emit, "validation", "Report validation passed", `${report.blocks.length} blocks`);
+      emitAnalystProgress(emit, `Validation attempt ${attempt} passed`, report.title);
+      emitAnalystTrace(
+        emit,
+        "validation",
+        "Report validation passed",
+        `${report.blocks.length} blocks`,
+      );
       emit({ report, type: "report" });
-      emitProgress(emit, "Rendering validated report", "Swapping in complete report snapshot");
+      emitAnalystProgress(
+        emit,
+        "Rendering validated report",
+        "Swapping in complete report snapshot",
+      );
       emit({ type: "phase", phase: "done" });
 
       return report;
     } catch (error) {
       validationError = error instanceof Error ? error.message : "Invalid Analyst Report";
       emit({ attempt, message: validationError, ok: false, type: "validation" });
-      emitProgress(emit, `Validation attempt ${attempt} failed`, validationError);
-      emitTrace(emit, "validation", "Report validation failed", validationError);
+      emitAnalystProgress(emit, `Validation attempt ${attempt} failed`, validationError);
+      emitAnalystTrace(emit, "validation", "Report validation failed", validationError);
 
       if (attempt === ANALYST_MAX_ATTEMPTS) {
         throw new Error(validationError, { cause: error });
@@ -187,30 +209,6 @@ export async function runAnalystReportAttempts({
   }
 
   throw new Error("Analyst Report generation failed");
-}
-
-function emitProgress(emit: (event: AnalystRunEvent) => void, label: string, detail?: string) {
-  emit({
-    at: new Date().toISOString(),
-    detail: detail?.slice(0, 500),
-    label: label.slice(0, 160),
-    type: "progress",
-  });
-}
-
-function emitTrace(
-  emit: (event: AnalystRunEvent) => void,
-  source: Extract<AnalystRunEvent, { type: "trace" }>["source"],
-  label: string,
-  detail?: string,
-) {
-  emit({
-    at: new Date().toISOString(),
-    detail: detail?.slice(0, 1_500),
-    label: label.slice(0, 160),
-    source,
-    type: "trace",
-  });
 }
 
 function createAnalystAdapter(model: string, apiKey: string): AnyTextAdapter {
