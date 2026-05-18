@@ -46,13 +46,19 @@ also requires real server-side model configuration:
 
 ```txt
 OPENROUTER_API_KEY=...
-ANALYST_MODEL=...
+ANALYST_MODEL=deepseek/deepseek-v4-pro
 ```
 
 `OPENROUTER_API_KEY` is the OpenRouter API key. `ANALYST_MODEL` is the single OpenRouter model slug
-used by the server. The browser does not receive either value and cannot select a model. `/analyst`
-has no fake or precomputed report fallback; missing or failing model configuration should surface as
-an Analyst run error.
+used by the server. For DeepSeek V4 Pro, use the full OpenRouter slug
+`deepseek/deepseek-v4-pro`. The browser does not receive either value and cannot select a model.
+`/analyst` has no fake or precomputed report fallback; missing or failing model configuration should
+surface as an Analyst run error.
+
+The server requests OpenRouter reasoning with `reasoning: { effort: "high" }` for Analyst CodeMode
+runs. TanStack/OpenRouter reasoning stream deltas are surfaced as raw model traces when emitted, but
+the app does not replay provider-native `reasoning_details` across CodeMode tool-loop continuation
+messages.
 
 Good manual analyst prompts for Render/local smoke:
 
