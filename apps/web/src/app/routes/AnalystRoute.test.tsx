@@ -83,6 +83,67 @@ describe("AnalystRoute", () => {
 
     act(() => root.unmount());
   });
+
+  it("sends the active report for follow-up replacement", async () => {
+    const replacementReport = {
+      ...analystReportFixture,
+      question: "Show only customer risk",
+      summary: "Customer risk replacement report.",
+      title: "Customer Risk Replacement",
+    };
+    const requests: unknown[] = [];
+
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      requests.push(JSON.parse(String(init?.body)));
+      const report = requests.length === 1 ? analystReportFixture : replacementReport;
+      return new Response(
+        sse([
+          { type: "phase", phase: "generating" },
+          { type: "validation", ok: true, attempt: 1 },
+          { type: "report", report },
+          { type: "phase", phase: "done" },
+        ]),
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    });
+    const { host, root } = renderRoute();
+
+    await submit(host);
+    await settle();
+    await editQuestion(host, "Show only customer risk");
+    await submit(host);
+    await settle();
+
+    expect(JSON.stringify(requests[1])).toContain(analystReportFixture.title);
+    expect(host.textContent).toContain("Customer Risk Replacement");
+
+    act(() => root.unmount());
+  });
+
+  it("clears report and prompt state for a new analysis", async () => {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(
+          sse([
+            { type: "validation", ok: true, attempt: 1 },
+            { type: "report", report: analystReportFixture },
+          ]),
+          { headers: { "content-type": "text/event-stream" } },
+        ),
+    );
+    const { host, root } = renderRoute();
+
+    await submit(host);
+    await settle();
+    await act(async () => {
+      buttonByText(host, "New analysis")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(host.textContent).toContain("No active report");
+    expect(host.querySelector("textarea")?.value).toBe("");
+
+    act(() => root.unmount());
+  });
 });
 
 function renderRoute(): { host: HTMLDivElement; root: Root } {
@@ -97,9 +158,23 @@ function renderRoute(): { host: HTMLDivElement; root: Root } {
   return { host, root };
 }
 
+function buttonByText(host: HTMLElement, text: string) {
+  return [...host.querySelectorAll("button")].find((button) => button.textContent?.includes(text));
+}
+
 async function submit(host: HTMLElement) {
   await act(async () => {
     host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true }));
+  });
+}
+
+async function editQuestion(host: HTMLElement, question: string) {
+  await act(async () => {
+    const textarea = host.querySelector("textarea");
+    if (textarea) {
+      textarea.value = question;
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    }
   });
 }
 
