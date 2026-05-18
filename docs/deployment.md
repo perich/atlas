@@ -12,7 +12,9 @@ Render Web Service
        /              built SPA
        /ops           SPA fallback
        /audit         SPA fallback
+       /analyst       SPA fallback
        /api/audit     audit HTTP API
+       /api/analyst/runs CodeMode analyst SSE API
        /stream        WebSocket upgrade
        /healthz       health check
 ```
@@ -33,10 +35,19 @@ The web worker derives the stream URL from `self.location`, so local `http` uses
 buildCommand: npm install -g pnpm@11.1.0 && pnpm install --frozen-lockfile && pnpm build
 startCommand: pnpm start
 healthCheckPath: /healthz
+NODE_VERSION: 24
 ```
 
 The production server binds to `process.env.PORT` and `0.0.0.0`. Local dev stays on
 `127.0.0.1:8787` through the `apps/server` dev script.
+
+The deploy runtime should use Node 24 so CodeMode can use the Node isolate driver. The analyst route
+also requires real model configuration:
+
+```txt
+OPENROUTER_API_KEY=...
+ANALYST_MODEL=...
+```
 
 ## Smoke Checks
 
@@ -52,6 +63,7 @@ Then verify:
 curl -f http://127.0.0.1:8787/healthz
 curl -f http://127.0.0.1:8787/api/audit?limit=1
 curl -f http://127.0.0.1:8787/audit
+curl -f http://127.0.0.1:8787/analyst
 ```
 
 The automated server smoke test covers health, static asset serving, SPA fallback, `/api/audit`, and
