@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 import { AnalystCanvas } from "../analyst/AnalystCanvas";
 import { AnalystControlRail } from "../analyst/AnalystControlRail";
+import { AnalystRunStatus } from "../analyst/AnalystRunStatus";
 import { AnalystWorkspaceShell } from "../analyst/AnalystWorkspaceShell";
 import { useAnalystRun } from "../analyst/useAnalystRun";
 
@@ -25,8 +26,6 @@ export function AnalystRoute() {
       }
       controlRail={
         <AnalystControlRail
-          completedDurationSeconds={analystRun.completedDurationSeconds}
-          error={analystRun.error}
           hasReport={analystRun.report !== null}
           isEmpty={isEmpty}
           isRunning={analystRun.isRunning}
@@ -46,6 +45,14 @@ export function AnalystRoute() {
             void analystRun.run(trimmedQuestion);
           }}
           question={question}
+        />
+      }
+      statusBar={
+        <AnalystRunStatus
+          completedDurationSeconds={analystRun.completedDurationSeconds}
+          error={analystRun.error}
+          isEmpty={isEmpty}
+          isRunning={analystRun.isRunning}
           statusMessage={analystRun.statusMessage}
         />
       }
