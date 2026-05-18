@@ -2,27 +2,21 @@ import React from "react";
 import { Activity, AlertTriangle, CheckCircle2, Clock3, Loader2, Terminal } from "lucide-react";
 
 import { cn } from "../../design/utils";
-import type { AnalystProgressEvent, AnalystTraceEvent } from "./useAnalystRun";
+import { projectAnalystRunTimeline, type AnalystRunTimeline } from "./analyst-run-timeline";
 import { useElapsedSeconds } from "./useElapsedSeconds";
 import { RawTrace, TraceFact } from "./AnalystRunTraceRows";
 
 export function AnalystRunTracePanel({
   error,
-  progressEvents,
   startedAt,
-  traceEvents,
-  validationAttempts,
+  timeline,
 }: {
   error: string | null;
-  progressEvents: AnalystProgressEvent[];
   startedAt: number | null;
-  traceEvents: AnalystTraceEvent[];
-  validationAttempts: number;
+  timeline: AnalystRunTimeline;
 }) {
   const elapsed = useElapsedSeconds(startedAt);
-  const currentFact = progressEvents.at(-1);
-  const recentFacts = progressEvents.slice(-10).reverse();
-  const recentTrace = traceEvents.slice(-5).reverse();
+  const timelineView = projectAnalystRunTimeline(timeline);
 
   return (
     <div
@@ -53,7 +47,7 @@ export function AnalystRunTracePanel({
             <Clock3 className="size-3.5" />
             {elapsed}s elapsed
           </span>
-          <span>{validationAttempts} validation attempts</span>
+          <span>{timelineView.validationAttempts} validation attempts</span>
         </div>
       </div>
 
@@ -70,10 +64,10 @@ export function AnalystRunTracePanel({
           Current execution fact
         </p>
         <p className="mt-3 text-base font-semibold text-white">
-          {currentFact?.label ?? "Starting CodeMode run"}
+          {timelineView.currentFact?.label ?? "Starting CodeMode run"}
         </p>
         <p className="mt-2 text-sm leading-6 text-bankops-muted">
-          {currentFact?.detail ?? "Waiting for the first server-side trace event."}
+          {timelineView.currentFact?.detail ?? "Waiting for the first server-side trace event."}
         </p>
       </section>
 
@@ -81,19 +75,19 @@ export function AnalystRunTracePanel({
         <section className="rounded-md border border-white/[0.08] bg-black/20 p-4">
           <p className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
             <CheckCircle2 className="size-3.5 text-emerald-300" />
-            Observable facts
+            Previous observable facts
           </p>
           <div className="space-y-2">
-            {recentFacts.length ? (
-              recentFacts.map((event, index) => (
+            {timelineView.observableFacts.length ? (
+              timelineView.observableFacts.map((event, index) => (
                 <TraceFact
                   event={event}
-                  isCurrent={index === 0}
-                  key={`${event.at}-${event.label}-${progressEvents.length - index}`}
+                  isCurrent={false}
+                  key={`${event.at}-${event.label}-${timelineView.observableFacts.length - index}`}
                 />
               ))
             ) : (
-              <p className="text-sm text-bankops-muted">No execution facts have arrived yet.</p>
+              <p className="text-sm text-bankops-muted">No earlier execution facts yet.</p>
             )}
           </div>
         </section>
@@ -104,11 +98,11 @@ export function AnalystRunTracePanel({
             Raw runtime trace
           </p>
           <div className="space-y-2">
-            {recentTrace.length ? (
-              recentTrace.map((event, index) => (
+            {timelineView.rawTrace.length ? (
+              timelineView.rawTrace.map((event, index) => (
                 <RawTrace
                   event={event}
-                  key={`${event.at}-${event.source}-${event.label}-${traceEvents.length - index}`}
+                  key={`${event.at}-${event.source}-${event.label}-${timelineView.rawTrace.length - index}`}
                 />
               ))
             ) : (

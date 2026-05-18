@@ -17,11 +17,9 @@ export function AnalystRoute() {
         <AnalystCanvas
           error={analystRun.error}
           isRunning={analystRun.isRunning}
-          progressEvents={analystRun.progressEvents}
           report={analystRun.report}
           startedAt={analystRun.startedAt}
-          traceEvents={analystRun.traceEvents}
-          validationAttempts={analystRun.validationAttempts}
+          timeline={analystRun.timeline}
         />
       }
       controlRail={
@@ -51,7 +49,7 @@ export function AnalystRoute() {
           completedDurationSeconds={analystRun.completedDurationSeconds}
           error={analystRun.error}
           isEmpty={isEmpty}
-          statusMessage={analystRun.statusMessage}
+          statusMessage={analystRun.timeline.statusMessage}
         />
       }
     />
