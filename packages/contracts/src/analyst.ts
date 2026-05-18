@@ -310,6 +310,7 @@ export const analystReportSpecSchema = z
   .superRefine((report, ctx) => {
     for (const [index, block] of report.blocks.entries()) {
       validateBlockDepth(block, 1, ctx, ["blocks", index]);
+      validateBlockSemantics(block, ctx, ["blocks", index]);
     }
   });
 
@@ -333,6 +334,115 @@ function validateBlockDepth(
       validateBlockDepth(child, depth + 1, ctx, [...path, "blocks", index]),
     );
   }
+}
+
+function validateBlockSemantics(
+  block: AnalystReportBlock,
+  ctx: z.RefinementCtx,
+  path: (string | number)[],
+) {
+  if ("blocks" in block) {
+    block.blocks.forEach((child: AnalystReportBlock, index: number) =>
+      validateBlockSemantics(child, ctx, [...path, "blocks", index]),
+    );
+    return;
+  }
+
+  if (isChartBlock(block)) {
+    validateChartBlock(block, ctx, path);
+  }
+
+  if (block.type === "dataTable") {
+    validateTableBlock(block, ctx, path);
+  }
+}
+
+function isChartBlock(
+  block: AnalystReportBlock,
+): block is Extract<
+  AnalystReportBlock,
+  { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
+> {
+  return (
+    block.type === "lineChart" ||
+    block.type === "barChart" ||
+    block.type === "areaChart" ||
+    block.type === "donutChart" ||
+    block.type === "sparkline"
+  );
+}
+
+function validateChartBlock(
+  block: Extract<
+    AnalystReportBlock,
+    { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
+  >,
+  ctx: z.RefinementCtx,
+  path: (string | number)[],
+) {
+  for (const [rowIndex, point] of block.data.entries()) {
+    if (!(block.xKey in point)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Chart "${block.title}" data row is missing xKey "${block.xKey}"`,
+        path: [...path, "data", rowIndex],
+      });
+    }
+
+    for (const series of block.series) {
+      if (!(series.key in point)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Chart "${block.title}" data row is missing series key "${series.key}"`,
+          path: [...path, "data", rowIndex],
+        });
+        continue;
+      }
+
+      if (!isFiniteNumberLike(point[series.key])) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Chart "${block.title}" series key "${series.key}" must contain numeric values`,
+          path: [...path, "data", rowIndex, series.key],
+        });
+      }
+    }
+  }
+}
+
+function validateTableBlock(
+  block: Extract<AnalystReportBlock, { type: "dataTable" }>,
+  ctx: z.RefinementCtx,
+  path: (string | number)[],
+) {
+  for (const [rowIndex, row] of block.rows.entries()) {
+    for (const column of block.columns) {
+      if (!(column.key in row)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Table "${block.title}" row is missing column key "${column.key}"`,
+          path: [...path, "rows", rowIndex],
+        });
+        continue;
+      }
+
+      const value = row[column.key];
+      if (typeof value === "string" && value.includes("[object Object]")) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Table "${block.title}" column "${column.key}" contains an object placeholder string`,
+          path: [...path, "rows", rowIndex, column.key],
+        });
+      }
+    }
+  }
+}
+
+function isFiniteNumberLike(value: unknown) {
+  return (
+    typeof value === "number" ||
+    (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)))
+  );
 }
 
 export type AnalystReportRunPhase = z.infer<typeof analystReportRunPhaseSchema>;

@@ -49,15 +49,35 @@ describe("analyst rollups", () => {
 
   it("rolls up reconciliation, liquidity, and rail health facts", () => {
     expect(getReconciliationRollup(rows)).toMatchObject({
+      byRail: {
+        wire: {
+          exceptionPressure: 7,
+          matchedCount: 90,
+          unmatchedCount: 12,
+        },
+      },
       exceptionPressure: 7,
       matchedCount: 90,
       unmatchedCount: 12,
     });
     expect(getLiquidityRollup(rows)).toMatchObject({
+      byRail: {
+        stablecoin: {
+          latestReserveAfterMinor: "98000",
+          reserveDeltaMinor: "-2500",
+        },
+      },
       reserveDeltaMinor: "-2500",
       latestReserveAfterMinor: "98000",
     });
     expect(getRailHealthRollup(rows)).toMatchObject({
+      byRail: {
+        wire: {
+          errorRateBpsMax: 92,
+          p95LatencyMsMax: 1200,
+          pendingDepthMax: 40,
+        },
+      },
       errorRateBpsMax: 92,
       p95LatencyMsMax: 1200,
       pendingDepthMax: 40,
