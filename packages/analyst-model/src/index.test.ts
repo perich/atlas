@@ -43,8 +43,8 @@ describe("analyst rollups", () => {
     const sample = getAuditSample(rows, { limit: 2, sort: "amountDesc" });
 
     expect(sample.rows.map((row) => row.amountMinor)).toEqual(["5000", "4000"]);
+    expect(sample.rows[0]?.detail).toContain("exceptionPressure=12");
     expect(sample.rows[0]?.detailSummary).toContain("exceptionPressure=12");
-    expect(sample.rows[0]).not.toHaveProperty("detail");
     expect(sample.truncation.truncated).toBe(true);
   });
 
