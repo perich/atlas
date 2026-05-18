@@ -304,7 +304,7 @@ function createAnalystAdapter(model: string, apiKey: string): AnyTextAdapter {
 
 export function analystModelOptions(): OpenRouterTextModelOptions {
   return {
-    reasoning: { effort: "high" },
+    reasoning: { effort: "medium" },
   };
 }
 
