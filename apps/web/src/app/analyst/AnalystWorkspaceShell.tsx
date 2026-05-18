@@ -30,8 +30,8 @@ export function AnalystWorkspaceShell({
                 >
                   Cloudflare&apos;s work on Code Mode MCPs
                 </a>
-                . It may have rough edges, but it should give a feel for where generated analysis
-                can go :)
+                . It may have rough edges, but it should give a feel for where on-demand generated
+                frontend UIs can go :)
               </p>
             </div>
           </div>
