@@ -11,7 +11,7 @@ import { createAnalystDataTools } from "./analyst-tools.js";
 import { createAnalystIsolateDriver } from "./isolate-driver.js";
 
 const MAX_ATTEMPTS = 4;
-const CODE_MODE_TIMEOUT_MS = 90_000;
+const CODE_MODE_TIMEOUT_MS = 120_000;
 
 type RunAnalystReportInput = {
   question: string;
@@ -39,6 +39,19 @@ Hard constraints:
 - Tables must contain capped rows useful for local rendering.
 - Use version "2026-05-analyst-report" and an ISO datetime generatedAt value.
 - If a previous report is provided, return a full replacement report, not a patch.`;
+
+const CODE_MODE_SCAFFOLD = `Use this exact shape inside execute_typescript:
+const overview = await external_get_dataset_overview({});
+const risk = await external_get_customer_risk_rollup({ limit: 8 });
+const report = {
+  version: "2026-05-analyst-report",
+  title: "...",
+  generatedAt: new Date().toISOString(),
+  question: "copy the user's question",
+  summary: "...",
+  blocks: [...]
+};
+await external_submit_report(report);`;
 
 export async function runAnalystCodeMode({
   emit,
@@ -74,15 +87,15 @@ export async function runAnalystCodeMode({
       const stream = chat({
         adapter: createAnalystAdapter(model, apiKey),
         abortController,
-        agentLoopStrategy: maxIterations(16),
-        maxTokens: 8192,
+        agentLoopStrategy: maxIterations(24),
+        maxTokens: 20_000,
         messages: [
           {
             role: "user",
             content: userPrompt({ previousReport, question, validationError }),
           },
         ],
-        systemPrompts: [ANALYST_SYSTEM_PROMPT, attemptSystemPrompt],
+        systemPrompts: [ANALYST_SYSTEM_PROMPT, CODE_MODE_SCAFFOLD, attemptSystemPrompt],
         tools: [attemptTool],
       });
 
