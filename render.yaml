@@ -11,3 +11,7 @@ services:
         value: production
       - key: NODE_VERSION
         value: 24
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ANALYST_MODEL
+        sync: false
