@@ -19,7 +19,9 @@ describe("AnalystRoute", () => {
   it("renders the empty analyst workspace", () => {
     const { host, root } = renderRoute();
 
-    expect(host.textContent).toContain("No active report");
+    expect(host.textContent).toContain("Ask for an operational analysis");
+    expect(host.textContent).toContain("Create report");
+    expect(host.textContent).toContain("Starter prompts");
     expect(host.textContent).toContain("Idle");
 
     act(() => root.unmount());
@@ -34,6 +36,7 @@ describe("AnalystRoute", () => {
     );
     const { host, root } = renderRoute();
 
+    await editQuestion(host, "Show rail health");
     await submit(host);
 
     expect(host.textContent).toContain("Generating Analyst Report");
@@ -67,6 +70,7 @@ describe("AnalystRoute", () => {
     );
     const { host, root } = renderRoute();
 
+    await editQuestion(host, "Show rail health");
     await submit(host);
     await settle();
 
@@ -93,11 +97,16 @@ describe("AnalystRoute", () => {
     );
     const { host, root } = renderRoute();
 
+    await editQuestion(host, "Show rail health");
     await submit(host);
     await settle();
 
     expect(host.textContent).toContain("Validated report ready");
     expect(host.textContent).toContain("ACH return wave containment");
+    expect(host.textContent).toContain("Revise report");
+    expect(host.textContent).toContain("Follow-up examples");
+    expect(host.textContent).not.toContain("Starter prompts");
+    expect(host.querySelector("textarea")?.value).toBe("");
 
     act(() => root.unmount());
   });
@@ -111,6 +120,7 @@ describe("AnalystRoute", () => {
     );
     const { host, root } = renderRoute();
 
+    await editQuestion(host, "Show rail health");
     await submit(host);
     await settle();
 
@@ -144,6 +154,7 @@ describe("AnalystRoute", () => {
     });
     const { host, root } = renderRoute();
 
+    await editQuestion(host, "Show rail health");
     await submit(host);
     await settle();
     await editQuestion(host, "Show only customer risk");
@@ -169,13 +180,14 @@ describe("AnalystRoute", () => {
     );
     const { host, root } = renderRoute();
 
+    await editQuestion(host, "Show rail health");
     await submit(host);
     await settle();
     await act(async () => {
       buttonByText(host, "New analysis")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(host.textContent).toContain("No active report");
+    expect(host.textContent).toContain("Ask for an operational analysis");
     expect(host.querySelector("textarea")?.value).toBe("");
 
     act(() => root.unmount());
@@ -208,7 +220,10 @@ async function editQuestion(host: HTMLElement, question: string) {
   await act(async () => {
     const textarea = host.querySelector("textarea");
     if (textarea) {
-      textarea.value = question;
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(
+        textarea,
+        question,
+      );
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
   });
