@@ -173,6 +173,16 @@ importers:
         specifier: 4.1.5
         version: 4.1.5(@types/node@25.6.2)(jsdom@29.1.1)(vite@8.0.11(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/analyst-model:
+    dependencies:
+      '@bankops/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      vitest:
+        specifier: 4.1.5
+        version: 4.1.5(@types/node@25.6.2)(jsdom@29.1.1)(vite@8.0.11(@types/node@25.6.2)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
+
   packages/audit-log-model:
     dependencies:
       '@bankops/contracts':
