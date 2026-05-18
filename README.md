@@ -31,6 +31,8 @@ The result is a product surface that is fast, bank-flavored, and measurable:
 - React snapshots via `useSyncExternalStore`, not one React update per event
 - server-backed audit API over a 100k-row synthetic bank-core log
 - virtualized audit table with bounded row cache, URL filters/sort, and local column preferences
+- planned OpenRouter-backed CodeMode analyst route that returns validated Analyst Reports over
+  enriched audit-log data
 - Render single-service deploy serving SPA, HTTP API, health check, and WebSocket from one origin
 
 ## Product Routes
@@ -82,13 +84,16 @@ Implemented surfaces:
 - render trace showing visible range, mounted rows, query latency, main-thread p95, cached rows,
   loaded windows, and loaded ranges
 
-### `/analyst` — Future Analyst Workspace
+### `/analyst` — Analyst Workspace
 
-The Analyst route is intentionally a placeholder. The project keeps space for a future constrained
-CodeMode-style analyst, but the current build focuses on making `/ops` and `/audit` excellent.
+The Analyst route is planned as a constrained CodeMode-style analyst surface over enriched Bank Core
+Audit Log data.
 
-Future generated UI should be typed, declarative, auditable, and validated before rendering. The
-model should not generate arbitrary React inside the browser.
+The intended flow is: an Operator asks a natural-language question, the server runs real
+OpenRouter-backed CodeMode inference against bounded BankOps analyst tools, and the route renders a
+complete validated Analyst Report. The model writes sandboxed TypeScript for analysis, but it does
+not generate React, JSX, browser handlers, subscriptions, or post-render data sources. Rendering and
+layout remain owned by the app.
 
 ## Architecture
 
@@ -101,6 +106,7 @@ Render Web Service
        /analyst           SPA fallback
        /api/audit          cursor-windowed audit API
        /api/audit/facets   audit filter facets
+       /api/analyst/runs   SSE CodeMode analyst runs
        /stream             WebSocket upgrade for realtime ops firehose
        /healthz            health check
 
@@ -135,9 +141,10 @@ apps/
   server/              Fastify server for local dev and Render production
 
 packages/
-  contracts/           shared domain types, audit API types, stream frame encoder/decoder
+  contracts/           shared domain types, API schemas, stream frame encoder/decoder
   ops-tape-sim/        server-only realtime balance-sheet movement simulator
   audit-log-model/     server-only audit entry generation, filtering, sorting, facets, cursors
+  analyst-model/       server-only analyst rollups and report-facing views
 
 docs/
   adr/                 architecture decision records
@@ -149,6 +156,7 @@ Runtime boundaries are intentional:
 - `@bankops/contracts` is shared by browser, worker, server, and tests.
 - `@bankops/ops-tape-sim` is server-only.
 - `@bankops/audit-log-model` is server-only.
+- `@bankops/analyst-model` is server-only.
 - `@bankops/web` does not import simulation/model packages directly.
 
 ## Tech Choices
@@ -164,6 +172,10 @@ Runtime boundaries are intentional:
 - **TanStack Router**: typed route/search-state model for URL-addressable audit views.
 - **TanStack Query**: request lifecycle, cancellation, stale timing, and cache keys for audit windows.
 - **TanStack Virtual**: small mounted row count over a large logical result set.
+- **TanStack AI Code Mode + OpenRouter**: real server-side analyst inference with a
+  server-configured model slug.
+- **Node isolate driver**: primary CodeMode sandbox path, pinned to Node 24 for compatibility.
+- **Recharts**: general chart primitives for validated Analyst Reports.
 - **Tailwind CSS + Radix primitives**: fast iteration on a dense desktop console UI.
 - **Render Web Service**: one deployable Node process serving SPA, API, WebSocket, and health check
   from the same origin.
@@ -172,8 +184,13 @@ Runtime boundaries are intentional:
 
 Requirements:
 
-- Node `>=22.13`
+- Node `24`
 - pnpm `11.1.0`
+
+Analyst route model configuration:
+
+- `OPENROUTER_API_KEY`
+- `ANALYST_MODEL`
 
 Install dependencies:
 

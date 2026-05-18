@@ -15,11 +15,14 @@ feel related, but they do not need to share one strict canonical event history.
    rail, liquidity, reconciliation, and system health context.
 2. `/audit` showcases an exceptional server-backed virtualized table over hundreds of thousands of
    Bank Core Audit Log rows, with filtering, sorting, facets, and draggable columns.
-3. `/analyst` is reserved for a future constrained CodeMode-style analysis surface.
+3. `/analyst` is a constrained CodeMode-style analysis surface that turns natural-language
+   operational questions into validated Analyst Reports over enriched Bank Core Audit Log data.
 
 Route data boundary:
 
 - `/ops` and `/audit` use separate synthetic datasets and stores.
+- `/analyst` analyzes enriched `/audit` data through bounded analyst tools; it does not introduce a
+  third independent synthetic dataset.
 - They may share Customers, Rails, Assets, statuses, and naming conventions so the product feels
   coherent.
 - A Balance Sheet Movement in `/ops` is not required to correspond to an Audit Entry in `/audit`.
@@ -32,8 +35,8 @@ Route data boundary:
   behavior, and invariants.
 - Demonstrate production-fluent frontend architecture: workers, snapshots, virtualization, typed
   protocols, perf telemetry, accessibility, and deterministic tests.
-- Preserve a path for AI-assisted operations without making it part of the first implementation
-  focus.
+- Demonstrate AI-assisted operational analysis through real provider-backed CodeMode execution while
+  preserving typed, validated rendering boundaries.
 - Keep the build small enough to finish and polish within a focused week.
 
 ## Non-Goals
@@ -42,6 +45,8 @@ Route data boundary:
   real compliance advice, or real customer data.
 - No full backend platform or database service unless it directly supports the demo.
 - No arbitrary LLM-generated React in the browser.
+- No fake or precomputed Analyst Reports as a product fallback; `/analyst` must use real
+  provider-backed inference.
 
 ## Users
 
@@ -55,8 +60,7 @@ First build route priority:
 
 - Real route: `/ops`.
 - Real route: `/audit`.
-- Placeholder route: `/analyst`.
-- Do not expand `/analyst` until `/ops` and `/audit` are polished.
+- Analyst route: `/analyst`.
 
 Viewport support:
 
@@ -291,21 +295,94 @@ type AuditEntry = {
 
 ### `/analyst`: CodeMode Analyst
 
-Purpose: reserve space for a future route that connects AI devx experience to an internal banking
-operations workflow.
+Purpose: connect AI developer-experience patterns to a credible internal banking operations
+workflow. An Operator asks a natural-language question, CodeMode writes sandboxed TypeScript that
+queries bounded BankOps analyst tools, and the route renders a complete validated Analyst Report.
 
-First-cut scope:
+Required surfaces:
 
-- Route exists in navigation.
-- Page may be an intentional placeholder.
-- No live model integration, sandbox, generated UI, or analyst workflow is required until `/ops` and
-  `/audit` are excellent.
+- Natural-language prompt input.
+- Curated prompt chips that run real model inference, not precomputed reports.
+- Single active Analyst Report canvas.
+- Minimal run status for generating, querying, validating, repairing, done, and error states.
+- Optional collapsible generated-code view if it falls out naturally from CodeMode events.
+- Plain provider, validation, or configuration errors. Do not build fake fallback reports.
 
-Future direction:
+Interaction model:
 
-- The model must not render arbitrary React.
-- It may eventually produce a declarative dashboard schema after calling typed, read-only tools.
-- Any future generated UI must be validated before rendering.
+- The route starts with one free-form prompt.
+- After a report renders, the prompt can refine the active report.
+- Refinement sends the previous validated Analyst Report as context and returns a full replacement
+  report, not a patch.
+- A "New analysis" control clears the active report and starts over.
+- No report history or localStorage persistence in the first implementation.
+
+CodeMode boundary:
+
+- Use real provider-backed inference through OpenRouter and TanStack AI Code Mode.
+- The server owns one configured `ANALYST_MODEL` slug and `OPENROUTER_API_KEY`; the browser does not
+  expose a model selector.
+- CodeMode uses the Node isolate driver as the primary sandbox, matching the reference
+  implementation. QuickJS may remain a fallback for resilience.
+- CodeMode can call bounded analyst data tools and one UI-finalization binding:
+  `external_submit_report(spec)`.
+- CodeMode must not receive reference-style `external_report_*` procedural UI-builder bindings.
+- CodeMode must not generate React, JSX, browser-executed component code, handlers, subscriptions,
+  watchers, or post-render data sources.
+- `external_submit_report(spec)` validates and captures a complete `AnalystReportSpec`.
+- If validation fails, the server may run up to three repair retries, for four total model attempts.
+- The server should not silently coerce invalid model output beyond harmless schema defaults.
+
+Analyst Report contract:
+
+- `AnalystReportSpec` lives in `@bankops/contracts` with shared Zod schemas and TypeScript types.
+- The top-level shape includes `version`, `title`, optional `subtitle`, `generatedAt`, `question`,
+  `summary`, `blocks`, and optional `warnings`.
+- Omit source/citation metadata in the first implementation.
+- Reports are static snapshots: all metric, chart, timeline, and table data needed for rendering is
+  embedded in the validated spec.
+- The renderer validates before rendering and owns exact layout, spacing, sizing, color, and
+  responsive behavior.
+- The model can choose high-level structure, chart types, and report block ordering, but cannot pass
+  arbitrary CSS, arbitrary colors, arbitrary pixel dimensions, or class names.
+
+Initial report block vocabulary:
+
+- Layout and narrative: `stack`, `grid`, `section`, `summary`, `markdown`, `callout`.
+- Metrics: `metric`, `metricGrid`.
+- Charts: `lineChart`, `barChart`, `areaChart`, `donutChart`, `sparkline`.
+- Investigation blocks: `dataTable`, `timeline`, `railMatrix`, `customerList` or
+  `customerCarousel`.
+- States: `empty`, `error`.
+- Data tables support local sorting and pagination over embedded rows only. They do not support row
+  selection, bulk actions, generated row handlers, or server-backed sorting after render.
+- Use Recharts behind BankOps-owned chart primitives for generated report charts.
+
+Initial analyst tools:
+
+- `get_dataset_overview()`.
+- `get_time_series({ metric, groupBy?, window, grain, filters })`.
+- `get_breakdown({ metric, dimension, filters, limit })`.
+- `get_audit_sample({ filters, sort, limit })`.
+- `get_reconciliation_rollup({ window, filters })`.
+- `get_liquidity_rollup({ window, grain })`.
+- `get_rail_health_rollup({ window, grain })`.
+- `get_customer_risk_rollup({ window, limit })`.
+
+Analyst tool constraints:
+
+- Tool functions may scan the full in-memory audit dataset server-side.
+- Tool outputs sent to CodeMode must be compact rollups or capped samples, not unbounded row dumps.
+- Sample rows are capped for model input; report-rendered tables are capped separately.
+- Time series, breakdowns, and grouped rollups should return truncation metadata when caps apply.
+- Amounts should be returned in JSON-safe forms, not as raw `bigint` values.
+
+Target layout:
+
+- Header band: Analyst workspace title and minimal model/run status.
+- Left control rail: prompt input, curated prompt chips, run status/errors, and reset.
+- Right canvas: empty state before generation and the generated Analyst Report after validation.
+- No chat transcript as the primary UI in the first implementation.
 
 ## Domain Model
 
@@ -406,6 +483,7 @@ packages/
   contracts/           @bankops/contracts stream frame contracts and API types
   ops-tape-sim/        @bankops/ops-tape-sim Balance Sheet Movement generation
   audit-log-model/     @bankops/audit-log-model Audit Entry generation and query logic
+  analyst-model/       @bankops/analyst-model Analyst rollups and report-facing views
 ```
 
 Workspace package names should be private and npm-scoped:
@@ -416,27 +494,30 @@ Workspace package names should be private and npm-scoped:
 @bankops/contracts
 @bankops/ops-tape-sim
 @bankops/audit-log-model
+@bankops/analyst-model
 ```
 
 Do not create `packages/ui` in the initial restructure. Keep design primitives in `apps/web/src/design`
 until real duplication justifies extraction.
 
-`@bankops/contracts` should be dependency-free:
+`@bankops/contracts` owns shared protocol types and runtime boundary schemas:
 
 - Use platform primitives such as `DataView`, `ArrayBuffer`, and typed arrays for binary frames.
-- Export TypeScript API types for `/api/audit`.
-- Do not pull validation libraries or framework types into shared contracts.
-- Runtime validation, if needed, belongs at app boundaries such as `apps/server`.
+- Export TypeScript API types for `/api/audit` and `/api/analyst`.
+- Own shared Zod schemas for JSON API payloads that must be validated by both server and browser.
+- Do not pull framework types into shared contracts.
 
 Package runtime boundaries:
 
 - `@bankops/contracts` is shared by browser, workers, server, and tests.
 - `@bankops/ops-tape-sim` is server-only.
 - `@bankops/audit-log-model` is server-only.
+- `@bankops/analyst-model` is server-only.
 - `apps/web` must not import simulation/model packages.
 
-The current scaffold is still single-app. The first implementation refactor should move the
-existing Vite app to `apps/web` and introduce pnpm workspaces before adding server logic.
+The current scaffold is a pnpm workspace with `apps/web`, `apps/server`, `packages/contracts`,
+`packages/ops-tape-sim`, and `packages/audit-log-model`. The analyst implementation should add
+`packages/analyst-model` without moving UI primitives into a shared UI package.
 
 ### Local Development
 
@@ -460,6 +541,10 @@ Root scripts after the workspace restructure:
 In development, Vite serves `apps/web` and proxies `/api/*` plus `/stream` to `apps/server`. In
 production, `apps/server` serves the built SPA and handles those same routes directly.
 
+The repo and deploy runtime should be pinned to Node 24 so the CodeMode Node isolate driver can use
+`isolated-vm` consistently. This runtime pin is part of the `/analyst` architecture, not an
+incidental local preference.
+
 ### Server Responsibilities
 
 `apps/server` owns:
@@ -472,9 +557,12 @@ production, `apps/server` serves the built SPA and handles those same routes dir
 - `/stream` WebSocket endpoint
 - `/api/audit` cursor-windowed audit entry endpoint
 - `/api/audit/facets` audit filter facet endpoint
+- `/api/analyst/runs` SSE endpoint for CodeMode Analyst Report generation
 - `/healthz` health endpoint
 - optional static serving of the built web app for single-service deploys
 - client control handling for target rate and client performance telemetry
+- OpenRouter-backed model adapter, CodeMode setup, isolate driver creation, analyst data tools, and
+  `external_submit_report` validation binding
 
 Server framework:
 
@@ -493,6 +581,9 @@ for clarity:
   `/ops` aggregates.
 - `audit-log-model` for deterministic Audit Entries, sparse filters, single-column sorting, cursor
   windows, and facets.
+- `analyst-model` for bounded analyst rollups and report-facing views over enriched Audit Entries.
+- `analyst` server modules for OpenRouter CodeMode execution, SSE run events, repair retries, and
+  report validation.
 
 ### Browser Responsibilities
 
@@ -504,7 +595,7 @@ for clarity:
 - coalesced external store snapshots consumed by React
 - minimal `useSyncExternalStore` wrappers for worker-authored `/ops` snapshots
 - virtualized high-scale table
-- placeholder analyst route
+- `/analyst` route, custom lightweight SSE run hook, and validated Analyst Report renderer
 
 Backend availability behavior:
 
@@ -519,6 +610,8 @@ State management boundary:
 - `/ops` stream state uses a minimal external store around `useSyncExternalStore`.
 - The worker remains the owner of stream, tape, and performance state; React only consumes compact
   snapshots.
+- `/analyst` uses local React state for the current prompt, active run, and active Analyst Report.
+  It does not persist report history in the first implementation.
 - Do not introduce Zustand, Redux, or another app-wide state library for the first cut.
 - Consider a state library later only if app-owned UI state becomes meaningfully complex.
 
@@ -642,9 +735,12 @@ Synthetic data classes:
 - Accounts for customer deposits, bank settlement, rail clearing, liquidity reserve, and exception
   queues.
 - Balance Sheet Movements for the `/ops` live stream.
-- Bank Core Audit Log entries for `/audit`, modeled as heterogeneous Audit Entry envelopes.
+- Bank Core Audit Log entries for `/audit` and `/analyst`, modeled as enriched heterogeneous Audit
+  Entry envelopes.
 - Journal entries for double-entry finality.
 - Incidents and invariant failures.
+- Operational Scenarios that shape Audit Entries across time ranges and Customer cohorts without
+  being exposed as visible analyst labels.
 
 Persistence:
 
@@ -655,6 +751,8 @@ Persistence:
 - The audit dataset is shared once per server process, not generated per browser session.
 - The audit dataset is static for the lifetime of the server process. `/audit` does not receive
   live inserts from `/ops`, and no "new rows available" behavior is required.
+- `/analyst` analyzes the static enriched audit dataset through `@bankops/analyst-model` rollups and
+  samples. It does not inspect the live `/ops` worker/WebSocket state in the first implementation.
 - `/ops` stream sessions are per WebSocket connection, so one viewer changing stream rate does not
   affect other viewers.
 - Per-connection `/ops` state should stay small: sequence cursor, selected rate, aggregate counters,
@@ -670,7 +768,20 @@ Persistence:
 - Seed selection is not a visible product control; any seed override should be dev/test-only.
 - `/audit` column layout preferences can use localStorage because they are small, local, and
   user-specific.
+- `/analyst` does not persist reports or run history in the first implementation. Refreshing the
+  route clears the active Analyst Report.
 - Generated table data should be deterministic by seed so tests and demos are reproducible.
+
+Audit enrichment for `/analyst`:
+
+- Add deterministic Customer metadata such as industry, region, tier, and risk profile.
+- Add Operational Scenario windows such as stablecoin finality lag, ACH return waves, wire cutoff
+  pressure, reserve rebalance cycles, risk rule changes, and rail degradation windows.
+- Operational Scenarios should influence generated Audit Entries through observable facts such as
+  latency, failure rate, pending depth, unmatched reconciliation counts, liquidity reserve changes,
+  exception pressure, and risk review volume.
+- Analyst tools must expose observable rollups and capped samples, not scenario names or hidden
+  answer-key labels.
 
 ## Deployment and Hosting
 
@@ -681,6 +792,7 @@ the built SPA, `/stream` WebSocket endpoint, and `/api/audit` endpoints from the
 https://bankops-demo.example.com/          static SPA
 https://bankops-demo.example.com/stream    WebSocket upgrade
 https://bankops-demo.example.com/api/audit cursor-windowed audit entries
+https://bankops-demo.example.com/api/analyst/runs CodeMode Analyst Report generation
 https://bankops-demo.example.com/healthz   health check
 ```
 
@@ -704,6 +816,8 @@ Render deployment requirements:
 - Production clients should use same-origin `https://...` and `wss://...` URLs.
 - WebSocket clients should implement reconnect because platform maintenance or deploys can close
   long-lived connections.
+- Production `/analyst` requires `OPENROUTER_API_KEY` and a server-configured `ANALYST_MODEL` slug.
+- The deploy runtime should use Node 24 for CodeMode's primary Node isolate sandbox.
 
 Alternative deploys:
 
@@ -745,8 +859,11 @@ Near-term repo boilerplate:
 - `packages/contracts` with stream frame encoder/decoder tests and audit API contract tests
 - `packages/ops-tape-sim` with deterministic Balance Sheet Movement and aggregate tests
 - `packages/audit-log-model` with Audit Entry generation and query fixture tests
+- `packages/analyst-model` with deterministic analyst rollup/view tests
 - root scripts for `dev`, `dev:web`, `dev:server`, `build`, `typecheck`, `lint`, and tests
-- `.env.example` with `VITE_STREAM_URL` and stream rate defaults
+- `.nvmrc` pinning Node 24 for CodeMode isolate compatibility
+- `.env.example` with `VITE_STREAM_URL`, stream rate defaults, `OPENROUTER_API_KEY`, and
+  `ANALYST_MODEL`
 - Playwright config updated for the workspace app
 
 Later boilerplate:
@@ -764,9 +881,16 @@ Testing:
 - Unit tests for protocol encode/decode round trips.
 - Property tests for simulator invariants where cheap.
 - Unit tests for audit URL query-state serialization.
+- Unit tests for `AnalystReportSpec` validation, including invalid block props, over-cap reports,
+  and excessive nesting.
+- Unit tests for analyst rollups over fixed Audit Entry fixtures, including caps and truncation
+  metadata.
+- Unit tests for `external_submit_report` capture/validation and the four-attempt repair loop where
+  cheap to isolate.
 - Component tests for route-level smoke states.
 - Playwright flow for `/audit` filter, sort, facet, and column reorder.
-- Playwright smoke flow for `/analyst` placeholder route.
+- Component tests for Analyst Report renderer block types and table local sort/pagination.
+- Playwright smoke flow for `/analyst` happy path when real model credentials are available.
 
 Performance:
 
@@ -795,8 +919,14 @@ Accessibility:
 7. `ops-tape.worker.ts` and external snapshot store.
 8. OffscreenCanvas Balance Sheet Tape.
 9. Virtualized `/audit` table.
-10. `/analyst` placeholder route.
-11. Deployment, README polish, screenshots, and walkthrough.
+10. Enriched audit generator with Operational Scenario shaping.
+11. `@bankops/analyst-model` package with bounded rollups and report-facing views.
+12. `AnalystReportSpec` contracts and run event schemas.
+13. OpenRouter-backed CodeMode server endpoint with Node isolate sandbox, analyst tools,
+    `external_submit_report`, and validation repair retries.
+14. `/analyst` route with prompt rail, curated prompt chips, custom SSE run hook, and validated
+    Analyst Report renderer.
+15. Deployment, README polish, screenshots, and walkthrough.
 
 ## Open Decisions
 
