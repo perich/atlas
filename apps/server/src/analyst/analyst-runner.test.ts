@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   analystModelOptions,
+  analystUserPrompt,
   reasoningTraceDelta,
   reasoningTraceSnippet,
-  runAnalystReportAttempts,
-} from "./analyst-runner.js";
+} from "./analyst-run-policy.js";
+import { runAnalystReportAttempts } from "./analyst-runner.js";
 
 describe("Analyst OpenRouter model options", () => {
   it("enables explicit medium-effort reasoning", () => {
@@ -28,6 +29,22 @@ describe("Analyst reasoning traces", () => {
 
   it("compacts reasoning deltas into readable snippets", () => {
     expect(reasoningTraceSnippet(" planning\n\n   bounded tools ")).toBe("planning bounded tools");
+  });
+});
+
+describe("Analyst CodeMode prompt policy", () => {
+  it("adds repair instructions only after validation failures", () => {
+    expect(JSON.parse(analystUserPrompt({ question: "Show failures" }))).toEqual({
+      question: "Show failures",
+    });
+    expect(
+      JSON.parse(
+        analystUserPrompt({
+          question: "Show failures",
+          validationError: "Missing data rows",
+        }),
+      ).repairInstruction,
+    ).toContain("Missing data rows");
   });
 });
 
