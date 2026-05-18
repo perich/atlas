@@ -76,6 +76,11 @@ A server-queryable operational envelope rendered in the `/audit` table, with com
 fields and type-specific detail.
 _Avoid_: Transaction, ledger row
 
+**Operational Scenario**:
+A deterministic synthetic condition that shapes generated Audit Entries so Operators can discover
+meaningful rail, liquidity, risk, settlement, or reconciliation patterns.
+_Avoid_: Random fixture, hidden answer key
+
 **Analyst Report**:
 A validated, read-only analytical view generated from BankOps data in response to an Operator's
 natural-language question.
@@ -99,6 +104,8 @@ _Avoid_: Generated React, app, source-of-truth record
   **Payment Rail**.
 - An **Audit Entry** has exactly one subject type, such as payment, journal, customer, account,
   rail, settlement, exception, configuration, cutoff, or operator action.
+- An **Operational Scenario** influences many **Audit Entries** across a time range or Customer
+  cohort.
 - A **Facet** counts matching **Audit Entries** without returning those entries.
 - An **Analyst Report** summarizes or visualizes BankOps data, but it does not create, mutate, or
   become that data.
@@ -130,3 +137,5 @@ _Avoid_: Generated React, app, source-of-truth record
   source of truth.
 - `/analyst` analyzes enriched **Audit Entries** rather than introducing a separate synthetic data
   universe.
+- An **Operational Scenario** is not a separate truth table or visible label for the analyst to read
+  directly; its presence should be inferred from generated **Audit Entries** and observable rollups.
