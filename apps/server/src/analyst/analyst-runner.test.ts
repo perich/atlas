@@ -9,9 +9,9 @@ import {
 } from "./analyst-runner.js";
 
 describe("Analyst OpenRouter model options", () => {
-  it("enables explicit high-effort reasoning", () => {
+  it("enables explicit medium-effort reasoning", () => {
     expect(analystModelOptions()).toEqual({
-      reasoning: { effort: "high" },
+      reasoning: { effort: "medium" },
     });
   });
 });

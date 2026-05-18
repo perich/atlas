@@ -198,7 +198,7 @@ Analyst route model configuration:
 
 - `OPENROUTER_API_KEY`: OpenRouter API key used only by the Fastify server.
 - `ANALYST_MODEL`: single OpenRouter model slug selected by the server. Use
-  `deepseek/deepseek-v4-pro` for DeepSeek V4 Pro.
+  `openai/gpt-5.5` for the CodeMode Analyst demo.
 
 Copy `.env.example` to `.env` for local development and set both values before using `/analyst`.
 Do not prefix them with `VITE_`; the browser must not receive provider credentials or choose the
