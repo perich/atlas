@@ -88,7 +88,7 @@ export function AnalystRoute() {
                 variant="secondary"
               >
                 <RotateCcw aria-hidden="true" className="size-4" />
-                Reset
+                New analysis
               </Button>
             </div>
           </form>
