@@ -7,7 +7,7 @@ import {
   decodeAuditCursor,
   parseAuditFilterParams,
   parseAuditQueryParams,
-  parseAuditQueryStateSearch,
+  parseAuditQueryStateSearchString,
   serializeAuditQueryState,
   validateAuditSearch,
 } from "./audit-query.js";
@@ -49,7 +49,7 @@ describe("Audit Query Module", () => {
   });
 
   it("round-trips supported filters and sort from URL params", () => {
-    const state = parseAuditQueryStateSearch(
+    const state = parseAuditQueryStateSearchString(
       "?status=failed,pending&rail=wire&severity=critical&sortField=rail&sortDir=asc",
     );
 
