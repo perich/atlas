@@ -145,5 +145,9 @@ function compareTableValues(
 }
 
 function rowKey(row: Record<string, unknown>, index: number) {
-  return `${index}-${Object.values(row).join("|")}`;
+  return primitiveRowKey(row.id) ?? primitiveRowKey(row.traceId) ?? `row-${index}`;
+}
+
+function primitiveRowKey(value: unknown) {
+  return typeof value === "string" || typeof value === "number" ? String(value) : undefined;
 }

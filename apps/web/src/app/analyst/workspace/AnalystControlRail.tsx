@@ -34,8 +34,8 @@ export function AnalystControlRail({
           Create report
         </p>
         <p className="mt-2 text-sm leading-6 text-bankops-muted">
-          Describe the operational view you want. CodeMode will query bounded BankOps data tools,
-          assemble a report, validate it, and render the result here.
+          Ask for the rail, exception, liquidity, or Customer view you want. The Analyst turns
+          bounded audit evidence into a validated report.
         </p>
       </div>
 
@@ -47,7 +47,7 @@ export function AnalystControlRail({
           <textarea
             className="min-h-28 w-full resize-none border-0 bg-transparent p-3 text-sm leading-6 text-bankops-text outline-none placeholder:text-bankops-muted"
             onChange={(event) => onQuestionChange(event.target.value)}
-            placeholder="Example: find the most interesting operating pattern in today's audit log..."
+            placeholder="Example: find the riskiest operating pattern in the current audit log..."
             value={question}
           />
           <div className="grid grid-cols-[minmax(0,1fr)_2rem] gap-2 border-t border-white/[0.08] bg-black/20 p-2">

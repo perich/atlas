@@ -37,7 +37,6 @@ export function applyAnalystRunEvent(
     return {
       ...timeline,
       progressEvents: [...timeline.progressEvents, event].slice(-24),
-      statusMessage: event.label,
     };
   }
 
