@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { buildServer } from "./main.js";
+import { buildServer } from "../main.js";
 
 let app: Awaited<ReturnType<typeof buildServer>>;
 
