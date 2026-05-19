@@ -3,10 +3,9 @@ import type { StreamRate } from "@bankops/contracts";
 
 import { BalanceSheetTape } from "../ops/BalanceSheetTape";
 import { OpsBottomBand } from "../ops/OpsBottomBand";
-import { OpsSideRail, streamPressure } from "../ops/OpsSideRail";
+import { OpsSideRail } from "../ops/OpsSideRail";
 import { OpsTopBand } from "../ops/OpsTopBand";
 import { RailBucketHeatmap } from "../ops/RailBucketHeatmap";
-import type { OpsStreamSnapshot } from "../ops/ops-stream-messages";
 import { useOpsStreamControls, useOpsStreamSnapshot } from "../ops/ops-stream-store";
 import { Panel } from "../../design/components";
 
@@ -40,78 +39,25 @@ export function OpsRoute() {
 }
 
 function OpsHeroHeaderStream() {
-  return <OpsHeroHeader snapshot={useOpsStreamSnapshot()} />;
+  return <OpsHeroHeader />;
 }
 
-const OpsHeroHeader = React.memo(function OpsHeroHeader({
-  snapshot,
-}: {
-  snapshot: OpsStreamSnapshot;
-}) {
-  const pressure = streamPressure(snapshot);
-
+const OpsHeroHeader = React.memo(function OpsHeroHeader() {
   return (
     <div className="border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="mb-3 text-2xl font-semibold leading-tight tracking-[-0.02em] text-bankops-text">
-            Operations Control Plane
-          </h1>
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
-              Live
-            </span>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-6 text-right">
-          <HeaderMetric
-            label="Pressure"
-            tone={
-              pressure.level === "nominal" ? "green" : pressure.level === "watch" ? "amber" : "red"
-            }
-            value={pressure.label.toUpperCase()}
-          />
-          <HeaderMetric label="Backlog" value={snapshot.renderer.backlog.toLocaleString()} />
-          <HeaderMetric
-            label="Frame cost"
-            value={`${snapshot.renderer.frameCostMs.toFixed(1)}ms`}
-          />
+      <div>
+        <h1 className="mb-3 text-2xl font-semibold leading-tight tracking-[-0.02em] text-bankops-text">
+          Operations Control Plane
+        </h1>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
+            Live
+          </span>
         </div>
       </div>
     </div>
   );
 });
-
-function HeaderMetric({
-  label,
-  tone,
-  value,
-}: {
-  label: string;
-  tone?: "amber" | "green" | "red";
-  value: string;
-}) {
-  return (
-    <div>
-      <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-bankops-subtle">
-        {label}
-      </p>
-      <p
-        className={`mt-1 font-mono text-xl font-medium tracking-[-0.01em] ${
-          tone === "green"
-            ? "text-emerald-400"
-            : tone === "amber"
-              ? "text-amber-400"
-              : tone === "red"
-                ? "text-red-400"
-                : "text-bankops-text"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
 
 function OpsTopBandStream() {
   return <OpsTopBand snapshot={useOpsStreamSnapshot()} />;
