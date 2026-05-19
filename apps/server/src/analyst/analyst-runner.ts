@@ -54,8 +54,8 @@ export async function runAnalystCodeMode({
   env = process.env,
   question,
 }: RunAnalystReportInput): Promise<AnalystReportSpec> {
-  const apiKey = env.OPENROUTER_API_KEY;
-  const model = env.ANALYST_MODEL;
+  const apiKey = env["OPENROUTER_API_KEY"];
+  const model = env["ANALYST_MODEL"];
 
   if (!apiKey || !model) {
     throw new Error("OPENROUTER_API_KEY and ANALYST_MODEL must be configured");

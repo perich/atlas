@@ -224,8 +224,8 @@ function customerDetail(detail: Record<string, unknown>) {
       id: "cus_fixture",
       name: "Fixture Customer",
       region: "west",
-      riskProfile: detail.exceptionPressure === 2 ? "standard" : "elevated",
-      segment: detail.exceptionPressure === 2 ? "marketplace" : "payroll",
+      riskProfile: detail["exceptionPressure"] === 2 ? "standard" : "elevated",
+      segment: detail["exceptionPressure"] === 2 ? "marketplace" : "payroll",
     },
   };
 }

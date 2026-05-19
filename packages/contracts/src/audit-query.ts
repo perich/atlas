@@ -247,13 +247,13 @@ export function serializeAuditQueryState(state: AuditQueryState): string {
 }
 
 export function parseAuditQueryParams(params: AuditQueryParams): AuditQuery {
-  const limit = parseLimit(params.limit);
-  const after = single(params.after, "after");
-  const before = single(params.before, "before");
-  const rawOffset = single(params.offset, "offset");
+  const limit = parseLimit(params["limit"]);
+  const after = single(params["after"], "after");
+  const before = single(params["before"], "before");
+  const rawOffset = single(params["offset"], "offset");
   const offset = rawOffset === undefined ? undefined : Number(rawOffset);
-  const sortField = single(params.sortField, "sortField");
-  const sortDir = single(params.sortDir, "sortDir");
+  const sortField = single(params["sortField"], "sortField");
+  const sortDir = single(params["sortDir"], "sortDir");
 
   if (after !== undefined && before !== undefined) {
     throw new Error("Use only one paging anchor");
@@ -294,13 +294,13 @@ export function parseAuditQueryParams(params: AuditQueryParams): AuditQuery {
 }
 
 export function parseAuditFilterParams(params: AuditQueryParams): AuditFilters {
-  const rawTsFrom = single(params.tsFrom, "tsFrom");
-  const rawTsTo = single(params.tsTo, "tsTo");
+  const rawTsFrom = single(params["tsFrom"], "tsFrom");
+  const rawTsTo = single(params["tsTo"], "tsTo");
   const tsFrom = rawTsFrom === undefined ? undefined : Number(rawTsFrom);
   const tsTo = rawTsTo === undefined ? undefined : Number(rawTsTo);
-  const rail = list(params.rail, "rail");
-  const severity = list(params.severity, "severity");
-  const status = list(params.status, "status");
+  const rail = list(params["rail"], "rail");
+  const severity = list(params["severity"], "severity");
+  const status = list(params["status"], "status");
 
   if (tsFrom !== undefined && !safeIntegerSchema.safeParse(tsFrom).success) {
     throw new Error("tsFrom must be an integer");
