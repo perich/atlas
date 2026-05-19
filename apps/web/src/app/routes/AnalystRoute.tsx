@@ -49,6 +49,7 @@ export function AnalystRoute() {
           completedDurationSeconds={analystRun.completedDurationSeconds}
           error={analystRun.error}
           isEmpty={isEmpty}
+          phase={analystRun.phase}
           statusMessage={analystRun.timeline.statusMessage}
         />
       }

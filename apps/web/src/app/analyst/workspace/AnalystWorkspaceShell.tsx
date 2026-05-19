@@ -21,17 +21,18 @@ export function AnalystWorkspaceShell({
             <div className="mt-3 flex max-w-3xl items-start gap-2.5 rounded-md border border-sky-300/15 bg-sky-300/[0.04] px-3 py-2 text-sm leading-6 text-sky-100/85">
               <Sparkles className="mt-1 size-3.5 shrink-0 text-sky-300" />
               <p>
-                This is a WIP experiment in building UX with LLM CodeMode, inspired by{" "}
+                Ask for a bank-operations readout over Audit Entries. The Analyst queries bounded
+                data tools, submits a validated report spec, and BankOps renders the report. The
+                CodeMode architecture is inspired by{" "}
                 <a
                   className="font-medium text-sky-200 underline decoration-sky-300/40 underline-offset-4 hover:text-white"
                   href="https://blog.cloudflare.com/code-mode/"
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Cloudflare&apos;s work on Code Mode MCPs
+                  Cloudflare&apos;s Code Mode work
                 </a>
-                . It may have rough edges, but it should give a feel for where on-demand generated
-                frontend UIs can go :)
+                .
               </p>
             </div>
           </div>

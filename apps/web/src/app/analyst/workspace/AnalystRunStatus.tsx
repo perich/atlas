@@ -1,18 +1,21 @@
 import React from "react";
 import { Clock3 } from "lucide-react";
+import type { AnalystReportRunPhase } from "@bankops/contracts";
 
 export function AnalystRunStatus({
   completedDurationSeconds,
   error,
   isEmpty,
+  phase,
   statusMessage,
 }: {
   completedDurationSeconds: number | null;
   error: string | null;
   isEmpty: boolean;
+  phase: AnalystReportRunPhase;
   statusMessage: string | null;
 }) {
-  const status = statusMessage ?? (isEmpty ? "Idle" : "Done");
+  const status = statusMessage ?? phaseStatusCopy(phase, isEmpty);
   const completedDuration =
     completedDurationSeconds === null
       ? null
@@ -45,4 +48,26 @@ export function AnalystRunStatus({
       ) : null}
     </div>
   );
+}
+
+function phaseStatusCopy(phase: AnalystReportRunPhase, isEmpty: boolean) {
+  if (isEmpty) {
+    return "Idle";
+  }
+  if (phase === "querying") {
+    return "Querying analyst tools";
+  }
+  if (phase === "validating") {
+    return "Validating report";
+  }
+  if (phase === "repairing") {
+    return "Repairing report";
+  }
+  if (phase === "done") {
+    return "Done";
+  }
+  if (phase === "error") {
+    return "Error";
+  }
+  return "Generating report";
 }
