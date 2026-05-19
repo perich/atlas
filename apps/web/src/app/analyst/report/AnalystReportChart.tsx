@@ -1,19 +1,4 @@
-import React from "react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import React, { lazy, Suspense } from "react";
 import type { AnalystReportBlock } from "@bankops/contracts";
 
 import { cn } from "../../../design/utils";
@@ -22,10 +7,35 @@ type ChartBlock = Extract<
   AnalystReportBlock,
   { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
 >;
+type RechartsModule = typeof import("recharts");
 
 const chartColors = ["#7dd3fc", "#86efac", "#fbbf24", "#fda4af", "#c4b5fd", "#67e8f9"];
+const LazyRechartsChart = lazy(async () => {
+  const recharts = await import("recharts");
+
+  return {
+    default: function RechartsChart({ block }: { block: ChartBlock }) {
+      return <AnalystReportChartSurface block={block} recharts={recharts} />;
+    },
+  };
+});
 
 export function AnalystReportChart({ block }: { block: ChartBlock }) {
+  return (
+    <Suspense fallback={<ChartLoadingShell title={block.title} />}>
+      <LazyRechartsChart block={block} />
+    </Suspense>
+  );
+}
+
+function AnalystReportChartSurface({
+  block,
+  recharts,
+}: {
+  block: ChartBlock;
+  recharts: RechartsModule;
+}) {
+  const { Area, AreaChart, Bar, BarChart, Line, LineChart, Tooltip } = recharts;
   const data = block.data;
   const height = block.type === "sparkline" ? 96 : 240;
 
@@ -38,7 +48,9 @@ export function AnalystReportChart({ block }: { block: ChartBlock }) {
         <div className={cn("min-w-[640px]", block.type === "sparkline" && "min-w-[360px]")}>
           {block.type === "lineChart" || block.type === "sparkline" ? (
             <LineChart data={data} height={height} margin={chartMargin(block.type)} width={640}>
-              {block.type === "lineChart" ? <ChartFrame xKey={block.xKey} /> : null}
+              {block.type === "lineChart" ? (
+                <ChartFrame recharts={recharts} xKey={block.xKey} />
+              ) : null}
               {block.series.map((series, index) => (
                 <Line
                   dataKey={series.key}
@@ -55,7 +67,7 @@ export function AnalystReportChart({ block }: { block: ChartBlock }) {
           ) : null}
           {block.type === "barChart" ? (
             <BarChart data={data} height={height} margin={chartMargin(block.type)} width={640}>
-              <ChartFrame xKey={block.xKey} />
+              <ChartFrame recharts={recharts} xKey={block.xKey} />
               {block.series.map((series, index) => (
                 <Bar
                   dataKey={series.key}
@@ -70,7 +82,7 @@ export function AnalystReportChart({ block }: { block: ChartBlock }) {
           ) : null}
           {block.type === "areaChart" ? (
             <AreaChart data={data} height={height} margin={chartMargin(block.type)} width={640}>
-              <ChartFrame xKey={block.xKey} />
+              <ChartFrame recharts={recharts} xKey={block.xKey} />
               {block.series.map((series, index) => (
                 <Area
                   dataKey={series.key}
@@ -86,14 +98,16 @@ export function AnalystReportChart({ block }: { block: ChartBlock }) {
               <Tooltip content={<ChartTooltip />} />
             </AreaChart>
           ) : null}
-          {block.type === "donutChart" ? <DonutChart block={block} /> : null}
+          {block.type === "donutChart" ? <DonutChart block={block} recharts={recharts} /> : null}
         </div>
       </div>
     </section>
   );
 }
 
-function ChartFrame({ xKey }: { xKey: string }) {
+function ChartFrame({ recharts, xKey }: { recharts: RechartsModule; xKey: string }) {
+  const { CartesianGrid, XAxis, YAxis } = recharts;
+
   return (
     <>
       <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
@@ -114,7 +128,8 @@ function ChartFrame({ xKey }: { xKey: string }) {
   );
 }
 
-function DonutChart({ block }: { block: ChartBlock }) {
+function DonutChart({ block, recharts }: { block: ChartBlock; recharts: RechartsModule }) {
+  const { Cell, Pie, PieChart, Tooltip } = recharts;
   const seriesKey = block.series[0]?.key;
   const data = seriesKey ? block.data : [];
 
@@ -155,6 +170,19 @@ function DonutChart({ block }: { block: ChartBlock }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function ChartLoadingShell({ title }: { title: string }) {
+  return (
+    <section className="rounded-md border border-white/[0.08] bg-bankops-panel p-4">
+      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
+        {title}
+      </h3>
+      <div className="grid h-60 place-items-center border border-dashed border-white/[0.1] bg-black/15 text-xs text-bankops-muted">
+        Loading chart
+      </div>
+    </section>
   );
 }
 

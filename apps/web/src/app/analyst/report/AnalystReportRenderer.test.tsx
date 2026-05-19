@@ -28,7 +28,9 @@ describe("AnalystReportRenderer", () => {
     ).toThrow();
   });
 
-  it("renders native chart and specialized block primitives", () => {
+  it("renders native chart and specialized block primitives", async () => {
+    await loadChartModules();
+
     const { host, root } = renderReport({
       ...analystReportFixture,
       blocks: [
@@ -53,6 +55,9 @@ describe("AnalystReportRenderer", () => {
         { type: "error", title: "Tool warning", body: "A capped sample omitted older rows." },
       ],
     });
+
+    await settleLazyRender();
+    await settleLazyRender();
 
     expect(host.querySelectorAll(".recharts-wrapper").length).toBeGreaterThanOrEqual(4);
     expect(host.textContent).toContain("Customer watchlist");
@@ -128,4 +133,14 @@ function chartBlock(type: "barChart" | "areaChart" | "donutChart" | "sparkline")
 
 function buttonByText(host: HTMLElement, text: string) {
   return [...host.querySelectorAll("button")].find((button) => button.textContent?.includes(text));
+}
+
+async function loadChartModules() {
+  await import("recharts");
+}
+
+async function settleLazyRender() {
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
