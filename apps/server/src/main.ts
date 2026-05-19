@@ -24,10 +24,9 @@ type BuildServerOptions = {
   staticRoot?: string;
 };
 
-export async function buildServer(options: boolean | BuildServerOptions = true) {
-  const resolvedOptions = typeof options === "boolean" ? { logger: options } : options;
+export async function buildServer(options: BuildServerOptions = {}) {
   const app = Fastify({
-    logger: resolvedOptions.logger ?? true,
+    logger: options.logger ?? true,
   });
 
   await app.register(websocket);
@@ -45,8 +44,8 @@ export async function buildServer(options: boolean | BuildServerOptions = true) 
     startOpsStreamSession(socket);
   });
 
-  if (resolvedOptions.serveStatic ?? process.env.NODE_ENV === "production") {
-    const webDistDir = resolvedOptions.staticRoot ?? defaultWebDistDir();
+  if (options.serveStatic ?? process.env.NODE_ENV === "production") {
+    const webDistDir = options.staticRoot ?? defaultWebDistDir();
 
     await app.register(fastifyStatic, {
       root: webDistDir,
