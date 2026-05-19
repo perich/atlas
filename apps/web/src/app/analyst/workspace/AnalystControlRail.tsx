@@ -23,16 +23,6 @@ export function AnalystControlRail({
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
-          Create report
-        </p>
-        <p className="mt-3 text-xs leading-6 text-bankops-muted">
-          Ask an operational question. The Analyst queries bounded audit data, writes sandboxed
-          TypeScript, and renders a validated report.
-        </p>
-      </div>
-
       <label className="block">
         <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
           Question
