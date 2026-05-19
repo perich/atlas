@@ -19,19 +19,32 @@ export function queryAuditEntries(entries: readonly AuditEntry[], query: AuditQu
   const sorted = filtered.toSorted((left, right) => compareEntries(left, right, sort));
   const start = pageStart(sorted, query, sort);
   const rows = sorted.slice(start, start + query.limit);
-
-  return {
+  const newestTs = newestAuditEntryTs(filtered);
+  const nextCursor =
+    start + query.limit < sorted.length && rows.length > 0
+      ? auditCursorForEntry(rows[rows.length - 1], sort)
+      : undefined;
+  const prevCursor = start > 0 && rows.length > 0 ? auditCursorForEntry(rows[0], sort) : undefined;
+  const page: AuditPage = {
     rows,
     offset: start,
-    newestTs: newestAuditEntryTs(filtered),
-    nextCursor:
-      start + query.limit < sorted.length && rows.length > 0
-        ? auditCursorForEntry(rows[rows.length - 1], sort)
-        : undefined,
-    prevCursor: start > 0 && rows.length > 0 ? auditCursorForEntry(rows[0], sort) : undefined,
     totalMatched: sorted.length,
     queryMs: Date.now() - startedAt,
   };
+
+  if (newestTs !== undefined) {
+    page.newestTs = newestTs;
+  }
+
+  if (nextCursor !== undefined) {
+    page.nextCursor = nextCursor;
+  }
+
+  if (prevCursor !== undefined) {
+    page.prevCursor = prevCursor;
+  }
+
+  return page;
 }
 
 function newestAuditEntryTs(entries: readonly AuditEntry[]): number | undefined {
