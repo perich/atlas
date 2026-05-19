@@ -25,6 +25,7 @@ type FilterOption<T extends string> = {
 };
 
 export function AuditFilterPanel({
+  activeFilters,
   columnLayout,
   facets,
   newestRowTs,
@@ -33,6 +34,7 @@ export function AuditFilterPanel({
   selectedTimeRange,
   setQueryState,
 }: {
+  activeFilters: readonly string[];
   columnLayout: AuditColumnLayout;
   facets: JsonAuditFacets | undefined;
   newestRowTs: number | undefined;
@@ -44,7 +46,6 @@ export function AuditFilterPanel({
   const severityOptions = auditFilterOptions(AUDIT_SEVERITIES, facets?.severity);
   const railOptions = auditFilterOptions(RAILS, facets?.rail);
   const statusOptions = auditFilterOptions(AUDIT_STATUSES, facets?.status);
-  const activeFilters = activeAuditFilters(queryState, selectedTimeRange);
 
   return (
     <>
@@ -100,8 +101,6 @@ export function AuditFilterPanel({
             options={statusOptions}
             value={queryState.filters.status?.[0] ?? "all"}
           />
-
-          <ActiveFilterChips filters={activeFilters} />
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -123,7 +122,7 @@ export function AuditFilterPanel({
   );
 }
 
-function activeAuditFilters(
+export function activeAuditFilters(
   queryState: AuditQueryState,
   selectedTimeRange: TimeRangeValue,
 ): string[] {
@@ -147,25 +146,6 @@ function activeAuditFilters(
   }
 
   return filters;
-}
-
-function ActiveFilterChips({ filters }: { filters: readonly string[] }) {
-  if (filters.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="ml-1 flex min-w-0 items-center gap-1.5 overflow-hidden border-l border-white/[0.08] pl-3">
-      {filters.map((filter) => (
-        <span
-          className="inline-flex h-6 max-w-44 shrink-0 items-center truncate rounded-[2px] border border-bankops-accent/20 bg-bankops-accent/[0.06] px-2 font-mono text-[10px] text-cyan-100/85"
-          key={filter}
-        >
-          {filter}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function auditFilterOptions<const T extends string>(

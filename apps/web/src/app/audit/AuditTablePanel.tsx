@@ -25,6 +25,7 @@ type AuditVirtualItem = {
 };
 
 export function AuditTablePanel({
+  activeFilters,
   backgroundError,
   cache,
   draggedColumnId,
@@ -42,6 +43,7 @@ export function AuditTablePanel({
   virtualizerTotalSize,
   visibleColumns,
 }: {
+  activeFilters: readonly string[];
   backgroundError: Error | undefined;
   cache: AuditWindowCache;
   draggedColumnId: AuditColumnId | undefined;
@@ -73,13 +75,14 @@ export function AuditTablePanel({
           while the window request can be retried.
         </div>
       ) : null}
-      <div className="flex h-9 items-center border-b border-white/[0.06] bg-bankops-sidebar px-4">
+      <div className="flex h-9 items-center justify-between gap-4 border-b border-white/[0.06] bg-bankops-sidebar px-4">
         <div className="flex items-center gap-2.5">
           <span className="h-3.5 w-0.5 rounded-full bg-bankops-accent" />
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
             Audit Log
           </span>
         </div>
+        <ActiveFilterChips filters={activeFilters} />
       </div>
       {toolbar}
       <div
@@ -148,6 +151,25 @@ export function AuditTablePanel({
         </div>
       </div>
     </Panel>
+  );
+}
+
+function ActiveFilterChips({ filters }: { filters: readonly string[] }) {
+  if (filters.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+      {filters.map((filter) => (
+        <span
+          className="inline-flex h-5 max-w-52 shrink-0 items-center truncate rounded-[2px] border border-bankops-accent/20 bg-bankops-accent/[0.06] px-2 font-mono text-[10px] text-cyan-100/85"
+          key={filter}
+        >
+          {filter}
+        </span>
+      ))}
+    </div>
   );
 }
 
