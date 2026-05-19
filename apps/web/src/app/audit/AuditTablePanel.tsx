@@ -25,6 +25,7 @@ type AuditVirtualItem = {
 };
 
 export function AuditTablePanel({
+  activeFilters,
   backgroundError,
   cache,
   draggedColumnId,
@@ -37,10 +38,12 @@ export function AuditTablePanel({
   setDraggedColumnId,
   setQueryState,
   tableWidth,
+  toolbar,
   virtualRows,
   virtualizerTotalSize,
   visibleColumns,
 }: {
+  activeFilters: readonly string[];
   backgroundError: Error | undefined;
   cache: AuditWindowCache;
   draggedColumnId: AuditColumnId | undefined;
@@ -53,12 +56,13 @@ export function AuditTablePanel({
   setDraggedColumnId: (columnId: AuditColumnId | undefined) => void;
   setQueryState: (state: AuditQueryState) => void;
   tableWidth: number;
+  toolbar: React.ReactNode;
   virtualRows: AuditVirtualItem[];
   virtualizerTotalSize: number;
   visibleColumns: SizedAuditColumn[];
 }) {
   return (
-    <Panel className="m-4 overflow-hidden p-0">
+    <Panel className="m-4 overflow-hidden border-white/[0.10] p-0">
       {hasError ? (
         <div className="border-b border-rose-300/20 bg-rose-950/25 px-4 py-3 text-sm text-rose-100">
           Audit backend unavailable. Filters and layout remain usable while the data request
@@ -71,19 +75,23 @@ export function AuditTablePanel({
           while the window request can be retried.
         </div>
       ) : null}
-      <div className="flex h-9 items-center gap-2.5 border-b border-white/[0.08] bg-bankops-sidebar px-4">
-        <span className="h-3.5 w-0.5 rounded-full bg-bankops-text" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
-          Audit Log
-        </span>
+      <div className="flex h-9 items-center justify-between gap-4 border-b border-white/[0.06] bg-bankops-sidebar px-4">
+        <div className="flex items-center gap-2.5">
+          <span className="h-3.5 w-0.5 rounded-full bg-bankops-accent" />
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
+            Audit Log
+          </span>
+        </div>
+        <ActiveFilterChips filters={activeFilters} />
       </div>
+      {toolbar}
       <div
-        className="h-[620px] overflow-auto bg-[#0c0d0e]"
+        className="h-[620px] overflow-auto bg-bankops-panel"
         data-testid="audit-table-scroll"
         ref={scrollRef}
       >
         <div
-          className="sticky top-0 z-30 flex min-w-full border-b border-white/[0.08] bg-bankops-sidebar px-4 text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]"
+          className="sticky top-0 z-30 flex min-w-full border-b border-white/[0.06] bg-bankops-panel px-4 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-bankops-subtle"
           style={{ height: `${AUDIT_HEADER_HEIGHT}px`, width: `${tableWidth}px` }}
         >
           {visibleColumns.map((column) => {
@@ -146,6 +154,25 @@ export function AuditTablePanel({
   );
 }
 
+function ActiveFilterChips({ filters }: { filters: readonly string[] }) {
+  if (filters.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+      {filters.map((filter) => (
+        <span
+          className="inline-flex h-5 max-w-52 shrink-0 items-center truncate rounded-[2px] border border-bankops-accent/20 bg-bankops-accent/[0.06] px-2 font-mono text-[10px] text-cyan-100/85"
+          key={filter}
+        >
+          {filter}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function AuditVirtualRow({
   row,
   tableWidth,
@@ -180,7 +207,7 @@ function AuditVirtualRow({
 
   return (
     <div
-      className={`absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.05] px-4 font-mono text-[11px] leading-none text-bankops-muted transition-colors duration-75 hover:bg-white/[0.03] ${virtualRow.index % 2 === 0 ? "bg-[#0c0d0e]" : "bg-white/[0.015]"}`}
+      className={`absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.04] px-4 font-mono text-[11px] leading-none text-bankops-muted transition-colors duration-75 hover:bg-bankops-surface ${severityBorderClassName(row.severity)} ${virtualRow.index % 2 === 0 ? "bg-bankops-panel" : "bg-white/[0.012]"}`}
       data-testid="audit-row"
       style={{
         height: `${virtualRow.size}px`,
@@ -195,6 +222,22 @@ function AuditVirtualRow({
       ))}
     </div>
   );
+}
+
+function severityBorderClassName(severity: JsonAuditEntry["severity"]) {
+  switch (severity) {
+    case "critical":
+      return "border-l-2 border-l-red-400/50";
+    case "warning":
+      return "border-l-2 border-l-amber-400/40";
+    case "notice":
+      return "border-l border-l-bankops-accent/30";
+    case "info":
+      return "border-l border-l-[rgba(255,255,255,0.04)]";
+  }
+
+  const exhaustive: never = severity;
+  return exhaustive;
 }
 
 function AuditLoadingCell({ column, rowIndex }: { column: SizedAuditColumn; rowIndex: number }) {

@@ -87,31 +87,11 @@ function col(
 
 export const AUDIT_COLUMNS: readonly AuditColumn[] = Object.values(AUDIT_COLUMN_BY_ID);
 const auditColumnIdSchema = z.enum(AUDIT_COLUMN_IDS);
-const auditColumnIdListSchema = z
-  .array(z.unknown())
-  .catch([])
-  .transform((values) => {
-    const ids: AuditColumnId[] = [];
-    const seenIds = new Set<AuditColumnId>();
-
-    for (const value of values) {
-      const parsed = auditColumnIdSchema.safeParse(value);
-
-      if (parsed.success && !seenIds.has(parsed.data)) {
-        ids.push(parsed.data);
-        seenIds.add(parsed.data);
-      }
-    }
-
-    return ids;
-  });
-const auditColumnLayoutSchema = z
-  .object({
-    order: auditColumnIdListSchema.optional().default([]),
-    hidden: auditColumnIdListSchema.optional().default([]),
-    widths: z.record(z.string(), z.unknown()).catch({}),
-  })
-  .catch({ order: [], hidden: [], widths: {} });
+const storedAuditColumnLayoutSchema = z.object({
+  order: z.array(z.unknown()).optional(),
+  hidden: z.array(z.unknown()).optional(),
+  widths: z.record(z.string(), z.unknown()).optional(),
+});
 
 export function defaultAuditColumnLayout(): AuditColumnLayout {
   return {
@@ -125,7 +105,7 @@ export function readAuditColumnLayout(storage = window.localStorage): AuditColum
   try {
     const raw = storage.getItem(AUDIT_COLUMN_LAYOUT_STORAGE_KEY);
 
-    return raw === null ? defaultAuditColumnLayout() : normalizeAuditColumnLayout(JSON.parse(raw));
+    return raw === null ? defaultAuditColumnLayout() : readStoredColumnLayout(JSON.parse(raw));
   } catch {
     return defaultAuditColumnLayout();
   }
@@ -139,15 +119,14 @@ export function writeAuditColumnLayout(layout: AuditColumnLayout, storage = wind
 }
 
 export function visibleAuditColumns(layout: AuditColumnLayout): SizedAuditColumn[] {
-  const normalized = normalizeAuditColumnLayout(layout);
-  const visibleIds = normalized.order.filter((id) => !normalized.hidden.includes(id));
+  const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id));
 
   return visibleIds.map((id) => {
     const column = AUDIT_COLUMN_BY_ID[id];
 
     return {
       ...column,
-      width: normalized.widths[id] ?? column.defaultWidth,
+      width: layout.widths[id] ?? column.defaultWidth,
     };
   });
 }
@@ -209,28 +188,68 @@ export function setAuditColumnVisible(
   });
 }
 
-function normalizeAuditColumnLayout(value: unknown): AuditColumnLayout {
-  const layout = auditColumnLayoutSchema.parse(value);
-  const order = layout.order;
+function readStoredColumnLayout(value: unknown): AuditColumnLayout {
+  const stored = storedAuditColumnLayoutSchema.parse(value);
+
+  return normalizeAuditColumnLayout({
+    hidden: parseStoredColumnIds(stored.hidden ?? []),
+    order: parseStoredColumnIds(stored.order ?? []),
+    widths: parseStoredWidths(stored.widths ?? {}),
+  });
+}
+
+function normalizeAuditColumnLayout(layout: AuditColumnLayout): AuditColumnLayout {
+  const order = uniqueColumnIds(layout.order);
   const orderedIds = new Set(order);
   const fullOrder = [...order, ...AUDIT_COLUMN_IDS.filter((id) => !orderedIds.has(id))];
   const widths: AuditColumnLayout["widths"] = {};
 
   for (const id of AUDIT_COLUMN_IDS) {
-    const width = layout.widths?.[id];
+    const width = layout.widths[id];
 
-    const parsedWidth = z.number().finite().safeParse(width);
-
-    if (parsedWidth.success) {
-      widths[id] = clampWidth(parsedWidth.data, AUDIT_COLUMN_BY_ID[id]);
+    if (width !== undefined) {
+      widths[id] = clampWidth(width, AUDIT_COLUMN_BY_ID[id]);
     }
   }
 
   return {
-    hidden: layout.hidden,
+    hidden: uniqueColumnIds(layout.hidden),
     order: fullOrder,
     widths,
   };
+}
+
+function parseStoredColumnIds(values: readonly unknown[]): AuditColumnId[] {
+  const ids: AuditColumnId[] = [];
+
+  for (const value of values) {
+    const parsed = auditColumnIdSchema.safeParse(value);
+
+    if (parsed.success) {
+      ids.push(parsed.data);
+    }
+  }
+
+  return uniqueColumnIds(ids);
+}
+
+function parseStoredWidths(values: Record<string, unknown>): AuditColumnLayout["widths"] {
+  const widths: AuditColumnLayout["widths"] = {};
+
+  for (const [key, value] of Object.entries(values)) {
+    const id = auditColumnIdSchema.safeParse(key);
+    const width = z.number().finite().safeParse(value);
+
+    if (id.success && width.success) {
+      widths[id.data] = width.data;
+    }
+  }
+
+  return widths;
+}
+
+function uniqueColumnIds(ids: readonly AuditColumnId[]) {
+  return [...new Set(ids)];
 }
 
 export function auditColumnStyle(column: SizedAuditColumn): React.CSSProperties {
@@ -286,7 +305,7 @@ export function AuditColumnCellContent({
           </span>
           <button
             aria-label={`Copy trace ID ${row.traceId}`}
-            className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded-[2px] border border-white/[0.06] bg-white/[0.04] text-bankops-subtle opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-bankops-accent/30"
             onClick={() => void navigator.clipboard?.writeText(row.traceId).catch(() => undefined)}
             type="button"
           >
@@ -324,7 +343,7 @@ function SeverityChip({ severity }: { severity: JsonAuditEntry["severity"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-medium lowercase leading-none tracking-wide",
+        "inline-flex items-center rounded-[2px] px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-[0.08em]",
         severityChipClass(severity),
       )}
     >
@@ -335,7 +354,7 @@ function SeverityChip({ severity }: { severity: JsonAuditEntry["severity"] }) {
 
 function RailChip({ rail }: { rail: JsonAuditEntry["rail"] }) {
   return (
-    <span className="inline-flex max-w-full items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-sm border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-wider text-[#5a6272]">
+    <span className="inline-flex max-w-full items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[2px] border border-white/[0.06] bg-bankops-surface px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-[0.06em] text-bankops-muted">
       {rail ?? "-"}
     </span>
   );
@@ -362,13 +381,13 @@ function formatTimestamp(timestamp: number) {
 function severityChipClass(severity: JsonAuditEntry["severity"]) {
   switch (severity) {
     case "critical":
-      return "border-rose-300/20 bg-rose-400/[0.12] text-rose-300";
+      return "bg-red-400/[0.10] text-red-400";
     case "info":
-      return "border-white/[0.08] bg-white/[0.04] text-bankops-muted";
+      return "bg-bankops-muted/[0.10] text-bankops-muted";
     case "notice":
-      return "border-sky-300/20 bg-sky-300/[0.12] text-sky-300";
+      return "bg-bankops-accent/[0.10] text-bankops-accent";
     case "warning":
-      return "border-amber-300/20 bg-amber-300/[0.12] text-amber-200";
+      return "bg-amber-400/[0.10] text-amber-300";
   }
 
   const exhaustive: never = severity;

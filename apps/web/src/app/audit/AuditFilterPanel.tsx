@@ -1,6 +1,7 @@
 import React from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
-import { X } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditFacets } from "./audit-api";
@@ -13,12 +14,12 @@ import {
 } from "./audit-query-state";
 import { TIME_RANGES, type TimeRangeValue } from "./audit-time-range";
 import type { AuditQueryState } from "./use-audit-window";
-import { Panel } from "../../design/components";
 import { formatCount } from "../../design/format";
 
 const TIME_OPTIONS = TIME_RANGES.map((range) => ({ label: range.label, value: range.value }));
 
 type FilterOption<T extends string> = {
+  count?: number;
   label: string;
   value: T;
 };
@@ -26,19 +27,19 @@ type FilterOption<T extends string> = {
 export function AuditFilterPanel({
   columnLayout,
   facets,
+  hasActiveFilters,
   newestRowTs,
   onColumnLayoutChange,
   queryState,
-  renderTrace,
   selectedTimeRange,
   setQueryState,
 }: {
   columnLayout: AuditColumnLayout;
   facets: JsonAuditFacets | undefined;
+  hasActiveFilters: boolean;
   newestRowTs: number | undefined;
   onColumnLayoutChange: (update: ColumnLayoutUpdate) => void;
   queryState: AuditQueryState;
-  renderTrace: React.ReactNode;
   selectedTimeRange: TimeRangeValue;
   setQueryState: (state: AuditQueryState) => void;
 }) {
@@ -47,15 +48,8 @@ export function AuditFilterPanel({
   const statusOptions = auditFilterOptions(AUDIT_STATUSES, facets?.status);
 
   return (
-    <Panel className="m-4 mb-0 overflow-hidden p-0">
-      {renderTrace}
-
-      <ActiveFilterBar
-        filters={activeAuditFilters(queryState, selectedTimeRange)}
-        onReset={() => setQueryState({ filters: {}, sort: queryState.sort })}
-      />
-
-      <div className="flex flex-wrap items-end gap-2.5 bg-bankops-panel px-4 py-3">
+    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4 py-2">
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden">
         <FilterSelect
           label="Time"
           onChange={(value) => {
@@ -106,51 +100,27 @@ export function AuditFilterPanel({
           options={statusOptions}
           value={queryState.filters.status?.[0] ?? "all"}
         />
-
-        <div className="flex-1" />
-        <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
       </div>
-    </Panel>
-  );
-}
 
-function ActiveFilterBar({
-  filters,
-  onReset,
-}: {
-  filters: readonly string[];
-  onReset: () => void;
-}) {
-  if (filters.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.08] bg-[#101214] px-4 py-2">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
-        Filtered
-      </span>
-      {filters.map((filter) => (
-        <span
-          className="inline-flex h-6 items-center border border-sky-300/15 bg-sky-300/[0.06] px-2 font-mono text-[10px] text-sky-100/85"
-          key={filter}
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="inline-flex h-7 items-center rounded-[3px] border border-white/[0.06] px-3 font-mono text-[11px] text-bankops-muted">
+          Sort: {queryState.sort.field} {queryState.sort.dir}
+        </div>
+        <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
+        <button
+          className="inline-flex h-7 items-center rounded-[3px] px-3 font-mono text-[11px] text-bankops-subtle transition-colors hover:bg-white/[0.035] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={!hasActiveFilters}
+          onClick={() => setQueryState({ filters: {}, sort: queryState.sort })}
+          type="button"
         >
-          {filter}
-        </span>
-      ))}
-      <button
-        className="ml-1 inline-flex h-6 items-center gap-1 border border-white/[0.08] bg-white/[0.03] px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted transition-colors hover:border-white/18 hover:text-bankops-text"
-        onClick={onReset}
-        type="button"
-      >
-        <X aria-hidden="true" className="size-3" />
-        Reset
-      </button>
+          Reset
+        </button>
+      </div>
     </div>
   );
 }
 
-function activeAuditFilters(
+export function activeAuditFilters(
   queryState: AuditQueryState,
   selectedTimeRange: TimeRangeValue,
 ): string[] {
@@ -183,7 +153,8 @@ function auditFilterOptions<const T extends string>(
   return [
     { label: "All", value: "all" },
     ...values.map((value) => ({
-      label: counts === undefined ? value : `${value} (${formatCount(counts[value] ?? 0)})`,
+      count: counts?.[value],
+      label: value,
       value,
     })),
   ];
@@ -200,24 +171,60 @@ function FilterSelect<T extends string>({
   options: readonly FilterOption<T>[];
   value: T;
 }) {
-  const select = (
-    <select
-      className="h-8 min-w-28 appearance-none rounded-md border border-white/[0.08] bg-[#1a1c1f] px-3 font-mono text-xs normal-case tracking-normal text-bankops-text outline-none transition-colors focus:ring-1 focus:ring-white/20"
-      onChange={(event) => onChange(options[event.currentTarget.selectedIndex].value)}
-      value={value}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
+  const selectedOption = options.find((option) => option.value === value)!;
+  const selectOption = (nextValue: string) => {
+    onChange(options.find((option) => option.value === nextValue)!.value);
+  };
 
   return (
-    <label className="grid gap-1 text-[10px] font-semibold uppercase leading-none tracking-widest text-[#5a6272]">
-      {label}
-      {select}
-    </label>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          aria-label={label}
+          className="group grid h-9 min-w-40 grid-cols-[auto_minmax(4rem,1fr)_auto] items-center gap-2 rounded-[3px] border border-white/[0.08] bg-bankops-sidebar px-3 font-mono text-left transition-colors hover:border-white/[0.14] hover:bg-white/[0.025] focus-visible:border-bankops-accent/45 focus-visible:outline-none data-[state=open]:border-bankops-accent/40 data-[state=open]:bg-bankops-accent/[0.04]"
+          type="button"
+        >
+          <span className="text-[8px] font-semibold uppercase leading-none tracking-[0.16em] text-bankops-subtle">
+            {label}
+          </span>
+          <span className="min-w-0 truncate text-center text-[11px] font-semibold leading-none text-bankops-text">
+            {selectedOption.label}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className="size-3 text-bankops-subtle transition-transform group-data-[state=open]:rotate-180 group-data-[state=open]:text-bankops-accent"
+          />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          className="z-50 min-w-64 rounded-[4px] border border-white/[0.10] bg-bankops-sidebar p-1.5 font-mono text-[11px] text-bankops-text shadow-2xl shadow-black/45"
+          sideOffset={6}
+        >
+          <DropdownMenu.RadioGroup onValueChange={selectOption} value={value}>
+            {options.map((option) => (
+              <DropdownMenu.RadioItem
+                className="flex cursor-default items-center gap-2 rounded-[3px] px-2 py-1.5 text-bankops-muted outline-none transition-colors data-[highlighted]:bg-white/[0.055] data-[highlighted]:text-bankops-text data-[state=checked]:text-bankops-text"
+                key={option.value}
+                value={option.value}
+              >
+                <span className="grid size-4 shrink-0 place-items-center">
+                  <DropdownMenu.ItemIndicator className="text-bankops-accent">
+                    <Check aria-hidden="true" className="size-3" />
+                  </DropdownMenu.ItemIndicator>
+                </span>
+                <span className="min-w-0 flex-1 whitespace-nowrap capitalize">{option.label}</span>
+                {option.count === undefined ? null : (
+                  <span className="ml-6 text-[10px] tabular-nums text-bankops-subtle">
+                    {formatCount(option.count)}
+                  </span>
+                )}
+              </DropdownMenu.RadioItem>
+            ))}
+          </DropdownMenu.RadioGroup>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }

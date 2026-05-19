@@ -32,13 +32,13 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
   }, undefined);
 
   return (
-    <Panel className="overflow-hidden rounded-none border-0 border-t border-white/[0.08] p-0">
-      <div className="border-b border-white/[0.08] bg-bankops-panel px-4 py-3">
+    <Panel className="overflow-hidden rounded-none border-0 border-t border-white/[0.06] p-0">
+      <div className="border-b border-white/[0.06] bg-bankops-panel px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="h-4 w-0.5 bg-bankops-text" />
-              <p className="text-xs font-bold uppercase tracking-widest text-bankops-muted">
+              <span className="h-4 w-0.5 bg-bankops-accent" />
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-bankops-muted">
                 Live Flow Concentration
               </p>
               <InfoTooltip label="Explain live flow concentration">
@@ -49,8 +49,8 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
                 failed movements are at least 5%.
               </InfoTooltip>
             </div>
-            <p className="mt-1 text-xs text-[#5a6272]">
-              Rolling 5s amount/sec and movement rate by rail and balance-sheet bucket
+            <p className="mt-1 font-mono text-[10px] text-bankops-subtle">
+              Rolling 5s - amount/sec by rail x balance-sheet bucket
             </p>
           </div>
 
@@ -62,27 +62,31 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
 
       <div className="overflow-x-auto bg-bankops-bg p-4">
         <div
-          className="grid gap-px overflow-hidden border border-white/[0.08] bg-white/[0.06]"
+          className="grid gap-px overflow-hidden rounded-[4px] border border-white/[0.06] bg-white/[0.04]"
           style={{
-            gridTemplateColumns: `112px repeat(${BALANCE_SHEET_BUCKETS.length}, minmax(92px, 1fr))`,
+            gridTemplateColumns: `80px repeat(${BALANCE_SHEET_BUCKETS.length}, minmax(92px, 1fr))`,
           }}
         >
-          <div className="bg-[#0f1012] px-2.5 py-2 text-[9px] font-semibold uppercase tracking-widest text-[#5a6272]">
+          <div className="bg-bankops-sidebar px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-subtle">
             Rail
           </div>
           {BALANCE_SHEET_BUCKETS.map((bucket) => (
             <div
-              className="bg-[#0f1012] px-2.5 py-2 text-[9px] font-semibold uppercase tracking-widest text-[#5a6272]"
+              className="bg-bankops-sidebar px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-subtle"
               key={bucket}
+              title={titleize(bucket)}
             >
-              {titleize(bucket)}
+              {compactBucketLabel(bucket)}
             </div>
           ))}
 
           {RAILS.map((rail) => (
             <React.Fragment key={rail}>
-              <div className="bg-[#0c0d0e] px-2.5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-bankops-text">
-                {titleize(rail)}
+              <div
+                className="bg-bankops-panel px-3 py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-bankops-muted"
+                title={titleize(rail)}
+              >
+                {compactRailLabel(rail)}
               </div>
               {BALANCE_SHEET_BUCKETS.map((bucket) => {
                 const key = heatmapKey(rail, bucket);
@@ -113,13 +117,10 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
 
   return (
     <div className="hidden min-w-56 text-right xl:block">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
-        Highest amount/sec
+      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-subtle">
+        Highest: {titleize(cell.rail)} / {titleize(cell.bucket)}
       </p>
-      <p className="mt-1 text-sm font-medium text-bankops-text">
-        {titleize(cell.rail)} / {titleize(cell.bucket)}
-      </p>
-      <p className="mt-0.5 font-mono text-[11px] text-[#5a6272]">
+      <p className="mt-0.5 font-mono text-[11px] text-bankops-subtle">
         {formatMinorUsd(cell.amountPerSecMinor)}/s · {formatHeatmapRate(cell.movementRate)}{" "}
         movements/s
       </p>
@@ -166,9 +167,9 @@ const HeatmapCell = React.memo(function HeatmapCell({ cell }: { cell: RailBucket
 
   return (
     <div
-      className="relative min-h-[64px] bg-[#101315] p-2.5"
+      className="relative min-h-11 bg-bankops-sidebar px-3 py-2"
       style={{
-        background: `linear-gradient(135deg, rgba(${sideRgb},${primaryAlpha}) 0%, rgba(${sideRgb},${secondaryAlpha}) 52%, rgba(${sideRgb},${edgeAlpha}) 100%), #101315`,
+        background: `linear-gradient(135deg, rgba(${sideRgb},${primaryAlpha}) 0%, rgba(${sideRgb},${secondaryAlpha}) 52%, rgba(${sideRgb},${edgeAlpha}) 100%), #10151a`,
       }}
     >
       <div className="flex items-start justify-between gap-2 font-mono text-[11px]">
@@ -181,13 +182,13 @@ const HeatmapCell = React.memo(function HeatmapCell({ cell }: { cell: RailBucket
       </div>
 
       {isElevatedException ? (
-        <div className="mt-2 text-[10px] font-medium text-amber-300">
+        <div className="mt-1 text-[10px] font-medium text-amber-300">
           {formatPercent(cell.exceptionRate)} exceptions
         </div>
       ) : isActive ? (
-        <div className="mt-2 h-4" />
+        <div className="mt-1 h-3" />
       ) : (
-        <div className="mt-2 text-[10px] text-bankops-muted/45">No flow</div>
+        <div className="mt-1 text-[10px] text-bankops-muted/45">No flow</div>
       )}
 
       {isElevatedException ? (
@@ -238,4 +239,30 @@ function formatHeatmapRate(value: number) {
 
 function heatmapKey(rail: Rail, bucket: BalanceSheetBucket) {
   return `${rail}:${bucket}`;
+}
+
+function compactBucketLabel(bucket: BalanceSheetBucket) {
+  switch (bucket) {
+    case "customer_deposits":
+      return "Cust. Deposits";
+    case "stablecoin_treasury":
+      return "Stablecoin Tsy";
+    case "exception_queue":
+      return "Exception Q";
+    default:
+      return titleize(bucket);
+  }
+}
+
+function compactRailLabel(rail: Rail) {
+  switch (rail) {
+    case "ach":
+      return "ACH";
+    case "internal_ledger":
+      return "LEDGER";
+    case "stablecoin":
+      return "STABLE";
+    default:
+      return titleize(rail).toUpperCase();
+  }
 }

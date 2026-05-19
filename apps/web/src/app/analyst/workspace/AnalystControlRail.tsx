@@ -1,7 +1,6 @@
 import React from "react";
-import { Loader2, Play, RotateCcw, Sparkles } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
-import { Button } from "../../../design/components";
 import { cn } from "../../../design/utils";
 import { ANALYST_PROMPT_CHIPS } from "./analyst-prompts";
 
@@ -20,70 +19,62 @@ export function AnalystControlRail({
   onSubmit: () => void;
   question: string;
 }) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-          <Sparkles className="size-3.5 text-sky-300" />
-          Create report
-        </p>
-        <p className="mt-2 text-sm leading-6 text-bankops-muted">
-          Ask for the rail, exception, liquidity, or Customer view you want. The Analyst turns
-          bounded audit evidence into a validated report.
-        </p>
-      </div>
+  const [showHowItWorks, setShowHowItWorks] = React.useState(false);
 
+  return (
+    <div className="space-y-5">
       <label className="block">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-          Ask
+        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
+          Question
         </span>
-        <div className="mt-2 overflow-hidden rounded-md border border-white/[0.08] bg-black/25 transition-colors focus-within:border-white/20">
+        <div className="mt-2 overflow-hidden rounded-[4px] border border-white/[0.10] bg-bankops-panel transition-colors focus-within:border-bankops-accent/45">
           <textarea
-            className="min-h-28 w-full resize-none border-0 bg-transparent p-3 text-sm leading-6 text-bankops-text outline-none placeholder:text-bankops-muted"
+            className="min-h-[120px] w-full resize-none border-0 bg-transparent p-3 text-sm leading-6 text-bankops-text outline-none placeholder:text-bankops-muted"
             onChange={(event) => onQuestionChange(event.target.value)}
-            placeholder="Example: find the riskiest operating pattern in the current audit log..."
+            placeholder="Describe what you want to analyze..."
             value={question}
           />
-          <div className="grid grid-cols-[minmax(0,1fr)_2rem] gap-2 border-t border-white/[0.08] bg-black/20 p-2">
-            <Button
-              className="w-full"
-              disabled={!question.trim() || isRunning}
-              onClick={onSubmit}
-              type="button"
-            >
-              {isRunning ? (
-                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-              ) : (
-                <Play aria-hidden="true" className="size-4" />
-              )}
-              Generate
-            </Button>
-            <button
-              aria-label="New analysis"
-              className="inline-flex size-8 items-center justify-center border border-white/[0.08] bg-[#1a1c1f] text-bankops-muted transition-colors hover:border-white/18 hover:bg-white/[0.06] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={isEmpty || isRunning}
-              onClick={onNewAnalysis}
-              title="New analysis"
-              type="button"
-            >
-              <RotateCcw aria-hidden="true" className="size-4" />
-              <span className="sr-only">New analysis</span>
-            </button>
+          <div className="flex items-center justify-between border-t border-white/[0.06] bg-black/20 p-2">
+            <span className="font-mono text-[9px] text-bankops-subtle">
+              {question.length} chars
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                className="inline-flex h-8 items-center rounded-[3px] px-2.5 text-xs text-bankops-subtle transition-colors hover:bg-white/[0.035] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={isEmpty || isRunning}
+                onClick={onNewAnalysis}
+                title="New analysis"
+                type="button"
+              >
+                Reset
+                <span className="sr-only">New analysis</span>
+              </button>
+              <button
+                className="inline-flex h-8 items-center justify-center gap-2 rounded-[3px] bg-bankops-accent px-4 text-xs font-semibold text-bankops-bg transition-colors hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!question.trim() || isRunning}
+                onClick={onSubmit}
+                type="button"
+              >
+                {isRunning ? <Loader2 aria-hidden="true" className="size-4 animate-spin" /> : null}
+                Generate
+              </button>
+            </div>
           </div>
         </div>
       </label>
 
       <div className="space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
-          Starter prompts
+        <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
+          Example prompts
+          <span className="sr-only">Starter prompts</span>
         </p>
         <div className="flex flex-wrap gap-2">
           {ANALYST_PROMPT_CHIPS.map((chip) => (
             <button
               className={cn(
-                "inline-flex h-6 items-center rounded-full border border-white/[0.12] bg-[#15191d] px-2.5 text-xs font-semibold uppercase leading-none tracking-[0.12em] text-bankops-muted shadow-[0_1px_0_rgba(255,255,255,0.05)_inset,0_6px_14px_rgba(0,0,0,0.16)] transition-colors hover:border-sky-300/35 hover:bg-[#18222a] hover:text-white",
+                "inline-flex min-h-8 items-center rounded-[3px] border border-white/[0.08] bg-transparent px-2.5 font-mono text-[11px] leading-none text-bankops-muted transition-colors hover:bg-bankops-surface hover:text-bankops-text",
                 question === chip.prompt &&
-                  "border-sky-300/50 bg-sky-300/[0.1] text-sky-100 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_0_0_1px_rgba(125,211,252,0.08)]",
+                  "border-bankops-accent/40 bg-bankops-accent/[0.08] text-cyan-100",
               )}
               disabled={isRunning}
               key={chip.label}
@@ -95,6 +86,56 @@ export function AnalystControlRail({
           ))}
         </div>
       </div>
+
+      <div>
+        <button
+          aria-label={`${showHowItWorks ? "Hide" : "Show"} how it works`}
+          aria-expanded={showHowItWorks}
+          className="flex w-full items-center justify-between border-t border-white/[0.06] pt-4 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle transition-colors hover:text-bankops-text"
+          onClick={() => setShowHowItWorks((value) => !value)}
+          type="button"
+        >
+          <span>How it works</span>
+          <ChevronDown
+            aria-hidden="true"
+            className={cn("size-3 transition-transform", showHowItWorks && "rotate-180")}
+          />
+        </button>
+
+        {showHowItWorks ? (
+          <div className="mt-3 space-y-3 border-l border-bankops-accent/25 pl-3.5">
+            <HowItWorksStep
+              body="Ask for patterns, risks, customers, rails, or exceptions."
+              number="1"
+              title="Describe"
+            />
+            <HowItWorksStep
+              body="Runs bounded CodeMode queries with observable progress."
+              number="2"
+              title="Generate"
+            />
+            <HowItWorksStep
+              body="Validated reports render as charts, tables, and summaries."
+              number="3"
+              title="Review"
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function HowItWorksStep({ body, number, title }: { body: string; number: string; title: string }) {
+  return (
+    <div>
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-sm font-semibold leading-none text-bankops-accent">
+          {number}
+        </span>
+        <span className="text-xs font-semibold text-bankops-text">{title}</span>
+      </div>
+      <p className="mt-1 pl-5 text-[11px] leading-5 text-bankops-muted">{body}</p>
     </div>
   );
 }

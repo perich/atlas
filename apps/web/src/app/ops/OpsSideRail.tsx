@@ -1,6 +1,5 @@
 import React from "react";
 import { STREAM_RATES, type StreamRate } from "@bankops/contracts";
-import { Gauge } from "lucide-react";
 
 import type {
   OpsConnectionStatus,
@@ -9,7 +8,7 @@ import type {
 } from "./ops-stream-messages";
 import { titleize } from "./ops-format";
 import { railHealthClassNames, railHealthLabels } from "./ops-rail-health";
-import { Button, Panel } from "../../design/components";
+import { Panel } from "../../design/components";
 import { formatCount, formatMilliseconds } from "../../design/format";
 
 const statusLabels: Record<OpsConnectionStatus, string> = {
@@ -20,10 +19,10 @@ const statusLabels: Record<OpsConnectionStatus, string> = {
 };
 
 const statusClassNames: Record<OpsConnectionStatus, string> = {
-  connecting: "font-medium text-sky-300",
-  degraded: "font-medium text-amber-300",
-  open: "font-medium text-emerald-300",
-  reconnecting: "font-medium text-sky-300",
+  connecting: "font-semibold text-bankops-accent",
+  degraded: "font-semibold text-amber-300",
+  open: "font-semibold text-emerald-400",
+  reconnecting: "font-semibold text-bankops-accent",
 };
 
 const streamRateLabels: Record<StreamRate, string> = {
@@ -33,12 +32,6 @@ const streamRateLabels: Record<StreamRate, string> = {
   10_000: "10k/s",
 };
 
-const pressureClassNames = {
-  nominal: "text-emerald-300",
-  watch: "text-amber-300",
-  strained: "text-rose-300",
-} as const;
-
 export function OpsSideRail({
   setStreamRate,
   snapshot,
@@ -46,24 +39,25 @@ export function OpsSideRail({
   setStreamRate: (streamRate: StreamRate) => void;
   snapshot: OpsStreamSnapshot;
 }) {
-  const pressure = streamPressure(snapshot);
-
   return (
     <aside className="flex min-h-0 flex-col bg-bankops-sidebar">
-      <Panel className="rounded-none border-0 border-b border-white/[0.08]" title="Stream Control">
+      <Panel className="rounded-none border-0 border-b border-white/[0.06]" title="Stream Control">
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs text-bankops-muted">Connection</span>
             <span
-              className={statusClassNames[snapshot.connectionStatus]}
+              className={`inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.08em] ${statusClassNames[snapshot.connectionStatus]}`}
               data-testid="ops-connection-status"
             >
+              {snapshot.connectionStatus === "open" ? (
+                <span className="size-1.5 rounded-full bg-emerald-400" />
+              ) : null}
               {statusLabels[snapshot.connectionStatus]}
             </span>
           </div>
           {snapshot.streamIssue !== undefined ? (
             <p
-              className="rounded-sm border border-amber-300/15 bg-amber-300/[0.06] px-2 py-1 font-mono text-[10px] text-amber-200"
+              className="rounded-[3px] border border-amber-300/15 bg-amber-300/[0.06] px-2 py-1 font-mono text-[10px] text-amber-200"
               data-testid="ops-stream-issue"
             >
               {snapshot.streamIssue}
@@ -72,7 +66,9 @@ export function OpsSideRail({
 
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs text-bankops-muted">Sequence</span>
-            <span className="text-xs font-medium text-white">seq {snapshot.seq}</span>
+            <span className="font-mono text-[11px] font-semibold text-white">
+              seq {formatCount(Number(snapshot.seq))}
+            </span>
           </div>
 
           <StreamRateControl
@@ -82,22 +78,8 @@ export function OpsSideRail({
         </div>
       </Panel>
 
-      <Panel className="rounded-none border-0 border-b border-white/[0.08]" title="Performance HUD">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3 border-b border-white/[0.075] pb-3">
-            <span className="inline-flex items-center gap-2 text-xs text-bankops-muted">
-              <Gauge aria-hidden="true" className="size-4" />
-              Stream pressure
-            </span>
-            <span
-              className={`text-xs font-semibold ${pressureClassNames[pressure.level]}`}
-              data-testid="ops-stream-pressure"
-            >
-              {pressure.label}
-            </span>
-          </div>
-          <RendererMetrics snapshot={snapshot} />
-        </div>
+      <Panel className="rounded-none border-0 border-b border-white/[0.06]" title="Performance HUD">
+        <RendererMetrics snapshot={snapshot} />
       </Panel>
 
       <Panel className="min-h-0 flex-1 overflow-y-auto rounded-none border-0" title="Rail Health">
@@ -117,16 +99,20 @@ function StreamRateControl({
   return (
     <div>
       <p className="mb-2 text-xs font-medium text-bankops-muted">Stream rate</p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         {STREAM_RATES.map((streamRate) => (
-          <Button
-            className="min-h-10 px-3 text-[10px]"
+          <button
+            className={`h-8 rounded-[4px] border font-mono text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors focus:outline-none focus:ring-2 focus:ring-bankops-accent/30 ${
+              currentStreamRate === streamRate
+                ? "border-white/[0.10] bg-bankops-surface text-bankops-text"
+                : "border-white/[0.06] bg-transparent text-bankops-muted hover:bg-white/[0.035] hover:text-bankops-text"
+            }`}
             key={streamRate}
             onClick={() => setStreamRate(streamRate)}
-            variant={currentStreamRate === streamRate ? "primary" : "secondary"}
+            type="button"
           >
             {streamRateLabels[streamRate]}
-          </Button>
+          </button>
         ))}
       </div>
     </div>
@@ -170,15 +156,15 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-px border border-white/[0.08] bg-white/[0.05] text-[11px]">
+    <div className="grid grid-cols-3 gap-px border border-white/[0.06] bg-white/[0.05] text-[11px]">
       {metrics.map((metric) => (
         <div
-          className="bg-[#0d0f10] p-2"
+          className="bg-bankops-panel p-2"
           data-testid={`renderer-metric-${metric.label.replaceAll(" ", "-")}`}
           key={metric.label}
           title={metric.title}
         >
-          <p className="uppercase text-bankops-muted">{metric.label}</p>
+          <p className="font-mono uppercase text-bankops-muted">{metric.label}</p>
           <p className="font-semibold text-white">{metric.value}</p>
         </div>
       ))}
@@ -192,23 +178,27 @@ function RailHealthList({ rails }: { rails: RailHealthSnapshot[] }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {rails.map((rail) => {
         const borderClassName = railStatusBorderClassName(rail.status);
 
         return (
           <div
-            className={`grid grid-cols-[1fr_auto] gap-3 border-l-2 bg-bankops-panel p-3 ${borderClassName}`}
+            className={`grid min-h-9 grid-cols-[1fr_auto] items-center gap-3 border-l-2 border-b border-white/[0.04] bg-bankops-sidebar py-2 pl-2.5 pr-1 ${borderClassName}`}
             key={rail.rail}
           >
             <div>
-              <p className="text-xs font-medium text-white">{titleize(rail.rail)}</p>
-              <p className="mt-0.5 font-mono text-[10px] text-[#5a6272]">
+              <p className="font-mono text-[11px] font-medium text-white">
+                {railDisplayName(rail)}
+              </p>
+              <p className="mt-0.5 font-mono text-[10px] text-bankops-subtle">
                 {formatCount(rail.eventsPerSec)}/s · p95 {formatMilliseconds(rail.p95LatencyMs)}
               </p>
             </div>
-            <span className={`text-[11px] font-semibold ${railHealthClassNames[rail.status]}`}>
-              {railHealthLabels[rail.status]}
+            <span
+              className={`font-mono text-[10px] font-semibold ${railHealthClassNames[rail.status]}`}
+            >
+              {railHealthLabels[rail.status].toUpperCase()}
             </span>
           </div>
         );
@@ -224,35 +214,17 @@ function railStatusBorderClassName(status: RailHealthSnapshot["status"]) {
     case "incident":
       return "border-l-rose-400";
     case "nominal":
-      return "border-l-transparent";
+      return "border-l-emerald-400";
   }
 
   const exhaustive: never = status;
   return exhaustive;
 }
 
-function streamPressure(snapshot: OpsStreamSnapshot): {
-  label: string;
-  level: keyof typeof pressureClassNames;
-} {
-  const { renderer } = snapshot;
-
-  if (snapshot.connectionStatus === "connecting" || snapshot.connectionStatus === "reconnecting") {
-    return { label: "Watch", level: "watch" };
+function railDisplayName(rail: RailHealthSnapshot) {
+  if (rail.rail === "internal_ledger") {
+    return "Int. Ledger";
   }
 
-  if (snapshot.connectionStatus === "degraded" || renderer.fps < 35 || renderer.frameCostMs > 18) {
-    return { label: "Strained", level: "strained" };
-  }
-
-  if (
-    renderer.fps < 55 ||
-    renderer.frameCostMs > 10 ||
-    renderer.sequenceLag > Math.max(250, snapshot.eventRate * 0.25) ||
-    renderer.backlog > 0
-  ) {
-    return { label: "Watch", level: "watch" };
-  }
-
-  return { label: "Nominal", level: "nominal" };
+  return titleize(rail.rail);
 }
