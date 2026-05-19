@@ -18,7 +18,7 @@ export function OpsRoute() {
 
       <OpsTopBandStream />
 
-      <div className="grid min-h-[calc(100vh-22rem)] items-stretch xl:grid-cols-[minmax(0,1fr)_18.75rem]">
+      <div className="grid h-[clamp(40rem,calc(100vh-30rem),68rem)] items-stretch xl:grid-cols-[minmax(0,1fr)_18.75rem]">
         <Panel className="flex min-h-0 flex-col overflow-hidden rounded-none border-0 border-r border-white/[0.06] p-0">
           <TapeHeaderStream />
 
