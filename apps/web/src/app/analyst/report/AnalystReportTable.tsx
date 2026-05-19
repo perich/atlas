@@ -145,5 +145,11 @@ function compareTableValues(
 }
 
 function rowKey(row: Record<string, unknown>, index: number) {
-  return `${index}-${Object.values(row).join("|")}`;
+  if (typeof row.id === "string" || typeof row.id === "number") {
+    return String(row.id);
+  }
+  if (typeof row.traceId === "string" || typeof row.traceId === "number") {
+    return String(row.traceId);
+  }
+  return `row-${index}`;
 }

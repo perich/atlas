@@ -41,7 +41,7 @@ describe("AnalystRoute", () => {
 
     expect(host.textContent).toContain("Generating Analyst Report");
     expect(host.textContent).toContain("CodeMode run trace");
-    expect(host.querySelector("button[type='submit']")?.getAttribute("disabled")).toBe("");
+    expect(buttonByText(host, "Generate")?.getAttribute("disabled")).toBe("");
 
     act(() => root.unmount());
   });
@@ -175,7 +175,7 @@ function buttonByText(host: HTMLElement, text: string) {
 
 async function submit(host: HTMLElement) {
   await act(async () => {
-    host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true }));
+    buttonByText(host, "Generate")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 }
 

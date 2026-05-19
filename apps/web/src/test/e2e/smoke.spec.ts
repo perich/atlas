@@ -82,6 +82,14 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
 
   await page.getByRole("combobox", { name: "Status" }).selectOption("failed");
   await expect(page).toHaveURL(/status=failed/);
+  await expect(page.getByText("Filtered")).toBeVisible();
+  await expect(page.getByText("status: failed")).toBeVisible();
+  await expect(page.getByTestId("audit-row").first()).toContainText("failed");
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(page).not.toHaveURL(/status=failed/);
+  await expect(page.getByText("status: failed")).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Status" }).selectOption("failed");
+  await expect(page).toHaveURL(/status=failed/);
   await expect(page.getByTestId("audit-row").first()).toContainText("failed");
 
   let releaseSortedRequest!: () => void;

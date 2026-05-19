@@ -43,9 +43,8 @@ export function AnalystCanvas({
             Ask for an operational analysis
           </p>
           <p className="mt-3 text-sm leading-6 text-bankops-muted">
-            Start with a plain-English request. The Analyst queries capped audit-log rollups,
-            generates a complete report spec, validates it, then renders it with BankOps-owned
-            components.
+            Start with a plain-English request. The Analyst reviews capped Audit Entry rollups and
+            returns a validated report rendered by BankOps UI.
           </p>
 
           <div className="mt-6 grid gap-3 text-left md:grid-cols-3">
@@ -57,12 +56,12 @@ export function AnalystCanvas({
             <EmptyStep
               icon={Database}
               label="Generate"
-              text="CodeMode calls bounded data tools and streams observable run facts."
+              text="Runs bounded audit-log queries and streams observable progress."
             />
             <EmptyStep
               icon={ShieldCheck}
               label="Review"
-              text="Only validated report snapshots are rendered into charts, tables, and cards."
+              text="Validated reports render as charts, tables, summaries, and Customer lists."
             />
           </div>
         </div>

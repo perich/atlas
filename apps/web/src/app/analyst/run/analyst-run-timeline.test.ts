@@ -41,6 +41,17 @@ describe("analyst run timeline", () => {
     expect(view.validationAttempts).toBe(2);
     expect(view.rawTrace).toHaveLength(1);
   });
+
+  it("does not duplicate progress labels into the top-level status", () => {
+    const timeline = [
+      { type: "phase" as const, phase: "generating" as const },
+      progress("Planning bounded analyst queries"),
+    ].reduce(applyAnalystRunEvent, createAnalystRunTimeline());
+    const view = projectAnalystRunTimeline(timeline);
+
+    expect(view.currentFact?.label).toBe("Planning bounded analyst queries");
+    expect(view.statusMessage).toBe("Generating report");
+  });
 });
 
 function progress(label: string): AnalystProgressEvent {

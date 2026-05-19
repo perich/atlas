@@ -103,6 +103,19 @@ describe("audit log generator", () => {
     expect(idempotentEntries.length).toBeGreaterThan(0);
   });
 
+  it("keeps high-pressure filtered slices varied enough for demos", () => {
+    const entries = createAuditEntries(5_000);
+    const critical = entries.filter((entry) => entry.severity === "critical").slice(0, 40);
+    const failed = entries.filter((entry) => entry.status === "failed").slice(0, 40);
+    const criticalActions = new Set(critical.map((entry) => entry.action));
+    const failedActions = new Set(failed.map((entry) => entry.action));
+    const cutoffRows = critical.filter((entry) => entry.action === "cutoff.window_opened");
+
+    expect(criticalActions.size).toBeGreaterThanOrEqual(4);
+    expect(failedActions.size).toBeGreaterThanOrEqual(3);
+    expect(cutoffRows.length).toBeLessThan(critical.length / 2);
+  });
+
   it("adds analyst-useful operational pressure without exposing scenario labels", () => {
     const entries = createAuditEntries(60_000);
     const serialized = JSON.stringify(entries, (_key, value: unknown) =>
