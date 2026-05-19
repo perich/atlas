@@ -4,7 +4,6 @@
   "ignorePaths": [
     "pnpm-lock.yaml",
     "skills-lock.json",
-    "docs/tanstack-codebase-study.md",
     "dist",
     "**/dist",
     "playwright-report",
