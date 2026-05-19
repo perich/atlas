@@ -1,6 +1,7 @@
 import {
   ASSETS,
   RAILS,
+  RISK_TIERS,
   createBalanceSheetMovementFlags,
   isExceptionQueueMovement,
   movementMagnitudeMinor,
@@ -19,12 +20,13 @@ import {
   ACCOUNT_LABELS,
   CUSTOMER_NAMES,
   INDUSTRIES,
-  MOVEMENT_PROFILES,
-  RISK_TIERS,
-  TOTAL_PROFILE_WEIGHT,
   type CustomerIndustry,
+} from "./customer-profiles.js";
+import {
+  MOVEMENT_PROFILES,
+  TOTAL_PROFILE_WEIGHT,
   type MovementProfile,
-} from "./constants.js";
+} from "./movement-profiles.js";
 
 export const OPS_TAPE_TICK_HZ = 60;
 export const DEFAULT_OPS_TAPE_SEED = 0xb40f_2026;
