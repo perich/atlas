@@ -13,11 +13,7 @@ import { formatMinorUsd, formatPercent } from "../../design/format";
 
 const ELEVATED_EXCEPTION_RATE = 0.05;
 const ELEVATED_EXCEPTION_LABEL = `${formatPercent(ELEVATED_EXCEPTION_RATE)}+ exceptions`;
-const FLOW_CONCENTRATION_TOOLTIP =
-  "Each cell summarizes balance-sheet tape movements over the last 5 seconds. " +
-  "Rows are payment rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s " +
-  "is movement count/sec. Stronger green/red tint means more amount/sec, with color indicating " +
-  `the dominant side. Yellow borders mark cells where pending, held, or failed movements are at least ${formatPercent(ELEVATED_EXCEPTION_RATE)}.`;
+const FLOW_CONCENTRATION_TOOLTIP = `Each cell summarizes balance-sheet tape movements over the last 5 seconds. Rows are payment rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s is movement count/sec. Stronger green/red tint means more amount/sec, with color indicating the dominant side. Yellow borders mark cells where pending, held, or failed movements are at least ${formatPercent(ELEVATED_EXCEPTION_RATE)}.`;
 const emptyHeatmapCells = new Map<string, RailBucketHeatmapCell>(
   RAILS.flatMap((rail) =>
     BALANCE_SHEET_BUCKETS.map((bucket): [string, RailBucketHeatmapCell] => [
