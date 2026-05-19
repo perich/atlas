@@ -96,6 +96,8 @@ const opsStreamStore = createOpsStreamStore(
   () => new Worker(new URL("./ops-stream.worker.ts", import.meta.url), { type: "module" }),
 );
 const selectOpsStreamSnapshot = (snapshot: OpsStreamSnapshot) => snapshot;
+export const selectOpsRenderer = (snapshot: OpsStreamSnapshot) => snapshot.renderer;
+export const selectRailBucketHeatmap = (snapshot: OpsStreamSnapshot) => snapshot.railBucketHeatmap;
 
 const opsStreamControls = {
   attachTapeCanvas: opsStreamStore.attachTapeCanvas,
@@ -111,7 +113,7 @@ export function useOpsStreamControls() {
   return opsStreamControls;
 }
 
-function useOpsStreamSelector<T>(
+export function useOpsStreamSelector<T>(
   selector: (snapshot: OpsStreamSnapshot) => T,
   isEqual: (left: T, right: T) => boolean = Object.is,
 ): T {

@@ -615,7 +615,7 @@ State management boundary:
 - Do not introduce Zustand, Redux, or another app-wide state library for the first cut.
 - Consider a state library later only if app-owned UI state becomes meaningfully complex.
 
-## SettlementStream Protocol
+## OpsStream Protocol
 
 Transport:
 
@@ -623,12 +623,12 @@ Transport:
 - Binary event batches for Balance Sheet Movements.
 - Hot binary movement batches at 60 Hz.
 - JSON aggregate snapshots at roughly 4 Hz for React dashboard panels.
-- JSON control messages for stream rate and client performance telemetry.
+- JSON control messages for stream rate.
 - One logical stream with channel identifiers.
 
 The hot and warm paths serve different consumers:
 
-- Hot path: binary movement batches feed `ops-tape.worker.ts`, which owns decode and OffscreenCanvas
+- Hot path: binary movement batches feed `ops-stream.worker.ts`, which owns decode and OffscreenCanvas
   rendering.
 - Warm path: server-authored aggregate snapshots feed React-owned metrics, rail health, controls,
   status panels, and sparklines.
@@ -637,13 +637,12 @@ The hot and warm paths serve different consumers:
 - Hot and warm paths are logical stream channels over the worker-owned WebSocket, not separate
   browser connections in the first cut.
 
-Channels:
+Implemented channels:
 
 ```txt
-1 raw event batches
-2 aggregate metric snapshots
-3 incidents and invariant failures
-4 client control and performance telemetry
+1 movement batch
+2 aggregate metric snapshot
+4 client stream-rate control
 ```
 
 Frame shape:
@@ -677,7 +676,7 @@ riskTier       u8
 flags          u16
 ```
 
-React must not subscribe to every Balance Sheet Movement. `ops-tape.worker.ts` should decode
+React must not subscribe to every Balance Sheet Movement. `ops-stream.worker.ts` should decode
 batches, update a recent-movement ring buffer, render the tape, and post compact snapshots to React
 at roughly 4-10 Hz.
 
@@ -772,11 +771,14 @@ Persistence:
   route clears the active Analyst Report.
 - Generated table data should be deterministic by seed so tests and demos are reproducible.
 
-Audit enrichment for `/analyst`:
+Current audit enrichment for `/analyst`:
 
-- Add deterministic Customer metadata such as industry, region, tier, and risk profile.
-- Add Operational Scenario windows such as stablecoin finality lag, ACH return waves, wire cutoff
-  pressure, reserve rebalance cycles, risk rule changes, and rail degradation windows.
+- Deterministic Customer metadata such as segment, region, risk profile, volume band, primary rail,
+  and relationship age.
+- Account metadata such as account type and ledger region.
+- Operational Scenario windows such as stablecoin finality lag, ACH return waves, wire cutoff
+  pressure, reconciliation backlog, reserve drawdown, risk review volume, and rail degradation
+  pressure.
 - Operational Scenarios should influence generated Audit Entries through observable facts such as
   latency, failure rate, pending depth, unmatched reconciliation counts, liquidity reserve changes,
   exception pressure, and risk review volume.
@@ -825,7 +827,6 @@ Alternative deploys:
 - Cloudflare Workers + Durable Objects if we later want an edge-native WebSocket architecture.
 - Static web on Vercel or Cloudflare Pages.
 - Server on Render, Fly.io, Railway, or Cloudflare Durable Objects.
-- `VITE_STREAM_URL` points the browser at the stream origin.
 
 Do not make Vercel Functions the primary WebSocket server. Vercel's current realtime guidance
 points WebSocket-style integrations toward external realtime providers rather than using Vercel
@@ -848,27 +849,24 @@ Sources checked May 12, 2026:
   https://developers.cloudflare.com/durable-objects/best-practices/websockets/
 - Fly deploy docs: https://fly.io/docs/launch/deploy/
 
-## Boilerplate to Add
+## Current Repo Shape
 
-Near-term repo boilerplate:
+Current workspace modules:
 
-- `pnpm-workspace.yaml`
-- `apps/web` move for existing Vite app
-- `apps/server` with TypeScript, `tsx` dev runner, WebSocket dependency, audit API routes,
-  and health route
-- `packages/contracts` with stream frame encoder/decoder tests and audit API contract tests
-- `packages/ops-tape-sim` with deterministic Balance Sheet Movement and aggregate tests
-- `packages/audit-log-model` with Audit Entry generation and query fixture tests
-- `packages/analyst-model` with deterministic analyst rollup/view tests
-- root scripts for `dev`, `dev:web`, `dev:server`, `build`, `typecheck`, `lint`, and tests
-- `.nvmrc` pinning Node 24 for CodeMode isolate compatibility
-- `.env.example` with `VITE_STREAM_URL`, stream rate defaults, `OPENROUTER_API_KEY`, and
-  `ANALYST_MODEL`
-- Playwright config updated for the workspace app
+- `apps/web`: React/Vite app, route shell, worker-backed `/ops`, `/audit` table, and `/analyst`
+  report renderer.
+- `apps/server`: Fastify server for health, static SPA serving, `/stream`, `/api/audit`, and
+  `/api/analyst/runs`.
+- `packages/contracts`: shared domain types, stream protocol codecs, audit query contracts, and
+  Analyst Report schemas.
+- `packages/ops-tape-sim`: server-only Balance Sheet Movement simulator.
+- `packages/audit-log-model`: server-only Audit Entry generation, enrichment, filtering, sorting,
+  cursor windows, and Facets.
+- `packages/analyst-model`: server-only analyst rollups and report-facing views over enriched Audit
+  Entries.
 
-Later boilerplate:
+Deferred infrastructure:
 
-- `render.yaml` blueprint after the server start/build commands are stable
 - Dockerfile only if we move away from Render's native Node build path
 - worker test helpers for protocol decode and OffscreenCanvas fallback
 - performance benchmark script
