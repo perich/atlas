@@ -113,24 +113,13 @@ export function AuditRoute() {
         </h1>
       </div>
 
-      <AuditFilterPanel
-        columnLayout={columnLayout}
-        facets={facets}
-        newestRowTs={cache.newestTs}
-        onColumnLayoutChange={setColumnLayout}
-        queryState={queryState}
-        renderTrace={
-          <AuditRenderTracePanel
-            cache={cache}
-            firstVirtualIndex={firstVirtualIndex}
-            lastVirtualIndex={lastVirtualIndex}
-            mainThreadBlockingP95={mainThreadBlockingP95}
-            mountedRows={mountedRows}
-            rows={rows.length}
-          />
-        }
-        selectedTimeRange={selectedTimeRange}
-        setQueryState={setQueryState}
+      <AuditRenderTracePanel
+        cache={cache}
+        firstVirtualIndex={firstVirtualIndex}
+        lastVirtualIndex={lastVirtualIndex}
+        mainThreadBlockingP95={mainThreadBlockingP95}
+        mountedRows={mountedRows}
+        rows={rows.length}
       />
 
       <AuditTablePanel
@@ -146,6 +135,17 @@ export function AuditRoute() {
         setDraggedColumnId={setDraggedColumnId}
         setQueryState={setQueryState}
         tableWidth={tableWidth}
+        toolbar={
+          <AuditFilterPanel
+            columnLayout={columnLayout}
+            facets={facets}
+            newestRowTs={cache.newestTs}
+            onColumnLayoutChange={setColumnLayout}
+            queryState={queryState}
+            selectedTimeRange={selectedTimeRange}
+            setQueryState={setQueryState}
+          />
+        }
         virtualRows={virtualRows}
         virtualizerTotalSize={virtualizer.getTotalSize()}
         visibleColumns={visibleColumns}

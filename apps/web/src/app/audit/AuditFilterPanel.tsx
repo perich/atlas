@@ -13,7 +13,6 @@ import {
 } from "./audit-query-state";
 import { TIME_RANGES, type TimeRangeValue } from "./audit-time-range";
 import type { AuditQueryState } from "./use-audit-window";
-import { Panel } from "../../design/components";
 import { formatCount } from "../../design/format";
 
 const TIME_OPTIONS = TIME_RANGES.map((range) => ({ label: range.label, value: range.value }));
@@ -29,7 +28,6 @@ export function AuditFilterPanel({
   newestRowTs,
   onColumnLayoutChange,
   queryState,
-  renderTrace,
   selectedTimeRange,
   setQueryState,
 }: {
@@ -38,7 +36,6 @@ export function AuditFilterPanel({
   newestRowTs: number | undefined;
   onColumnLayoutChange: (update: ColumnLayoutUpdate) => void;
   queryState: AuditQueryState;
-  renderTrace: React.ReactNode;
   selectedTimeRange: TimeRangeValue;
   setQueryState: (state: AuditQueryState) => void;
 }) {
@@ -48,9 +45,7 @@ export function AuditFilterPanel({
   const activeFilters = activeAuditFilters(queryState, selectedTimeRange);
 
   return (
-    <Panel className="m-4 mb-0 overflow-hidden p-0">
-      {renderTrace}
-
+    <>
       <ActiveFilterBar
         filters={activeFilters}
         onReset={() => setQueryState({ filters: {}, sort: queryState.sort })}
@@ -125,7 +120,7 @@ export function AuditFilterPanel({
           </button>
         </div>
       </div>
-    </Panel>
+    </>
   );
 }
 
