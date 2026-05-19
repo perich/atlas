@@ -35,38 +35,41 @@ export function amountTotal(entries: readonly AuditEntry[]) {
   return entries.reduce((total, entry) => total + (entry.amountMinor ?? 0n), 0n);
 }
 
-export function sumDetailNumber(entries: readonly AuditEntry[], key: string) {
-  return entries.reduce((total, entry) => total + detailNumber(entry, key), 0);
+export function sumOptionalDetailNumbers(entries: readonly AuditEntry[], key: string) {
+  return entries.reduce((total, entry) => total + (optionalDetailNumber(entry, key) ?? 0), 0);
 }
 
-export function maxDetailNumber(entries: readonly AuditEntry[], key: string) {
-  return entries.reduce((maximum, entry) => Math.max(maximum, detailNumber(entry, key)), 0);
+export function maxOptionalDetailNumber(entries: readonly AuditEntry[], key: string) {
+  return entries.reduce(
+    (maximum, entry) => Math.max(maximum, optionalDetailNumber(entry, key) ?? 0),
+    0,
+  );
 }
 
-export function sumDetailBigInt(entries: readonly AuditEntry[], key: string) {
+export function sumOptionalDetailBigInts(entries: readonly AuditEntry[], key: string) {
   return entries.reduce((total, entry) => {
     const value = entry.detail[key];
     return total + (typeof value === "bigint" ? value : 0n);
   }, 0n);
 }
 
-export function latestDetailBigInt(entries: readonly AuditEntry[], key: string) {
+export function latestOptionalDetailBigInt(entries: readonly AuditEntry[], key: string) {
   const entry = [...entries].sort((left, right) => right.ts - left.ts)[0];
   const value = entry?.detail[key];
   return typeof value === "bigint" ? value : undefined;
 }
 
-export function detailNumber(entry: AuditEntry, key: string) {
+export function optionalDetailNumber(entry: AuditEntry, key: string) {
   const value = entry.detail[key];
-  return typeof value === "number" ? value : 0;
+  return typeof value === "number" ? value : undefined;
 }
 
-export function detailString(entry: AuditEntry, key: string) {
+export function optionalDetailString(entry: AuditEntry, key: string) {
   const value = entry.detail[key];
-  return typeof value === "string" ? value : "unknown";
+  return typeof value === "string" ? value : undefined;
 }
 
-export function detailRecord(entry: AuditEntry, key: string) {
+export function optionalDetailRecord(entry: AuditEntry, key: string) {
   const value = entry.detail[key];
   if (value !== null && typeof value === "object" && !Array.isArray(value)) {
     return Object.fromEntries(Object.entries(value));
@@ -75,7 +78,7 @@ export function detailRecord(entry: AuditEntry, key: string) {
   return undefined;
 }
 
-export function stringField(record: Record<string, unknown> | undefined, key: string) {
+export function optionalStringField(record: Record<string, unknown> | undefined, key: string) {
   const value = record?.[key];
   return typeof value === "string" ? value : undefined;
 }
