@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs"],
+      "project": ["scripts/*.mjs"]
+    },
+    "apps/web": {
+      "entry": ["src/app/ops/ops-stream.worker.ts"],
+      "project": ["src/**/*.{ts,tsx}", "*.config.ts"],
+      "ignoreDependencies": ["tailwindcss"]
+    }
+  }
+}
