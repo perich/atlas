@@ -21,16 +21,16 @@ export function AnalystWorkspaceShell({
             <div className="mt-3 flex items-start gap-2.5 rounded-[4px] border border-bankops-accent/20 bg-bankops-accent/[0.055] px-3 py-2 text-sm leading-6 text-cyan-50/80">
               <Sparkles className="mt-1 size-3.5 shrink-0 text-bankops-accent" />
               <p>
-                Ask for a bank-operations readout over Audit Entries. The Analyst queries bounded
-                data tools, submits a validated report, and BankOps renders the result. The CodeMode
-                architecture is inspired by{" "}
+                This is a demo of what an on-demand generative UI could look like. Under the hood
+                we're using a real LLM to reason over structured data and compose a custom UI based
+                on your prompt in real time! Inspired by{" "}
                 <a
                   className="font-medium text-cyan-100 underline decoration-bankops-accent/40 underline-offset-4 hover:text-white"
                   href="https://blog.cloudflare.com/code-mode/"
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Cloudflare&apos;s Code Mode work
+                  Cloudflare&apos;s Code Mode concept
                 </a>
                 .
               </p>
