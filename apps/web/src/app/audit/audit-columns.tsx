@@ -87,31 +87,11 @@ function col(
 
 export const AUDIT_COLUMNS: readonly AuditColumn[] = Object.values(AUDIT_COLUMN_BY_ID);
 const auditColumnIdSchema = z.enum(AUDIT_COLUMN_IDS);
-const auditColumnIdListSchema = z
-  .array(z.unknown())
-  .catch([])
-  .transform((values) => {
-    const ids: AuditColumnId[] = [];
-    const seenIds = new Set<AuditColumnId>();
-
-    for (const value of values) {
-      const parsed = auditColumnIdSchema.safeParse(value);
-
-      if (parsed.success && !seenIds.has(parsed.data)) {
-        ids.push(parsed.data);
-        seenIds.add(parsed.data);
-      }
-    }
-
-    return ids;
-  });
-const auditColumnLayoutSchema = z
-  .object({
-    order: auditColumnIdListSchema.optional().default([]),
-    hidden: auditColumnIdListSchema.optional().default([]),
-    widths: z.record(z.string(), z.unknown()).catch({}),
-  })
-  .catch({ order: [], hidden: [], widths: {} });
+const storedAuditColumnLayoutSchema = z.object({
+  order: z.array(z.unknown()).optional(),
+  hidden: z.array(z.unknown()).optional(),
+  widths: z.record(z.string(), z.unknown()).optional(),
+});
 
 export function defaultAuditColumnLayout(): AuditColumnLayout {
   return {
@@ -125,7 +105,7 @@ export function readAuditColumnLayout(storage = window.localStorage): AuditColum
   try {
     const raw = storage.getItem(AUDIT_COLUMN_LAYOUT_STORAGE_KEY);
 
-    return raw === null ? defaultAuditColumnLayout() : normalizeAuditColumnLayout(JSON.parse(raw));
+    return raw === null ? defaultAuditColumnLayout() : readStoredColumnLayout(JSON.parse(raw));
   } catch {
     return defaultAuditColumnLayout();
   }
@@ -139,15 +119,14 @@ export function writeAuditColumnLayout(layout: AuditColumnLayout, storage = wind
 }
 
 export function visibleAuditColumns(layout: AuditColumnLayout): SizedAuditColumn[] {
-  const normalized = normalizeAuditColumnLayout(layout);
-  const visibleIds = normalized.order.filter((id) => !normalized.hidden.includes(id));
+  const visibleIds = layout.order.filter((id) => !layout.hidden.includes(id));
 
   return visibleIds.map((id) => {
     const column = AUDIT_COLUMN_BY_ID[id];
 
     return {
       ...column,
-      width: normalized.widths[id] ?? column.defaultWidth,
+      width: layout.widths[id] ?? column.defaultWidth,
     };
   });
 }
@@ -209,28 +188,68 @@ export function setAuditColumnVisible(
   });
 }
 
-function normalizeAuditColumnLayout(value: unknown): AuditColumnLayout {
-  const layout = auditColumnLayoutSchema.parse(value);
-  const order = layout.order;
+function readStoredColumnLayout(value: unknown): AuditColumnLayout {
+  const stored = storedAuditColumnLayoutSchema.parse(value);
+
+  return normalizeAuditColumnLayout({
+    hidden: parseStoredColumnIds(stored.hidden ?? []),
+    order: parseStoredColumnIds(stored.order ?? []),
+    widths: parseStoredWidths(stored.widths ?? {}),
+  });
+}
+
+function normalizeAuditColumnLayout(layout: AuditColumnLayout): AuditColumnLayout {
+  const order = uniqueColumnIds(layout.order);
   const orderedIds = new Set(order);
   const fullOrder = [...order, ...AUDIT_COLUMN_IDS.filter((id) => !orderedIds.has(id))];
   const widths: AuditColumnLayout["widths"] = {};
 
   for (const id of AUDIT_COLUMN_IDS) {
-    const width = layout.widths?.[id];
+    const width = layout.widths[id];
 
-    const parsedWidth = z.number().finite().safeParse(width);
-
-    if (parsedWidth.success) {
-      widths[id] = clampWidth(parsedWidth.data, AUDIT_COLUMN_BY_ID[id]);
+    if (width !== undefined) {
+      widths[id] = clampWidth(width, AUDIT_COLUMN_BY_ID[id]);
     }
   }
 
   return {
-    hidden: layout.hidden,
+    hidden: uniqueColumnIds(layout.hidden),
     order: fullOrder,
     widths,
   };
+}
+
+function parseStoredColumnIds(values: readonly unknown[]): AuditColumnId[] {
+  const ids: AuditColumnId[] = [];
+
+  for (const value of values) {
+    const parsed = auditColumnIdSchema.safeParse(value);
+
+    if (parsed.success) {
+      ids.push(parsed.data);
+    }
+  }
+
+  return uniqueColumnIds(ids);
+}
+
+function parseStoredWidths(values: Record<string, unknown>): AuditColumnLayout["widths"] {
+  const widths: AuditColumnLayout["widths"] = {};
+
+  for (const [key, value] of Object.entries(values)) {
+    const id = auditColumnIdSchema.safeParse(key);
+    const width = z.number().finite().safeParse(value);
+
+    if (id.success && width.success) {
+      widths[id.data] = width.data;
+    }
+  }
+
+  return widths;
+}
+
+function uniqueColumnIds(ids: readonly AuditColumnId[]) {
+  return [...new Set(ids)];
 }
 
 export function auditColumnStyle(column: SizedAuditColumn): React.CSSProperties {
