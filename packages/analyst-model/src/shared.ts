@@ -54,7 +54,10 @@ export function sumOptionalDetailBigInts(entries: readonly AuditEntry[], key: st
 }
 
 export function latestOptionalDetailBigInt(entries: readonly AuditEntry[], key: string) {
-  const entry = [...entries].sort((left, right) => right.ts - left.ts)[0];
+  const entry = entries.reduce<AuditEntry | undefined>(
+    (latest, current) => (latest === undefined || current.ts > latest.ts ? current : latest),
+    undefined,
+  );
   const value = entry?.detail[key];
   return typeof value === "bigint" ? value : undefined;
 }

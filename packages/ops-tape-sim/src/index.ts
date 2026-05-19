@@ -433,59 +433,23 @@ function percentile95(values: number[]): number {
 
 function createRailCounters(): Record<Rail, RailCounters> {
   return {
-    ach: {
-      eventCount: 0,
-      failedCount: 0,
-      pendingCount: 0,
-      heldCount: 0,
-      totalLatencyMs: 0,
-      p95LatencyMs: 0,
-      lastEventTs: 0,
-    },
-    wire: {
-      eventCount: 0,
-      failedCount: 0,
-      pendingCount: 0,
-      heldCount: 0,
-      totalLatencyMs: 0,
-      p95LatencyMs: 0,
-      lastEventTs: 0,
-    },
-    instant: {
-      eventCount: 0,
-      failedCount: 0,
-      pendingCount: 0,
-      heldCount: 0,
-      totalLatencyMs: 0,
-      p95LatencyMs: 0,
-      lastEventTs: 0,
-    },
-    card: {
-      eventCount: 0,
-      failedCount: 0,
-      pendingCount: 0,
-      heldCount: 0,
-      totalLatencyMs: 0,
-      p95LatencyMs: 0,
-      lastEventTs: 0,
-    },
-    internal_ledger: {
-      eventCount: 0,
-      failedCount: 0,
-      pendingCount: 0,
-      heldCount: 0,
-      totalLatencyMs: 0,
-      p95LatencyMs: 0,
-      lastEventTs: 0,
-    },
-    stablecoin: {
-      eventCount: 0,
-      failedCount: 0,
-      pendingCount: 0,
-      heldCount: 0,
-      totalLatencyMs: 0,
-      p95LatencyMs: 0,
-      lastEventTs: 0,
-    },
+    ach: createEmptyRailCounter(),
+    wire: createEmptyRailCounter(),
+    instant: createEmptyRailCounter(),
+    card: createEmptyRailCounter(),
+    internal_ledger: createEmptyRailCounter(),
+    stablecoin: createEmptyRailCounter(),
+  };
+}
+
+function createEmptyRailCounter(): RailCounters {
+  return {
+    eventCount: 0,
+    failedCount: 0,
+    pendingCount: 0,
+    heldCount: 0,
+    totalLatencyMs: 0,
+    p95LatencyMs: 0,
+    lastEventTs: 0,
   };
 }

@@ -103,6 +103,15 @@ describe("audit log generator", () => {
     expect(idempotentEntries.length).toBeGreaterThan(0);
   });
 
+  it("keeps subject identifiers aligned with detail identifiers", () => {
+    const entries = createAuditEntries(256);
+
+    expectDetailSubjectId(entries, "paymentId");
+    expectDetailSubjectId(entries, "journalId");
+    expectDetailSubjectId(entries, "settlementBatchId");
+    expectDetailSubjectId(entries, "cutoffId");
+  });
+
   it("keeps high-pressure filtered slices varied enough for demos", () => {
     const entries = createAuditEntries(5_000);
     const critical = entries.filter((entry) => entry.severity === "critical").slice(0, 40);
@@ -153,4 +162,14 @@ function minDetailBigInt(entries: readonly AuditEntry[], key: string) {
     const value = entry.detail[key];
     return typeof value === "bigint" && value < minimum ? value : minimum;
   }, 0n);
+}
+
+function expectDetailSubjectId(entries: readonly AuditEntry[], detailKey: string) {
+  const entry = entries.find((candidate) => detailKey in candidate.detail);
+
+  if (entry === undefined) {
+    throw new Error(`Missing generated audit detail: ${detailKey}`);
+  }
+
+  expect(entry.detail[detailKey]).toBe(entry.subjectId);
 }

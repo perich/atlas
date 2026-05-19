@@ -200,7 +200,7 @@ export function auditSubjectIdFor(context: AuditContext): string {
 
 const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
   payment: (context) => ({
-    paymentId: `pay_${context.index.toString(36)}`,
+    paymentId: paymentIdFor(context.index),
     amountMinor: context.amountMinor,
     rail: context.rail,
     asset: context.asset,
@@ -210,13 +210,13 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
     exceptionPressure: context.pressure.exceptionPressure,
   }),
   journal: (context) => ({
-    journalId: `jrnl_${context.index.toString(36)}`,
+    journalId: journalIdFor(context.index),
     debitLineCount: 2 + (context.index % 3),
     creditLineCount: 2 + ((context.index + 1) % 3),
     balanced: !context.isScheduledFailure,
   }),
   settlement: (context) => ({
-    settlementBatchId: `set_${Math.floor(context.index / SETTLEMENT_BATCH_SIZE).toString(36)}`,
+    settlementBatchId: settlementBatchIdFor(context.index),
     finality: context.rail === "stablecoin" ? "onchain_confirmed" : "rail_acknowledged",
     observedBlock:
       context.rail === "stablecoin" ? STABLECOIN_START_BLOCK + context.index : undefined,
@@ -227,7 +227,7 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
     pendingDepth: context.pressure.pendingDepth,
   }),
   reconciliation: (context) => ({
-    reconciliationRunId: `rec_${Math.floor(context.index / RECONCILIATION_RUN_SIZE).toString(36)}`,
+    reconciliationRunId: reconciliationRunIdFor(context.index),
     matchedCount: 40 + (context.index % 600),
     unmatchedCount: (context.index % 17) + context.pressure.unmatchedDelta,
     exceptionPressure: context.pressure.exceptionPressure,
@@ -255,7 +255,7 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
     pendingDepth: context.pressure.pendingDepth,
   }),
   cutoff: (context) => ({
-    cutoffId: `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`,
+    cutoffId: cutoffIdFor(context.index),
     effectiveTs: context.baseTsMs - DAY_MS,
     quarantineMode: context.index % 2 === 0,
     pendingDepth: context.pressure.pendingDepth,
@@ -279,18 +279,42 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
 };
 
 const SUBJECT_ID_BY_TYPE: Record<AuditSubjectType, SubjectIdBuilder> = {
-  payment: (context) => `pay_${context.index.toString(36)}`,
-  journal: (context) => `jrnl_${context.index.toString(36)}`,
+  payment: (context) => paymentIdFor(context.index),
+  journal: (context) => journalIdFor(context.index),
   customer: (context) => context.customerId,
   account: (context) => context.accountId,
   rail: (context) => context.rail,
-  settlement: (context) => `set_${Math.floor(context.index / SETTLEMENT_BATCH_SIZE).toString(36)}`,
-  exception: (context) => `exc_${context.index.toString(36)}`,
+  settlement: (context) => settlementBatchIdFor(context.index),
+  exception: (context) => exceptionIdFor(context.index),
   configuration: (context) =>
     context.index % 2 === 0 ? STABLECOIN_DAILY_LIMIT.key : WIRE_APPROVAL_THRESHOLD.key,
-  cutoff: (context) => `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`,
+  cutoff: (context) => cutoffIdFor(context.index),
   operator: (context) => operatorIdFor(context.index),
 };
+
+function paymentIdFor(index: number): string {
+  return `pay_${index.toString(36)}`;
+}
+
+function journalIdFor(index: number): string {
+  return `jrnl_${index.toString(36)}`;
+}
+
+function settlementBatchIdFor(index: number): string {
+  return `set_${Math.floor(index / SETTLEMENT_BATCH_SIZE).toString(36)}`;
+}
+
+function reconciliationRunIdFor(index: number): string {
+  return `rec_${Math.floor(index / RECONCILIATION_RUN_SIZE).toString(36)}`;
+}
+
+function cutoffIdFor(index: number): string {
+  return `cut_${Math.floor(index / CUTOFF_BATCH_SIZE).toString(36)}`;
+}
+
+function exceptionIdFor(index: number): string {
+  return `exc_${index.toString(36)}`;
+}
 
 function operatorIdFor(index: number): string {
   return `op_${(index % OPERATOR_COUNT).toString(36).padStart(3, "0")}`;
