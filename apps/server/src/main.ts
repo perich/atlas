@@ -13,7 +13,7 @@ import { startOpsStreamSession } from "./ops-stream.js";
 
 const DEFAULT_PORT = 8787;
 const DEFAULT_HOST = "0.0.0.0";
-const listenPortSchema = z.coerce.number().finite().catch(DEFAULT_PORT);
+const listenPortSchema = z.coerce.number().int().min(1).max(65_535);
 
 loadOptionalEnvFile(path.resolve(process.cwd(), ".env"));
 loadOptionalEnvFile(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..", ".env"));
@@ -70,7 +70,7 @@ export async function buildServer(options: BuildServerOptions = {}) {
 export function resolveListenOptions(env: NodeJS.ProcessEnv = process.env) {
   return {
     host: env.HOST ?? DEFAULT_HOST,
-    port: listenPortSchema.parse(env.PORT ?? DEFAULT_PORT),
+    port: parseListenPort(env.PORT),
   };
 }
 
@@ -84,6 +84,20 @@ function defaultWebDistDir() {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
   return path.resolve(currentDir, "../../web/dist");
+}
+
+function parseListenPort(port: string | undefined) {
+  if (port === undefined) {
+    return DEFAULT_PORT;
+  }
+
+  const result = listenPortSchema.safeParse(port);
+
+  if (!result.success) {
+    throw new Error("PORT must be an integer between 1 and 65535");
+  }
+
+  return result.data;
 }
 
 function loadOptionalEnvFile(filePath: string) {
