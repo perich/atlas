@@ -1,6 +1,5 @@
 import React from "react";
 import { STREAM_RATES, type StreamRate } from "@bankops/contracts";
-import { Gauge } from "lucide-react";
 
 import type {
   OpsConnectionStatus,
@@ -33,12 +32,6 @@ const streamRateLabels: Record<StreamRate, string> = {
   10_000: "10k/s",
 };
 
-const pressureClassNames = {
-  nominal: "text-emerald-300",
-  watch: "text-amber-300",
-  strained: "text-rose-300",
-} as const;
-
 export function OpsSideRail({
   setStreamRate,
   snapshot,
@@ -46,8 +39,6 @@ export function OpsSideRail({
   setStreamRate: (streamRate: StreamRate) => void;
   snapshot: OpsStreamSnapshot;
 }) {
-  const pressure = streamPressure(snapshot);
-
   return (
     <aside className="flex min-h-0 flex-col bg-bankops-sidebar">
       <Panel className="rounded-none border-0 border-b border-white/[0.06]" title="Stream Control">
@@ -88,21 +79,7 @@ export function OpsSideRail({
       </Panel>
 
       <Panel className="rounded-none border-0 border-b border-white/[0.06]" title="Performance HUD">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
-            <span className="inline-flex items-center gap-2 text-xs text-bankops-muted">
-              <Gauge aria-hidden="true" className="size-4" />
-              Stream pressure
-            </span>
-            <span
-              className={`text-xs font-semibold ${pressureClassNames[pressure.level]}`}
-              data-testid="ops-stream-pressure"
-            >
-              {pressure.label}
-            </span>
-          </div>
-          <RendererMetrics snapshot={snapshot} />
-        </div>
+        <RendererMetrics snapshot={snapshot} />
       </Panel>
 
       <Panel className="min-h-0 flex-1 overflow-y-auto rounded-none border-0" title="Rail Health">
@@ -250,30 +227,4 @@ function railDisplayName(rail: RailHealthSnapshot) {
   }
 
   return titleize(rail.rail);
-}
-
-export function streamPressure(snapshot: OpsStreamSnapshot): {
-  label: string;
-  level: keyof typeof pressureClassNames;
-} {
-  const { renderer } = snapshot;
-
-  if (snapshot.connectionStatus === "connecting" || snapshot.connectionStatus === "reconnecting") {
-    return { label: "Watch", level: "watch" };
-  }
-
-  if (snapshot.connectionStatus === "degraded" || renderer.fps < 35 || renderer.frameCostMs > 18) {
-    return { label: "Strained", level: "strained" };
-  }
-
-  if (
-    renderer.fps < 55 ||
-    renderer.frameCostMs > 10 ||
-    renderer.sequenceLag > Math.max(250, snapshot.eventRate * 0.25) ||
-    renderer.backlog > 0
-  ) {
-    return { label: "Watch", level: "watch" };
-  }
-
-  return { label: "Nominal", level: "nominal" };
 }
