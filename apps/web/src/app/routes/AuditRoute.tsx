@@ -81,10 +81,7 @@ export function AuditRoute() {
   const lastVirtualIndex = lastVirtualRow?.index;
   const mountedRows = virtualRows.length;
   const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, cache.newestTs);
-  const activeFilters = useMemo(
-    () => activeAuditFilters(queryState, selectedTimeRange),
-    [queryState, selectedTimeRange],
-  );
+  const activeFilters = activeAuditFilters(queryState, selectedTimeRange);
   const setQueryState = useCallback(
     (nextState: AuditQueryState) => {
       resetWindowCache();
@@ -142,9 +139,9 @@ export function AuditRoute() {
         tableWidth={tableWidth}
         toolbar={
           <AuditFilterPanel
-            activeFilters={activeFilters}
             columnLayout={columnLayout}
             facets={facets}
+            hasActiveFilters={activeFilters.length > 0}
             newestRowTs={cache.newestTs}
             onColumnLayoutChange={setColumnLayout}
             queryState={queryState}
