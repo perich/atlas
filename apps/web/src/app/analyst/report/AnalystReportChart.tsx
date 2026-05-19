@@ -11,6 +11,7 @@ type RechartsModule = typeof import("recharts");
 
 const chartColors = ["#7dd3fc", "#86efac", "#fbbf24", "#fda4af", "#c4b5fd", "#67e8f9"];
 const LazyRechartsChart = lazy(async () => {
+  // Keep Recharts out of the empty workspace and run-trace path; only finished reports need it.
   const recharts = await import("recharts");
 
   return {

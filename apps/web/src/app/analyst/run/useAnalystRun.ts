@@ -42,7 +42,7 @@ export function useAnalystRun() {
       phase: "generating",
       report: null,
       startedAt: Date.now(),
-      timeline: createAnalystRunTimeline("Starting CodeMode run"),
+      timeline: createAnalystRunTimeline(),
     });
 
     try {
