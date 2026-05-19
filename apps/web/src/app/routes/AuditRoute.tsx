@@ -16,7 +16,6 @@ import {
 } from "../audit/audit-columns";
 import { useAuditWindow } from "../audit/use-audit-window";
 import type { AuditQueryState } from "../audit/use-audit-window";
-import { formatCount } from "../../design/format";
 
 const ROW_HEIGHT = 34;
 const AUDIT_SCROLL_LOAD_DEBOUNCE_MS = 24;
@@ -108,21 +107,10 @@ export function AuditRoute() {
 
   return (
     <div className="min-h-[calc(100vh-5.25rem)] overflow-hidden rounded-[4px] border border-white/[0.06] bg-bankops-panel">
-      <div className="flex items-end justify-between gap-6 border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
+      <div className="border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
         <h1 className="text-2xl font-semibold leading-tight tracking-[-0.02em] text-bankops-text">
           Bank Core Audit Log
         </h1>
-        <div className="flex items-end gap-8 text-right">
-          <AuditHeaderMetric label="Matched Rows" value={formatCount(cache.totalMatched)} />
-          <AuditHeaderMetric label="Cached" value={`${formatCount(rows.length)} rows`} />
-          <AuditHeaderMetric label="Query Latency" value={`${cache.queryMs.toFixed(1)}ms`} />
-          <AuditHeaderMetric
-            label="Long-task p95"
-            value={
-              mainThreadBlockingP95 === undefined ? "n/a" : `${mainThreadBlockingP95.toFixed(1)}ms`
-            }
-          />
-        </div>
       </div>
 
       <AuditFilterPanel
@@ -162,17 +150,6 @@ export function AuditRoute() {
         virtualizerTotalSize={virtualizer.getTotalSize()}
         visibleColumns={visibleColumns}
       />
-    </div>
-  );
-}
-
-function AuditHeaderMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="font-mono text-[9px] font-medium uppercase tracking-[0.18em] text-bankops-subtle">
-        {label}
-      </p>
-      <p className="mt-1 font-mono text-lg font-semibold text-bankops-text">{value}</p>
     </div>
   );
 }
