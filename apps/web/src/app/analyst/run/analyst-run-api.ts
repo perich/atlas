@@ -52,6 +52,7 @@ async function* parseSseEvents(stream: ReadableStream<Uint8Array>) {
   let buffer = "";
   let result = await reader.read();
 
+  // ReadableStream chunks must be consumed sequentially; each read depends on the prior result.
   // oxlint-disable-next-line no-await-in-loop
   for (; !result.done; result = await reader.read()) {
     buffer += decoder.decode(result.value, { stream: true });

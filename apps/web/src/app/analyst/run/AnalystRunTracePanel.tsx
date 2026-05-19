@@ -71,42 +71,43 @@ export function AnalystRunTracePanel({
         </p>
       </section>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
-        <section className="rounded-md border border-white/[0.08] bg-black/20 p-4">
-          <p className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
-            <CheckCircle2 className="size-3.5 text-emerald-300" />
-            Previous observable facts
-          </p>
-          <div className="space-y-2">
-            {timelineView.observableFacts.length ? (
-              timelineView.observableFacts.map((event) => (
-                <TraceFact event={event} key={`${event.at}-${event.label}-${event.detail ?? ""}`} />
-              ))
-            ) : (
-              <p className="text-sm text-bankops-muted">No earlier execution facts yet.</p>
-            )}
-          </div>
-        </section>
+      <section className="mt-4 rounded-md border border-white/[0.08] bg-black/20 p-4">
+        <p className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
+          <CheckCircle2 className="size-3.5 text-emerald-300" />
+          Observable fact history
+        </p>
+        <div className="grid gap-2 xl:grid-cols-2">
+          {timelineView.observableFacts.length ? (
+            timelineView.observableFacts.map((event) => (
+              <TraceFact event={event} key={`${event.at}-${event.label}-${event.detail ?? ""}`} />
+            ))
+          ) : (
+            <p className="text-sm text-bankops-muted">No earlier execution facts yet.</p>
+          )}
+        </div>
+      </section>
 
-        <section className="rounded-md border border-white/[0.08] bg-black/25 p-4">
-          <p className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
-            <Terminal className="size-3.5 text-sky-300" />
-            Raw runtime trace
-          </p>
-          <div className="space-y-2">
-            {timelineView.rawTrace.length ? (
-              timelineView.rawTrace.map((event) => (
-                <RawTrace
-                  event={event}
-                  key={`${event.at}-${event.source}-${event.label}-${event.detail ?? ""}`}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-bankops-muted">Waiting for model or tool trace output.</p>
-            )}
-          </div>
-        </section>
-      </div>
+      <details
+        className="mt-4 rounded-md border border-white/[0.06] bg-black/15 p-4 text-bankops-muted"
+        open={timelineView.rawTrace.length > 0}
+      >
+        <summary className="flex cursor-pointer items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted transition-colors hover:text-bankops-text">
+          <Terminal className="size-3.5 text-sky-300/80" />
+          Raw runtime trace
+        </summary>
+        <div className="mt-3 grid max-h-56 gap-2 overflow-y-auto pr-1 xl:grid-cols-2">
+          {timelineView.rawTrace.length ? (
+            timelineView.rawTrace.map((event) => (
+              <RawTrace
+                event={event}
+                key={`${event.at}-${event.source}-${event.label}-${event.detail ?? ""}`}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-bankops-muted">Waiting for model or tool trace output.</p>
+          )}
+        </div>
+      </details>
     </div>
   );
 }

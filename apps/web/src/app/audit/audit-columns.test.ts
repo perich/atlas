@@ -13,10 +13,14 @@ import {
 } from "./audit-columns";
 
 describe("audit column layout", () => {
-  beforeEach(() => localStorage.clear());
+  let storage = createMemoryStorage();
+
+  beforeEach(() => {
+    storage = createMemoryStorage();
+  });
 
   it("defaults to the configured column order", () => {
-    const layout = readAuditColumnLayout();
+    const layout = readAuditColumnLayout(storage);
 
     expect(visibleAuditColumns(layout).map((column) => column.id)).toEqual(
       defaultAuditColumnLayout().order,
@@ -35,18 +39,18 @@ describe("audit column layout", () => {
       false,
     );
 
-    writeAuditColumnLayout(layout);
+    writeAuditColumnLayout(layout, storage);
 
-    const stored = readAuditColumnLayout();
+    const stored = readAuditColumnLayout(storage);
 
-    expect(localStorage.getItem(AUDIT_COLUMN_LAYOUT_STORAGE_KEY)).not.toBeNull();
+    expect(storage.getItem(AUDIT_COLUMN_LAYOUT_STORAGE_KEY)).not.toBeNull();
     expect(stored.hidden).toContain("actor");
     expect(stored.widths.traceId).toBe(180);
     expect(visibleAuditColumns(stored)[0].id).toBe("traceId");
   });
 
   it("normalizes stale saved columns without dropping known defaults", () => {
-    localStorage.setItem(
+    storage.setItem(
       AUDIT_COLUMN_LAYOUT_STORAGE_KEY,
       JSON.stringify({
         hidden: ["missing", "rail"],
@@ -55,7 +59,7 @@ describe("audit column layout", () => {
       }),
     );
 
-    const layout = readAuditColumnLayout();
+    const layout = readAuditColumnLayout(storage);
 
     expect(layout.order.slice(0, 2)).toEqual(["traceId", "ts"]);
     expect(layout.hidden).toEqual(["rail"]);
@@ -84,3 +88,18 @@ describe("audit column layout", () => {
     }
   });
 });
+
+function createMemoryStorage(): Storage {
+  const items = new Map<string, string>();
+
+  return {
+    get length() {
+      return items.size;
+    },
+    clear: () => items.clear(),
+    getItem: (key) => items.get(key) ?? null,
+    key: (index) => Array.from(items.keys())[index] ?? null,
+    removeItem: (key) => items.delete(key),
+    setItem: (key, value) => items.set(key, value),
+  };
+}

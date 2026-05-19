@@ -66,6 +66,24 @@ Good manual analyst prompts for Render/local smoke:
 - `Which customers need operations attention before cutoff?`
 - `Create a report with one bar chart, one data table, a rail matrix, and a customer carousel.`
 
+## Live Analyst Demo Preflight
+
+Run this checklist before a live `/analyst` walkthrough. The route stays real-only; this is operator
+preparation, not a product fallback.
+
+1. Confirm server-side model configuration is present in the target environment:
+   `OPENROUTER_API_KEY` and `ANALYST_MODEL`.
+2. Confirm the app and API are healthy:
+   `curl -f <origin>/healthz` and `curl -f '<origin>/api/audit?limit=1'`.
+3. Open `/audit`, apply `severity=critical`, and confirm the first visible slice has mixed actions
+   rather than a long run of one cutoff action.
+4. Open `/analyst` and use this fast prompt first:
+   `Find the riskiest operating pattern in today's audit log`.
+5. Wait for `Validated report ready`, then only run broader prompts if the provider latency is
+   acceptable in the room.
+6. If the provider or credentials fail, show the plain error state and continue the demo through
+   `/ops` and `/audit`; do not switch to fixture reports.
+
 ## Smoke Checks
 
 After `pnpm build`, run the same Node service shape locally:
