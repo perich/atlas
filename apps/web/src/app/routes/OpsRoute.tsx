@@ -6,7 +6,13 @@ import { OpsBottomBand } from "../ops/OpsBottomBand";
 import { OpsSideRail } from "../ops/OpsSideRail";
 import { OpsTopBand } from "../ops/OpsTopBand";
 import { RailBucketHeatmap } from "../ops/RailBucketHeatmap";
-import { useOpsStreamControls, useOpsStreamSnapshot } from "../ops/ops-stream-store";
+import {
+  selectOpsRenderer,
+  selectRailBucketHeatmap,
+  useOpsStreamControls,
+  useOpsStreamSelector,
+  useOpsStreamSnapshot,
+} from "../ops/ops-stream-store";
 import { Panel } from "../../design/components";
 
 export function OpsRoute() {
@@ -64,7 +70,7 @@ function OpsTopBandStream() {
 }
 
 function TapeHeaderStream() {
-  const { renderer } = useOpsStreamSnapshot();
+  const renderer = useOpsStreamSelector(selectOpsRenderer);
 
   return (
     <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] border-l-2 border-l-bankops-accent bg-bankops-sidebar px-4 py-2.5">
@@ -91,5 +97,5 @@ function OpsSideRailStream({ setStreamRate }: { setStreamRate: (streamRate: Stre
 }
 
 function RailBucketHeatmapStream() {
-  return <RailBucketHeatmap cells={useOpsStreamSnapshot().railBucketHeatmap} />;
+  return <RailBucketHeatmap cells={useOpsStreamSelector(selectRailBucketHeatmap)} />;
 }
