@@ -22,8 +22,8 @@ export function AnalystWorkspaceShell({
               <Sparkles className="mt-1 size-3.5 shrink-0 text-sky-300" />
               <p>
                 Ask for a bank-operations readout over Audit Entries. The Analyst queries bounded
-                data tools, submits a validated report spec, and BankOps renders the report. The
-                CodeMode architecture is inspired by{" "}
+                data tools, submits a validated report, and BankOps renders the result. The CodeMode
+                architecture is inspired by{" "}
                 <a
                   className="font-medium text-sky-200 underline decoration-sky-300/40 underline-offset-4 hover:text-white"
                   href="https://blog.cloudflare.com/code-mode/"
