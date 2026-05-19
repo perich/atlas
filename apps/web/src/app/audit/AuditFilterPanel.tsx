@@ -1,6 +1,6 @@
 import React from "react";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditFacets } from "./audit-api";
@@ -56,7 +56,7 @@ export function AuditFilterPanel({
         onReset={() => setQueryState({ filters: {}, sort: queryState.sort })}
       />
 
-      <div className="flex h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4">
+      <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <FilterSelect
             label="Time"
@@ -216,12 +216,12 @@ function FilterSelect<T extends string>({
   value: T;
 }) {
   return (
-    <label className="inline-flex h-7 min-w-36 items-center rounded-[3px] border border-white/[0.06] bg-bankops-sidebar px-3 font-mono text-[11px]">
-      <span className="mr-2 shrink-0 text-[9px] font-semibold uppercase tracking-[0.16em] text-bankops-subtle">
+    <label className="relative grid h-10 min-w-40 grid-rows-[auto_minmax(0,1fr)] rounded-[3px] border border-white/[0.08] bg-bankops-sidebar px-3 py-1 font-mono transition-colors focus-within:border-bankops-accent/35">
+      <span className="text-center text-[8px] font-semibold uppercase leading-3 tracking-[0.16em] text-bankops-subtle">
         {label}
       </span>
       <select
-        className="min-w-0 flex-1 appearance-none bg-transparent font-mono text-[11px] font-medium text-bankops-text outline-none"
+        className="min-w-0 appearance-none bg-transparent px-4 text-center font-mono text-[11px] font-medium leading-5 text-bankops-text outline-none [text-align-last:center]"
         onChange={(event) => onChange(options[event.currentTarget.selectedIndex].value)}
         value={value}
       >
@@ -231,6 +231,10 @@ function FilterSelect<T extends string>({
           </option>
         ))}
       </select>
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-2.5 top-1/2 size-3 -translate-y-1/2 text-bankops-subtle"
+      />
     </label>
   );
 }
