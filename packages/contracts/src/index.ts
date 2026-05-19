@@ -1,3 +1,4 @@
+export * from "./analyst.js";
 export * from "./audit.js";
 export * from "./audit-json.js";
 export * from "./audit-query.js";
