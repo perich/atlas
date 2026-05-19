@@ -6,9 +6,8 @@ import { OpsBottomBand } from "../ops/OpsBottomBand";
 import { OpsSideRail, streamPressure } from "../ops/OpsSideRail";
 import { OpsTopBand } from "../ops/OpsTopBand";
 import { RailBucketHeatmap } from "../ops/RailBucketHeatmap";
-import type { OpsStreamSnapshot, RailHealthSnapshot } from "../ops/ops-stream-messages";
+import type { OpsStreamSnapshot } from "../ops/ops-stream-messages";
 import { useOpsStreamControls, useOpsStreamSnapshot } from "../ops/ops-stream-store";
-import { railHealthSeverity, railStatusLabel } from "../ops/ops-rail-health";
 import { Panel } from "../../design/components";
 
 export function OpsRoute() {
@@ -49,7 +48,6 @@ const OpsHeroHeader = React.memo(function OpsHeroHeader({
 }: {
   snapshot: OpsStreamSnapshot;
 }) {
-  const worstRail = worstRailHealth(snapshot);
   const pressure = streamPressure(snapshot);
 
   return (
@@ -63,19 +61,6 @@ const OpsHeroHeader = React.memo(function OpsHeroHeader({
             <span className="inline-flex border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
               Live
             </span>
-            {worstRail !== undefined ? (
-              <span
-                className={`inline-flex border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                  worstRail.status === "incident"
-                    ? "border-red-400/20 bg-red-400/10 text-red-400"
-                    : worstRail.status === "degraded"
-                      ? "border-amber-400/20 bg-amber-400/10 text-amber-400"
-                      : "border-emerald-400/20 bg-emerald-400/10 text-emerald-400"
-                }`}
-              >
-                {railStatusLabel(worstRail).toUpperCase()}
-              </span>
-            ) : null}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-6 text-right">
@@ -161,17 +146,4 @@ function OpsSideRailStream({ setStreamRate }: { setStreamRate: (streamRate: Stre
 
 function RailBucketHeatmapStream() {
   return <RailBucketHeatmap cells={useOpsStreamSnapshot().railBucketHeatmap} />;
-}
-
-function worstRailHealth(snapshot: OpsStreamSnapshot) {
-  return snapshot.railHealth.reduce<RailHealthSnapshot | undefined>((current, rail) => {
-    if (
-      current === undefined ||
-      railHealthSeverity[rail.status] > railHealthSeverity[current.status]
-    ) {
-      return rail;
-    }
-
-    return current;
-  }, undefined);
 }
