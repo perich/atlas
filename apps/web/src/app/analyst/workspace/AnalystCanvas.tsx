@@ -1,5 +1,4 @@
 import React from "react";
-import { Bot, Braces, Database, ShieldCheck } from "lucide-react";
 
 import { AnalystRunTracePanel } from "../run/AnalystRunTracePanel";
 import type { AnalystRunTimeline } from "../run/analyst-run-timeline";
@@ -24,7 +23,7 @@ export function AnalystCanvas({
 
   if (report) {
     return (
-      <div className="rounded-md border border-white/[0.08] bg-black/20 p-5">
+      <div className="rounded-[4px] border border-white/[0.06] bg-black/20 p-5">
         <AnalystReportRenderer report={report} />
       </div>
     );
@@ -35,57 +34,55 @@ export function AnalystCanvas({
   }
 
   return (
-    <div className="min-h-[520px] rounded-md border border-white/[0.08] bg-bankops-panel p-6">
-      <div className="grid h-full min-h-[472px] place-items-center rounded-md border border-dashed border-white/[0.12] bg-black/20">
-        <div className="max-w-2xl px-6 text-center">
-          <Braces className="mx-auto size-9 text-sky-300/80" />
-          <p className="mt-4 text-lg font-semibold tracking-tight text-white">
-            Ask for an operational analysis
-          </p>
-          <p className="mt-3 text-sm leading-6 text-bankops-muted">
-            Start with a plain-English request. The Analyst reviews capped Audit Entry rollups and
-            returns a validated report rendered by BankOps UI.
-          </p>
+    <div className="grid min-h-[600px] place-items-center">
+      <div className="w-full max-w-xl text-center">
+        <div className="mx-auto grid size-12 place-items-center rounded-[3px] border border-bankops-accent/25 bg-bankops-accent/[0.06]">
+          <svg
+            aria-hidden="true"
+            className="size-8 text-bankops-accent"
+            fill="none"
+            viewBox="0 0 32 24"
+          >
+            <rect height="10" stroke="currentColor" width="5" x="0.5" y="13.5" />
+            <rect height="16" stroke="currentColor" width="5" x="10.5" y="7.5" />
+            <rect height="22" stroke="currentColor" width="5" x="20.5" y="1.5" />
+          </svg>
+        </div>
+        <p className="mt-5 text-xl font-semibold tracking-[-0.015em] text-bankops-text">
+          Awaiting analysis request
+          <span className="sr-only">Ask for an operational analysis</span>
+        </p>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-bankops-muted">
+          <span className="block">Submit a question on the left to begin.</span>
+          <span className="block text-bankops-subtle">
+            The Analyst runs bounded CodeMode queries and returns a validated AnalystReportSpec.
+          </span>
+        </p>
 
-          <div className="mt-6 grid gap-3 text-left md:grid-cols-3">
-            <EmptyStep
-              icon={Bot}
-              label="Describe"
-              text="Ask for patterns, risks, customers, rails, exceptions, or a broad readout."
-            />
-            <EmptyStep
-              icon={Database}
-              label="Generate"
-              text="Runs bounded audit-log queries and streams observable progress."
-            />
-            <EmptyStep
-              icon={ShieldCheck}
-              label="Review"
-              text="Validated reports render as charts, tables, summaries, and Customer lists."
-            />
-          </div>
+        <div className="mt-8 grid gap-4 text-left md:grid-cols-3">
+          <Capability
+            label="Bounded data access"
+            text="Uses analyst tools returning compact rollups, not raw dataset access."
+          />
+          <Capability
+            label="Sandboxed execution"
+            text="Model-authored TypeScript runs in an isolated Node environment."
+          />
+          <Capability
+            label="Validated rendering"
+            text="AnalystReportSpec is validated before BankOps renders any block."
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function EmptyStep({
-  icon: Icon,
-  label,
-  text,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  text: string;
-}) {
+function Capability({ label, text }: { label: string; text: string }) {
   return (
-    <div className="rounded-md border border-white/[0.08] bg-bankops-sidebar/70 p-3">
-      <Icon className="size-4 text-sky-300/85" />
-      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.13em] text-bankops-text">
-        {label}
-      </p>
-      <p className="mt-2 text-xs leading-5 text-bankops-muted">{text}</p>
+    <div className="border-l-2 border-bankops-accent/35 py-1 pl-3.5">
+      <p className="text-xs font-semibold text-bankops-text">{label}</p>
+      <p className="mt-1 text-[11px] leading-5 text-bankops-muted">{text}</p>
     </div>
   );
 }
