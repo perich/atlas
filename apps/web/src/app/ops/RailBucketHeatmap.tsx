@@ -11,7 +11,13 @@ import { titleize } from "./ops-format";
 import { InfoTooltip, Panel } from "../../design/components";
 import { formatMinorUsd, formatPercent } from "../../design/format";
 
-const elevatedExceptionRate = 0.05;
+const ELEVATED_EXCEPTION_RATE = 0.05;
+const ELEVATED_EXCEPTION_LABEL = `${formatPercent(ELEVATED_EXCEPTION_RATE)}+ exceptions`;
+const FLOW_CONCENTRATION_TOOLTIP =
+  "Each cell summarizes balance-sheet tape movements over the last 5 seconds. " +
+  "Rows are payment rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s " +
+  "is movement count/sec. Stronger green/red tint means more amount/sec, with color indicating " +
+  `the dominant side. Yellow borders mark cells where pending, held, or failed movements are at least ${formatPercent(ELEVATED_EXCEPTION_RATE)}.`;
 const emptyHeatmapCells = new Map<string, RailBucketHeatmapCell>(
   RAILS.flatMap((rail) =>
     BALANCE_SHEET_BUCKETS.map((bucket): [string, RailBucketHeatmapCell] => [
@@ -42,11 +48,7 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
                 Live Flow Concentration
               </p>
               <InfoTooltip label="Explain live flow concentration">
-                Each cell summarizes balance-sheet tape movements over the last 5 seconds. Rows are
-                payment rails; columns are balance-sheet buckets. Dollar values are amount/sec; /s
-                is movement count/sec. Stronger green/red tint means more amount/sec, with color
-                indicating the dominant side. Yellow borders mark cells where pending, held, or
-                failed movements are at least 5%.
+                {FLOW_CONCENTRATION_TOOLTIP}
               </InfoTooltip>
             </div>
             <p className="mt-1 font-mono text-[10px] text-bankops-subtle">
@@ -131,7 +133,10 @@ function HeatmapSignalSummary({ cell }: { cell: RailBucketHeatmapCell | undefine
 const HeatmapLegend = React.memo(function HeatmapLegend() {
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-bankops-muted">
-      <LegendItem color="rgba(251,191,36,0.95)" label="Yellow border: 5%+ exceptions" />
+      <LegendItem
+        color="rgba(251,191,36,0.95)"
+        label={`Yellow border: ${ELEVATED_EXCEPTION_LABEL}`}
+      />
       <span className="hidden text-[11px] text-bankops-muted/80 xl:inline">
         Stronger tint means higher amount/sec in the rolling 5s window.
       </span>
@@ -156,7 +161,7 @@ const LegendItem = React.memo(function LegendItem({
 
 const HeatmapCell = React.memo(function HeatmapCell({ cell }: { cell: RailBucketHeatmapCell }) {
   const isActive = cell.intensity > 0;
-  const isElevatedException = cell.exceptionRate >= elevatedExceptionRate;
+  const isElevatedException = cell.exceptionRate >= ELEVATED_EXCEPTION_RATE;
   const sideRgb = cell.skew >= 0 ? "34,197,94" : "244,63,94";
   const heat = isActive ? Math.pow(cell.intensity, 1.55) : 0;
   const primaryAlpha = isActive ? 0.02 + heat * 0.5 : 0.018;

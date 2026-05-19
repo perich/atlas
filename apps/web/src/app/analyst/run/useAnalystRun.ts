@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AnalystReportRunPhase, AnalystReportSpec } from "@bankops/contracts";
 
@@ -30,6 +30,12 @@ const initialState: AnalystRunState = {
 export function useAnalystRun() {
   const abortRef = useRef<AbortController | null>(null);
   const [state, setState] = useState<AnalystRunState>(initialState);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const run = useCallback(async (question: string) => {
     abortRef.current?.abort();
