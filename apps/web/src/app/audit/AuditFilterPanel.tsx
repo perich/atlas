@@ -227,13 +227,13 @@ function FilterSelect<T extends string>({
       <DropdownMenu.Trigger asChild>
         <button
           aria-label={label}
-          className="group grid h-10 min-w-40 grid-cols-[1fr_auto] grid-rows-[auto_minmax(0,1fr)] items-center rounded-[3px] border border-white/[0.08] bg-bankops-sidebar px-3 py-1 font-mono text-left transition-colors hover:border-white/[0.14] hover:bg-white/[0.025] focus-visible:border-bankops-accent/45 focus-visible:outline-none data-[state=open]:border-bankops-accent/40 data-[state=open]:bg-bankops-accent/[0.04]"
+          className="group grid h-9 min-w-40 grid-cols-[auto_minmax(4rem,1fr)_auto] items-center gap-2 rounded-[3px] border border-white/[0.08] bg-bankops-sidebar px-3 font-mono text-left transition-colors hover:border-white/[0.14] hover:bg-white/[0.025] focus-visible:border-bankops-accent/45 focus-visible:outline-none data-[state=open]:border-bankops-accent/40 data-[state=open]:bg-bankops-accent/[0.04]"
           type="button"
         >
-          <span className="col-span-2 text-center text-[8px] font-semibold uppercase leading-3 tracking-[0.16em] text-bankops-subtle">
+          <span className="text-[8px] font-semibold uppercase leading-none tracking-[0.16em] text-bankops-subtle">
             {label}
           </span>
-          <span className="min-w-0 truncate text-center text-[11px] font-semibold leading-5 text-bankops-text">
+          <span className="min-w-0 truncate text-center text-[11px] font-semibold leading-none text-bankops-text">
             {selectedOption.label}
           </span>
           <ChevronDown
