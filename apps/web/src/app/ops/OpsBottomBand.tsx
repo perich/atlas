@@ -111,7 +111,7 @@ function Sparkline({ values }: { values: number[] }) {
       <polyline
         fill="none"
         points={path}
-        stroke="#86efac"
+        stroke="var(--color-bankops-accent)"
         strokeWidth="2"
         vectorEffect="non-scaling-stroke"
       />

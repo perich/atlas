@@ -26,13 +26,13 @@ export function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
       />
       <OpsMetricCard
         label="Credits"
-        metricTone="green"
+        metricTone="positive"
         tooltip="Cumulative inbound balance-sheet movement in the current simulator session, counted from synthetic credit entries."
         value={`+${formatMinorUsdString(snapshot.cumulativeCreditsMinor)}`}
       />
       <OpsMetricCard
         label="Debits"
-        metricTone="red"
+        metricTone="negative"
         tooltip="Cumulative outbound balance-sheet movement in the current simulator session, counted from synthetic debit entries."
         value={`-${formatMinorUsdString(snapshot.cumulativeDebitsMinor)}`}
       />
@@ -64,17 +64,17 @@ const OpsMetricCard = React.memo(function OpsMetricCard({
   value,
 }: {
   label: string;
-  metricTone?: "amber" | "green" | "red";
+  metricTone?: "amber" | "negative" | "positive";
   tone?: RailHealthSnapshot["status"];
   tooltip: string;
   value: React.ReactNode;
 }) {
   const valueClassName =
     tone === undefined
-      ? metricTone === "green"
-        ? "text-emerald-400"
-        : metricTone === "red"
-          ? "text-red-400"
+      ? metricTone === "positive"
+        ? "text-bankops-positive"
+        : metricTone === "negative"
+          ? "text-bankops-negative"
           : metricTone === "amber"
             ? "text-amber-400"
             : "text-bankops-text"

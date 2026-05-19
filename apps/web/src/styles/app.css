@@ -10,6 +10,10 @@
   --color-bankops-muted: #7a8899;
   --color-bankops-subtle: #4a5768;
   --color-bankops-accent: #06b6d4;
+  --color-bankops-positive: #6ee7b7;
+  --color-bankops-positive-strong: #34d399;
+  --color-bankops-negative: #fda4af;
+  --color-bankops-negative-strong: #fb7185;
   --font-sans:
     "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;

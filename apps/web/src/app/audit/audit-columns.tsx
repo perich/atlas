@@ -381,7 +381,7 @@ function formatTimestamp(timestamp: number) {
 function severityChipClass(severity: JsonAuditEntry["severity"]) {
   switch (severity) {
     case "critical":
-      return "bg-red-400/[0.10] text-red-400";
+      return "bg-bankops-negative-strong/[0.10] text-bankops-negative-strong";
     case "info":
       return "bg-bankops-muted/[0.10] text-bankops-muted";
     case "notice":
@@ -397,16 +397,16 @@ function severityChipClass(severity: JsonAuditEntry["severity"]) {
 function statusClass(status: JsonAuditEntry["status"]) {
   switch (status) {
     case "failed":
-      return "text-rose-300";
+      return "text-bankops-negative";
     case "pending":
       return "text-amber-300";
     case "posted":
     case "settled":
-      return "text-emerald-300";
+      return "text-bankops-positive";
     case "accepted":
       return "text-bankops-muted";
     case "reversed":
-      return "text-rose-300";
+      return "text-bankops-negative";
   }
 
   const exhaustive: never = status;
@@ -418,7 +418,7 @@ function amountClass(value: string | undefined) {
     return "text-bankops-muted";
   }
 
-  return Number(value) < 0 ? "font-medium text-rose-300" : "font-medium text-bankops-text";
+  return Number(value) < 0 ? "font-medium text-bankops-negative" : "font-medium text-bankops-text";
 }
 
 function formatMinor(value: string | undefined) {

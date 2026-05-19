@@ -16,7 +16,11 @@ export function AnalystRunStatus({
   statusMessage: string | null;
 }) {
   const status = statusMessage ?? phaseStatusCopy(phase, isEmpty);
-  const statusTone = error ? "bg-red-400" : isEmpty ? "bg-bankops-subtle" : "bg-bankops-accent";
+  const statusTone = error
+    ? "bg-bankops-negative-strong"
+    : isEmpty
+      ? "bg-bankops-subtle"
+      : "bg-bankops-accent";
   const completedDuration =
     completedDurationSeconds === null
       ? null
@@ -51,7 +55,7 @@ export function AnalystRunStatus({
       </div>
 
       {error ? (
-        <p className="basis-full truncate text-xs leading-5 text-rose-200/90">{error}</p>
+        <p className="basis-full truncate text-xs leading-5 text-bankops-negative/90">{error}</p>
       ) : null}
     </div>
   );
