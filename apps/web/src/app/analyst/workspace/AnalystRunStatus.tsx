@@ -16,6 +16,7 @@ export function AnalystRunStatus({
   statusMessage: string | null;
 }) {
   const status = statusMessage ?? phaseStatusCopy(phase, isEmpty);
+  const statusTone = error ? "bg-red-400" : isEmpty ? "bg-bankops-subtle" : "bg-bankops-accent";
   const completedDuration =
     completedDurationSeconds === null
       ? null
@@ -26,12 +27,16 @@ export function AnalystRunStatus({
           ).padStart(2, "0")}s`;
 
   return (
-    <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
+    <div className="flex min-h-10 flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
           Run status
         </p>
-        <p className="truncate text-sm text-bankops-text">{status}</p>
+        <span className="h-3 w-px bg-white/[0.06]" />
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <span className={`size-1.5 rounded-full ${statusTone}`} />
+          <span className="truncate font-mono text-[11px] text-bankops-muted">{status}</span>
+        </span>
       </div>
 
       <div className="flex items-center gap-3 font-mono text-xs text-bankops-muted">
@@ -40,6 +45,8 @@ export function AnalystRunStatus({
             <Clock3 className="size-3.5" />
             Generated in {completedDuration}
           </span>
+        ) : isEmpty ? (
+          <span className="text-[10px] text-bankops-subtle">No active run</span>
         ) : null}
       </div>
 

@@ -1,12 +1,4 @@
 import React from "react";
-import {
-  Activity,
-  BanknoteArrowDown,
-  BanknoteArrowUp,
-  RadioTower,
-  ShieldAlert,
-  Wallet,
-} from "lucide-react";
 
 import type { OpsStreamSnapshot, RailHealthSnapshot } from "./ops-stream-messages";
 import { railHealthClassNames, railHealthSeverity, railStatusLabel } from "./ops-rail-health";
@@ -28,71 +20,75 @@ export function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   return (
     <section className="flex w-full overflow-x-auto border-b border-white/[0.08]">
       <OpsMetricCard
-        icon={Activity}
-        label="Event rate"
+        label="Event Rate"
         tooltip="Hot stream movements received from the Node stream server per second. This is stream throughput, not React render frequency."
         value={`${formatCount(snapshot.eventRate)}/s`}
       />
       <OpsMetricCard
-        icon={BanknoteArrowUp}
         label="Credits"
+        metricTone="green"
         tooltip="Cumulative inbound balance-sheet movement in the current simulator session, counted from synthetic credit entries."
-        value={formatMinorUsdString(snapshot.cumulativeCreditsMinor)}
+        value={`+${formatMinorUsdString(snapshot.cumulativeCreditsMinor)}`}
       />
       <OpsMetricCard
-        icon={BanknoteArrowDown}
         label="Debits"
+        metricTone="red"
         tooltip="Cumulative outbound balance-sheet movement in the current simulator session, counted from synthetic debit entries."
-        value={formatMinorUsdString(snapshot.cumulativeDebitsMinor)}
+        value={`-${formatMinorUsdString(snapshot.cumulativeDebitsMinor)}`}
       />
       <OpsMetricCard
-        icon={Wallet}
         label="Liquidity"
         tooltip="Current simulated reserve-cash balance after applying raw balance-sheet movements. This is bank liquidity in the model, not browser memory or app health."
         value={formatMinorUsdString(snapshot.liquidityReserveMinor)}
       />
       <OpsMetricCard
-        icon={ShieldAlert}
-        label="Open exceptions"
+        label="Exceptions"
         tooltip="Synthetic backlog of failed, held, or exception-hold movements that still need reconciliation or manual review."
-        value={formatCount(snapshot.exceptionQueueDepth)}
+        value={`${formatCount(snapshot.exceptionQueueDepth)} OPEN`}
       />
       <OpsMetricCard
-        icon={RadioTower}
-        label="Rail health"
+        label="Rail Health"
         tooltip="Worst current simulated payment-rail status, derived from rail failure rate, held movement count, pending count, and recent activity."
         tone={worstRail?.status}
-        value={worstRail === undefined ? "Waiting" : railStatusLabel(worstRail)}
+        value={worstRail === undefined ? "WAITING" : railStatusLabel(worstRail).toUpperCase()}
       />
     </section>
   );
 }
 
 const OpsMetricCard = React.memo(function OpsMetricCard({
-  icon: Icon,
   label,
+  metricTone,
   tone,
   tooltip,
   value,
 }: {
-  icon: React.ComponentType<{ "aria-hidden": true; className: string }>;
   label: string;
+  metricTone?: "amber" | "green" | "red";
   tone?: RailHealthSnapshot["status"];
   tooltip: string;
   value: React.ReactNode;
 }) {
+  const valueClassName =
+    tone === undefined
+      ? metricTone === "green"
+        ? "text-emerald-400"
+        : metricTone === "red"
+          ? "text-red-400"
+          : metricTone === "amber"
+            ? "text-amber-400"
+            : "text-bankops-text"
+      : railHealthClassNames[tone];
+
   return (
-    <article className="min-w-48 flex-1 border-r border-white/[0.08] bg-bankops-panel p-3 last:border-r-0">
+    <article className="min-w-48 flex-1 border-r border-white/[0.06] bg-bankops-panel px-5 py-3.5 last:border-r-0">
       <div className="mb-1 flex items-center gap-2 text-bankops-muted">
-        <Icon aria-hidden={true} className="size-3 shrink-0 text-[#5a6272]" />
-        <p className="truncate text-[9px] font-semibold uppercase tracking-widest text-[#5a6272]">
+        <p className="truncate font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
           {label}
         </p>
         <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
       </div>
-      <p
-        className={`truncate font-mono text-xl leading-none ${tone === undefined ? "text-bankops-text" : railHealthClassNames[tone]}`}
-      >
+      <p className={`truncate font-mono text-[22px] font-medium leading-none ${valueClassName}`}>
         {value}
       </p>
     </article>

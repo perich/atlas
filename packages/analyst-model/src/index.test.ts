@@ -33,6 +33,7 @@ describe("analyst rollups", () => {
           ts: index,
         }),
       ),
+      {},
     );
 
     expect(overview.totalEntries).toBe(250_000);
@@ -42,11 +43,14 @@ describe("analyst rollups", () => {
 
   it("builds time series and breakdowns with truncation metadata", () => {
     expect(
-      getTimeSeries(rows, { grain: "hour", metric: "amountMinor" }).map((point) => point.value),
+      getTimeSeries(rows, { filters: {}, grain: "hour", metric: "amountMinor" }).map(
+        (point) => point.value,
+      ),
     ).toEqual(["8000", "6000"]);
 
     const breakdown = getBreakdown(rows, {
       dimension: "customer.segment",
+      filters: {},
       limit: 1,
       metric: "count",
     });
@@ -56,7 +60,7 @@ describe("analyst rollups", () => {
   });
 
   it("returns capped JSON-safe audit samples", () => {
-    const sample = getAuditSample(rows, { limit: 2, sort: "amountDesc" });
+    const sample = getAuditSample(rows, { filters: {}, limit: 2, sort: "amountDesc" });
 
     expect(sample.rows.map((row) => row.amountMinor)).toEqual(["5000", "4000"]);
     expect(sample.rows[0]?.detail).toContain("exceptionPressure=12");
@@ -65,7 +69,7 @@ describe("analyst rollups", () => {
   });
 
   it("rolls up reconciliation, liquidity, and rail health facts", () => {
-    expect(getReconciliationRollup(rows)).toMatchObject({
+    expect(getReconciliationRollup(rows, {})).toMatchObject({
       byRail: {
         wire: {
           exceptionPressure: 7,
@@ -77,7 +81,7 @@ describe("analyst rollups", () => {
       matchedCount: 90,
       unmatchedCount: 12,
     });
-    expect(getLiquidityRollup(rows)).toMatchObject({
+    expect(getLiquidityRollup(rows, {})).toMatchObject({
       byRail: {
         stablecoin: {
           latestReserveAfterMinor: "98000",
@@ -87,7 +91,7 @@ describe("analyst rollups", () => {
       reserveDeltaMinor: "-2500",
       latestReserveAfterMinor: "98000",
     });
-    expect(getRailHealthRollup(rows)).toMatchObject({
+    expect(getRailHealthRollup(rows, {})).toMatchObject({
       byRail: {
         wire: {
           errorRateBpsMax: 92,
@@ -102,7 +106,7 @@ describe("analyst rollups", () => {
   });
 
   it("caps customer risk rollups and preserves amount strings", () => {
-    const rollup = getCustomerRiskRollup(rows, { limit: 1 });
+    const rollup = getCustomerRiskRollup(rows, { filters: {}, limit: 1 });
 
     expect(rollup.rows).toEqual([
       expect.objectContaining({

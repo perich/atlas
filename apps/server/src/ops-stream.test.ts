@@ -13,7 +13,7 @@ let app: Awaited<ReturnType<typeof buildServer>>;
 
 describe("/stream", () => {
   beforeEach(async () => {
-    app = await buildServer(false);
+    app = await buildServer({ logger: false });
     await app.ready();
   });
 

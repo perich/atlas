@@ -60,5 +60,8 @@ describe("single-service production deploy behavior", () => {
       host: "127.0.0.1",
       port: 4317,
     });
+    expect(() => resolveListenOptions({ PORT: "not-a-port" })).toThrow(
+      "PORT must be an integer between 1 and 65535",
+    );
   });
 });

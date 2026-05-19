@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Bot, ClipboardList, Landmark, RadioTower } from "lucide-react";
 
@@ -20,13 +20,16 @@ export function AppShell() {
 
         <div className="hidden lg:block">
           <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-bankops-sidebar">
-            <div className="flex h-9 items-center justify-between px-6">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-xs text-bankops-muted">
-                  <Landmark aria-hidden="true" className="size-3.5 text-bankops-text" />
-                  <span className="font-medium text-bankops-text">Back Office</span>
+            <div className="flex h-9 items-center justify-between px-5">
+              <div className="flex h-full items-center gap-3">
+                <div className="flex items-center gap-2.5 text-bankops-text">
+                  <Landmark aria-hidden="true" className="size-4 shrink-0" />
+                  <span className="text-[13px] font-semibold tracking-[-0.01em] text-bankops-text">
+                    BankOps
+                  </span>
                 </div>
-                <nav className="flex items-center gap-1">
+                <div className="h-4 w-px bg-white/[0.08]" />
+                <nav className="flex h-full items-stretch gap-0">
                   <NavLink icon={RadioTower} to="/ops">
                     Ops
                   </NavLink>
@@ -38,39 +41,14 @@ export function AppShell() {
                   </NavLink>
                 </nav>
               </div>
-              <div className="flex items-center gap-3 font-mono text-[11px] tracking-wide text-[#5a6272]">
-                <span className="uppercase tracking-widest">BankOps Mission Control</span>
-                <LiveClock />
-              </div>
             </div>
           </header>
 
-          <main className="p-6">
+          <main className="p-5">
             <Outlet />
           </main>
         </div>
       </div>
     </TooltipProvider>
-  );
-}
-
-function LiveClock() {
-  const [time, setTime] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setTime(new Date()), 1_000);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-  return (
-    <time dateTime={time.toISOString()}>
-      {time.toLocaleTimeString([], {
-        hour: "2-digit",
-        hour12: false,
-        minute: "2-digit",
-        second: "2-digit",
-      })}
-    </time>
   );
 }

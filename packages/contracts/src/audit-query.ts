@@ -18,8 +18,6 @@ import { RAILS, railSchema } from "./domain.js";
 
 export type AuditFilters = NonNullable<AuditQuery["filters"]>;
 export type AuditQueryParams = Record<string, string | string[] | undefined>;
-export type AuditSearchValue = string | string[] | number | undefined;
-export type AuditSearchInput = Record<string, AuditSearchValue>;
 export type AuditSearch = {
   severity?: string;
   rail?: string;
@@ -35,6 +33,17 @@ export type AuditQueryState = {
 };
 
 type QueryParam = string | string[] | undefined;
+type AuditSearchListInput = string | string[] | undefined;
+type AuditSearchNumberInput = string | number | undefined;
+export type AuditSearchInput = {
+  severity?: AuditSearchListInput;
+  rail?: AuditSearchListInput;
+  status?: AuditSearchListInput;
+  tsFrom?: AuditSearchNumberInput;
+  tsTo?: AuditSearchNumberInput;
+  sortField?: AuditSearchListInput;
+  sortDir?: AuditSearchListInput;
+};
 type StringSchema<T extends string> = z.ZodType<T>;
 type AuditQueryStringParams = {
   get(name: string): string | null;
@@ -98,17 +107,6 @@ export const auditCursorSchema = z.object({
 
 export type AuditCursor = z.infer<typeof auditCursorSchema>;
 
-const searchStringsSchema = z.union([
-  z.array(z.union([z.string(), z.number()])).transform((values) => values.map(String)),
-  z.string().transform((value) => [value]),
-  z.number().transform((value) => [String(value)]),
-  z.undefined().transform(() => [] as string[]),
-]);
-const queryParamValuesSchema = z.union([
-  z.array(z.string()),
-  z.string().transform((value) => [value]),
-  z.undefined().transform(() => [] as string[]),
-]);
 const safeIntegerSchema = z.int();
 const limitSchema = z.int().min(1).max(MAX_AUDIT_LIMIT);
 const offsetSchema = z.int().nonnegative();
@@ -170,10 +168,11 @@ export function queryStateToAuditSearch(state: AuditQueryState): Partial<AuditSe
   };
 }
 
-export function parseAuditQueryStateSearch(
-  search: string | AuditQueryStringParams,
-): AuditQueryState {
-  const params = typeof search === "string" ? new URLSearchParams(search) : search;
+export function parseAuditQueryStateSearchString(search: string): AuditQueryState {
+  return parseAuditQueryStateSearchParams(new URLSearchParams(search));
+}
+
+export function parseAuditQueryStateSearchParams(params: AuditQueryStringParams): AuditQueryState {
   const filters: AuditQueryState["filters"] = {};
   const severity = enumList(params.getAll("severity"), auditSeveritySchema);
   const rail = enumList(params.getAll("rail"), railSchema);
@@ -375,28 +374,30 @@ function appendList(
 }
 
 function enumList<const T extends string>(
-  input: AuditSearchValue | string[],
+  input: AuditSearchListInput,
   schema: StringSchema<T>,
 ): T[] {
-  return toSearchStrings(input)
+  return toSearchList(input)
     .flatMap((value) => value.split(","))
     .map((value) => value.trim())
     .filter((value): value is T => schema.safeParse(value).success);
 }
 
-function parseSearchNumber(input: AuditSearchValue) {
-  const value = toSearchStrings(input)[0];
-
-  if (value === undefined) {
+function parseSearchNumber(input: AuditSearchNumberInput) {
+  if (input === undefined) {
     return undefined;
   }
 
-  const parsed = Number(value);
+  const parsed = Number(input);
   return safeIntegerSchema.safeParse(parsed).success ? parsed : undefined;
 }
 
-function toSearchStrings(input: AuditSearchValue | string[]) {
-  return searchStringsSchema.parse(input);
+function toSearchList(input: AuditSearchListInput) {
+  if (input === undefined) {
+    return [];
+  }
+
+  return Array.isArray(input) ? input : [input];
 }
 
 function parseLimit(value: QueryParam): number {
@@ -430,7 +431,7 @@ function parseOneOf<const T extends string>(
 }
 
 function list(value: QueryParam, name: string): string[] | undefined {
-  const rawValues = queryParamValuesSchema.parse(value);
+  const rawValues = queryParamValues(value);
 
   if (rawValues.length === 0) {
     return undefined;
@@ -447,7 +448,7 @@ function list(value: QueryParam, name: string): string[] | undefined {
 }
 
 function single(value: QueryParam, name: string): string | undefined {
-  const values = queryParamValuesSchema.parse(value);
+  const values = queryParamValues(value);
 
   if (values.length === 0) {
     return undefined;
@@ -464,4 +465,12 @@ function single(value: QueryParam, name: string): string | undefined {
   }
 
   return trimmed;
+}
+
+function queryParamValues(value: QueryParam) {
+  if (value === undefined) {
+    return [];
+  }
+
+  return Array.isArray(value) ? value : [value];
 }

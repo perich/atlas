@@ -13,7 +13,7 @@ import { startOpsStreamSession } from "./ops-stream.js";
 
 const DEFAULT_PORT = 8787;
 const DEFAULT_HOST = "0.0.0.0";
-const listenPortSchema = z.coerce.number().finite().catch(DEFAULT_PORT);
+const listenPortSchema = z.coerce.number().int().min(1).max(65_535);
 
 loadOptionalEnvFile(path.resolve(process.cwd(), ".env"));
 loadOptionalEnvFile(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..", ".env"));
@@ -24,10 +24,9 @@ type BuildServerOptions = {
   staticRoot?: string;
 };
 
-export async function buildServer(options: boolean | BuildServerOptions = true) {
-  const resolvedOptions = typeof options === "boolean" ? { logger: options } : options;
+export async function buildServer(options: BuildServerOptions = {}) {
   const app = Fastify({
-    logger: resolvedOptions.logger ?? true,
+    logger: options.logger ?? true,
   });
 
   await app.register(websocket);
@@ -45,8 +44,8 @@ export async function buildServer(options: boolean | BuildServerOptions = true) 
     startOpsStreamSession(socket);
   });
 
-  if (resolvedOptions.serveStatic ?? process.env.NODE_ENV === "production") {
-    const webDistDir = resolvedOptions.staticRoot ?? defaultWebDistDir();
+  if (options.serveStatic ?? process.env.NODE_ENV === "production") {
+    const webDistDir = options.staticRoot ?? defaultWebDistDir();
 
     await app.register(fastifyStatic, {
       root: webDistDir,
@@ -71,7 +70,7 @@ export async function buildServer(options: boolean | BuildServerOptions = true) 
 export function resolveListenOptions(env: NodeJS.ProcessEnv = process.env) {
   return {
     host: env.HOST ?? DEFAULT_HOST,
-    port: listenPortSchema.parse(env.PORT ?? DEFAULT_PORT),
+    port: parseListenPort(env.PORT),
   };
 }
 
@@ -85,6 +84,20 @@ function defaultWebDistDir() {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
   return path.resolve(currentDir, "../../web/dist");
+}
+
+function parseListenPort(port: string | undefined) {
+  if (port === undefined) {
+    return DEFAULT_PORT;
+  }
+
+  const result = listenPortSchema.safeParse(port);
+
+  if (!result.success) {
+    throw new Error("PORT must be an integer between 1 and 65535");
+  }
+
+  return result.data;
 }
 
 function loadOptionalEnvFile(filePath: string) {

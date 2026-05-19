@@ -67,6 +67,12 @@ describe("audit column layout", () => {
     expect(layout.order).toHaveLength(defaultAuditColumnLayout().order.length);
   });
 
+  it("falls back to the default layout when stored data is malformed", () => {
+    storage.setItem(AUDIT_COLUMN_LAYOUT_STORAGE_KEY, JSON.stringify({ order: "traceId" }));
+
+    expect(readAuditColumnLayout(storage)).toEqual(defaultAuditColumnLayout());
+  });
+
   it("keeps sortable column metadata aligned with audit query fields", () => {
     const sortableColumnIds = [];
 
