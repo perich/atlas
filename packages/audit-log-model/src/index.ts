@@ -352,19 +352,16 @@ function createAuditEntry(index: number, random: Random): AuditEntry {
   const severity = severityFor(profile, index, enrichedContext.pressure);
   const status = statusFor(profile, index, enrichedContext.pressure);
 
-  return {
+  const entry: AuditEntry = {
     action: profile.action,
     actor: profile.actor,
-    amountMinor,
     asset,
     customerId,
     accountId,
     detail: withAnalystContext(DETAIL_BY_KIND[profile.kind](context), context),
     id: `aud_${index.toString(36).padStart(8, "0")}`,
-    idempotencyKey: idempotencyKeyFor(profile.kind, index, customerNumber),
     kind: profile.kind,
     rail,
-    riskTier,
     severity,
     status,
     subjectId: SUBJECT_ID_BY_TYPE[profile.subjectType](context),
@@ -373,6 +370,21 @@ function createAuditEntry(index: number, random: Random): AuditEntry {
     traceId,
     ts: BASE_TS_MS - index * ENTRY_SPACING_MS - randomInt(random, 0, ENTRY_JITTER_MS),
   };
+  const idempotencyKey = idempotencyKeyFor(profile.kind, index, customerNumber);
+
+  if (amountMinor !== undefined) {
+    entry.amountMinor = amountMinor;
+  }
+
+  if (riskTier !== undefined) {
+    entry.riskTier = riskTier;
+  }
+
+  if (idempotencyKey !== undefined) {
+    entry.idempotencyKey = idempotencyKey;
+  }
+
+  return entry;
 }
 
 function amountFor(kind: AuditEntryKind, random: Random): bigint | undefined {

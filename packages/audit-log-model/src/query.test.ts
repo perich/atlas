@@ -49,8 +49,14 @@ describe("audit query model", () => {
   it("uses opaque cursors without duplicate rows when sort values repeat", () => {
     const query = { limit: 2 } satisfies AuditQuery;
     const first = queryAuditEntries(entries(), query);
-    const second = queryAuditEntries(entries(), { ...query, after: first.nextCursor });
-    const third = queryAuditEntries(entries(), { ...query, after: second.nextCursor });
+    const second = queryAuditEntries(entries(), {
+      ...query,
+      after: requireCursor(first.nextCursor),
+    });
+    const third = queryAuditEntries(entries(), {
+      ...query,
+      after: requireCursor(second.nextCursor),
+    });
 
     expect(first.rows.map((row) => row.id)).toEqual(["aud_f", "aud_d"]);
     expect(second.rows.map((row) => row.id)).toEqual(["aud_c", "aud_b"]);
@@ -62,8 +68,14 @@ describe("audit query model", () => {
 
   it("pages backward from a cursor boundary", () => {
     const first = queryAuditEntries(entries(), { limit: 2 });
-    const second = queryAuditEntries(entries(), { after: first.nextCursor, limit: 2 });
-    const previous = queryAuditEntries(entries(), { before: second.prevCursor, limit: 2 });
+    const second = queryAuditEntries(entries(), {
+      after: requireCursor(first.nextCursor),
+      limit: 2,
+    });
+    const previous = queryAuditEntries(entries(), {
+      before: requireCursor(second.prevCursor),
+      limit: 2,
+    });
 
     expect(previous.rows.map((row) => row.id)).toEqual(first.rows.map((row) => row.id));
   });
@@ -89,6 +101,14 @@ describe("audit query model", () => {
     expect(() => queryAuditEntries(entries(), { after: "not-json", limit: 2 })).toThrow();
   });
 });
+
+function requireCursor(cursor: string | undefined) {
+  if (cursor === undefined) {
+    throw new Error("Expected cursor");
+  }
+
+  return cursor;
+}
 
 function entries(): AuditEntry[] {
   return [

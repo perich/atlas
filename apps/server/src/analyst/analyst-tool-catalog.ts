@@ -9,6 +9,7 @@ import {
   getReconciliationRollup,
   getTimeSeries,
   MAX_ROLLUP_LIMIT,
+  type AnalystFilters,
 } from "@bankops/analyst-model";
 import { getAuditLogEntries } from "@bankops/audit-log-model";
 import {
@@ -42,7 +43,7 @@ const filtersSchema = z.object({
   kind: z.array(auditEntryKindSchema).optional(),
   customerId: z.array(z.string()).optional(),
 });
-const analystFiltersSchema = filtersSchema.default({});
+const analystFiltersSchema = filtersSchema.default({}).transform(compactAnalystFilters);
 const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).default(DEFAULT_ROLLUP_LIMIT);
 const overviewInputSchema = z.object({ filters: analystFiltersSchema });
 const timeSeriesInputSchema = z.object({
@@ -161,6 +162,40 @@ export function createAnalystToolCatalog(
 
 function hasAnalystFilters(filters: object) {
   return Object.keys(filters).length > 0;
+}
+
+function compactAnalystFilters(filters: z.infer<typeof filtersSchema>): AnalystFilters {
+  const compact: AnalystFilters = {};
+
+  if (filters.tsFrom !== undefined) {
+    compact.tsFrom = filters.tsFrom;
+  }
+
+  if (filters.tsTo !== undefined) {
+    compact.tsTo = filters.tsTo;
+  }
+
+  if (filters.rail !== undefined) {
+    compact.rail = filters.rail;
+  }
+
+  if (filters.severity !== undefined) {
+    compact.severity = filters.severity;
+  }
+
+  if (filters.status !== undefined) {
+    compact.status = filters.status;
+  }
+
+  if (filters.kind !== undefined) {
+    compact.kind = filters.kind;
+  }
+
+  if (filters.customerId !== undefined) {
+    compact.customerId = filters.customerId;
+  }
+
+  return compact;
 }
 
 function analystTool<TInput, TResult>({

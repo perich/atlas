@@ -13,7 +13,11 @@ export function createAnalystDataTools(emit?: EmitAnalystEvent) {
       name: catalogItem.name,
       description: catalogItem.description,
       inputSchema: catalogItem.inputSchema,
-    }).server((rawInput) => runAnalystTool({ catalogItem, emit, rawInput })),
+    }).server((rawInput) =>
+      runAnalystTool(
+        emit === undefined ? { catalogItem, rawInput } : { catalogItem, emit, rawInput },
+      ),
+    ),
   );
 }
 
