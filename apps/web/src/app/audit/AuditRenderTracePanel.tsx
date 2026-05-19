@@ -51,7 +51,8 @@ export function AuditRenderTracePanel({
         <TraceMetric label="Mounted rows" value={mountedRows.toLocaleString()} />
         <TraceMetric label="Query latency" value={`${cache.queryMs.toFixed(1)}ms`} />
         <TraceMetric
-          label="Main-thread p95"
+          label="Long-task p95"
+          title="Browser PerformanceObserver long-task p95. It is n/a until the browser reports supported samples."
           value={
             mainThreadBlockingP95 === undefined ? "n/a" : `${mainThreadBlockingP95.toFixed(1)}ms`
           }
@@ -64,7 +65,17 @@ export function AuditRenderTracePanel({
   );
 }
 
-function TraceMetric({ label, testId, value }: { label: string; testId?: string; value: string }) {
+function TraceMetric({
+  label,
+  testId,
+  title,
+  value,
+}: {
+  label: string;
+  testId?: string;
+  title?: string;
+  value: string;
+}) {
   return (
     <div className="border-l border-white/[0.08] px-3 first:border-l-0 first:pl-0">
       <dt className="text-[9px] font-semibold uppercase leading-none tracking-widest text-[#5a6272]">
@@ -73,7 +84,7 @@ function TraceMetric({ label, testId, value }: { label: string; testId?: string;
       <dd
         className="mt-1 max-w-36 truncate font-mono text-[11px] leading-none text-bankops-text"
         data-testid={testId}
-        title={value}
+        title={title ?? value}
       >
         {value}
       </dd>
