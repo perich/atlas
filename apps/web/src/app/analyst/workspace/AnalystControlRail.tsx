@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 import { cn } from "../../../design/utils";
 import { ANALYST_PROMPT_CHIPS } from "./analyst-prompts";
@@ -99,12 +99,17 @@ export function AnalystControlRail({
 
       <div>
         <button
+          aria-label={`${showHowItWorks ? "Hide" : "Show"} how it works`}
           aria-expanded={showHowItWorks}
-          className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle transition-colors hover:text-bankops-text"
+          className="flex w-full items-center justify-between border-t border-white/[0.06] pt-4 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle transition-colors hover:text-bankops-text"
           onClick={() => setShowHowItWorks((value) => !value)}
           type="button"
         >
-          How it works {showHowItWorks ? "Hide" : "Show"}
+          <span>How it works</span>
+          <ChevronDown
+            aria-hidden="true"
+            className={cn("size-3 transition-transform", showHowItWorks && "rotate-180")}
+          />
         </button>
 
         {showHowItWorks ? (
