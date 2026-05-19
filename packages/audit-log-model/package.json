@@ -17,8 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@bankops/contracts": "workspace:*",
-    "zod": "^4.4.3"
+    "@bankops/contracts": "workspace:*"
   },
   "devDependencies": {
     "vitest": "4.1.5"
