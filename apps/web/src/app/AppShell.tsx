@@ -20,8 +20,8 @@ export function AppShell() {
 
         <div className="hidden lg:block">
           <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-bankops-sidebar">
-            <div className="flex h-11 items-center justify-between px-5">
-              <div className="flex items-center gap-4">
+            <div className="flex h-9 items-center justify-between px-5">
+              <div className="flex h-full items-center gap-3">
                 <div className="flex items-center gap-2.5 text-bankops-text">
                   <Landmark aria-hidden="true" className="size-4 shrink-0" />
                   <span className="text-[13px] font-semibold tracking-[-0.01em] text-bankops-text">
@@ -29,7 +29,7 @@ export function AppShell() {
                   </span>
                 </div>
                 <div className="h-4 w-px bg-white/[0.08]" />
-                <nav className="flex items-center gap-1">
+                <nav className="flex h-full items-stretch gap-0">
                   <NavLink icon={RadioTower} to="/ops">
                     Ops
                   </NavLink>
