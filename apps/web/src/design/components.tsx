@@ -114,7 +114,7 @@ export function NavLink({
       activeProps={{
         className: "border-white/[0.14] bg-bankops-surface font-semibold text-bankops-text",
       }}
-      className="inline-flex h-9 items-center gap-2 rounded-[2px] border border-transparent px-3 text-[13px] font-medium text-bankops-muted transition-colors hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-bankops-text"
+      className="inline-flex h-full items-center gap-2 border border-transparent px-3 text-[13px] font-medium text-bankops-muted transition-colors hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-bankops-text"
       to={to}
     >
       <Icon aria-hidden="true" className="size-4 shrink-0" />
