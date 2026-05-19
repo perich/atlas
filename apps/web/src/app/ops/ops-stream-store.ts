@@ -111,16 +111,7 @@ export function useOpsStreamControls() {
   return opsStreamControls;
 }
 
-export function useOpsStream() {
-  const snapshot = useOpsStreamSnapshot();
-
-  return {
-    ...opsStreamControls,
-    snapshot,
-  };
-}
-
-export function useOpsStreamSelector<T>(
+function useOpsStreamSelector<T>(
   selector: (snapshot: OpsStreamSnapshot) => T,
   isEqual: (left: T, right: T) => boolean = Object.is,
 ): T {
