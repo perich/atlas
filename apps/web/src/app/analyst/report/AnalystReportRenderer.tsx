@@ -8,7 +8,7 @@ import {
 
 import { AnalystReportChart } from "./AnalystReportChart";
 import { AnalystReportTable } from "./AnalystReportTable";
-import { cn } from "../../design/utils";
+import { cn } from "../../../design/utils";
 
 export function AnalystReportRenderer({ report }: { report: unknown }) {
   const parsed = analystReportSpecSchema.parse(report);

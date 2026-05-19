@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import type { AnalystReportBlock } from "@bankops/contracts";
 
-import { cn } from "../../design/utils";
+import { cn } from "../../../design/utils";
 
 type ChartBlock = Extract<
   AnalystReportBlock,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { analystReportFixture } from "./report-fixture";
 import { streamAnalystRun } from "./analyst-run-api";
+import { analystReportFixture } from "../report/report-fixture";
 
 const originalFetch = globalThis.fetch;
 

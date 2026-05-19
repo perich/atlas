@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 
-import { AnalystCanvas } from "../analyst/AnalystCanvas";
-import { AnalystControlRail } from "../analyst/AnalystControlRail";
-import { AnalystRunStatus } from "../analyst/AnalystRunStatus";
-import { AnalystWorkspaceShell } from "../analyst/AnalystWorkspaceShell";
-import { useAnalystRun } from "../analyst/useAnalystRun";
+import { useAnalystRun } from "../analyst/run/useAnalystRun";
+import { AnalystCanvas } from "../analyst/workspace/AnalystCanvas";
+import { AnalystControlRail } from "../analyst/workspace/AnalystControlRail";
+import { AnalystRunStatus } from "../analyst/workspace/AnalystRunStatus";
+import { AnalystWorkspaceShell } from "../analyst/workspace/AnalystWorkspaceShell";
 
 export function AnalystRoute() {
   const [question, setQuestion] = useState("");
