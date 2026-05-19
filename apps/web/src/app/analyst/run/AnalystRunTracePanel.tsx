@@ -1,7 +1,7 @@
 import React from "react";
 import { Activity, AlertTriangle, CheckCircle2, Clock3, Loader2, Terminal } from "lucide-react";
 
-import { cn } from "../../design/utils";
+import { cn } from "../../../design/utils";
 import { projectAnalystRunTimeline, type AnalystRunTimeline } from "./analyst-run-timeline";
 import { useElapsedSeconds } from "./useElapsedSeconds";
 import { RawTrace, TraceFact } from "./AnalystRunTraceRows";

@@ -1,7 +1,7 @@
 import React from "react";
 import { Sparkles } from "lucide-react";
 
-import { PageHeader } from "../../design/components";
+import { PageHeader } from "../../../design/components";
 
 export function AnalystWorkspaceShell({
   canvas,
