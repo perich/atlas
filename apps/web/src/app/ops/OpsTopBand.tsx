@@ -43,7 +43,6 @@ export function OpsTopBand({ snapshot }: { snapshot: OpsStreamSnapshot }) {
       />
       <OpsMetricCard
         label="Exceptions"
-        metricTone="amber"
         tooltip="Synthetic backlog of failed, held, or exception-hold movements that still need reconciliation or manual review."
         value={`${formatCount(snapshot.exceptionQueueDepth)} OPEN`}
       />
