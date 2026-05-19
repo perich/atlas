@@ -1,7 +1,7 @@
 import React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditFacets } from "./audit-api";
@@ -48,13 +48,8 @@ export function AuditFilterPanel({
 
   return (
     <>
-      <ActiveFilterBar
-        filters={activeFilters}
-        onReset={() => setQueryState({ filters: {}, sort: queryState.sort })}
-      />
-
       <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4 py-2">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <FilterSelect
             label="Time"
             onChange={(value) => {
@@ -105,6 +100,8 @@ export function AuditFilterPanel({
             options={statusOptions}
             value={queryState.filters.status?.[0] ?? "all"}
           />
+
+          <ActiveFilterChips filters={activeFilters} />
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -123,42 +120,6 @@ export function AuditFilterPanel({
         </div>
       </div>
     </>
-  );
-}
-
-function ActiveFilterBar({
-  filters,
-  onReset,
-}: {
-  filters: readonly string[];
-  onReset: () => void;
-}) {
-  if (filters.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] bg-bankops-sidebar px-4 py-2">
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
-        Filtered
-      </span>
-      {filters.map((filter) => (
-        <span
-          className="inline-flex h-6 items-center rounded-[2px] border border-bankops-accent/20 bg-bankops-accent/[0.06] px-2 font-mono text-[10px] text-cyan-100/85"
-          key={filter}
-        >
-          {filter}
-        </span>
-      ))}
-      <button
-        className="ml-1 inline-flex h-6 items-center gap-1 rounded-[3px] border border-white/[0.06] bg-white/[0.03] px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted transition-colors hover:border-white/18 hover:text-bankops-text"
-        onClick={onReset}
-        type="button"
-      >
-        <X aria-hidden="true" className="size-3" />
-        Reset
-      </button>
-    </div>
   );
 }
 
@@ -186,6 +147,25 @@ function activeAuditFilters(
   }
 
   return filters;
+}
+
+function ActiveFilterChips({ filters }: { filters: readonly string[] }) {
+  if (filters.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="ml-1 flex min-w-0 items-center gap-1.5 overflow-hidden border-l border-white/[0.08] pl-3">
+      {filters.map((filter) => (
+        <span
+          className="inline-flex h-6 max-w-44 shrink-0 items-center truncate rounded-[2px] border border-bankops-accent/20 bg-bankops-accent/[0.06] px-2 font-mono text-[10px] text-cyan-100/85"
+          key={filter}
+        >
+          {filter}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function auditFilterOptions<const T extends string>(
