@@ -286,7 +286,7 @@ export function AuditColumnCellContent({
           </span>
           <button
             aria-label={`Copy trace ID ${row.traceId}`}
-            className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-white/[0.08] bg-white/[0.04] text-[#5a6272] opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-white/25"
+            className="inline-flex size-4 shrink-0 items-center justify-center rounded-[2px] border border-white/[0.06] bg-white/[0.04] text-bankops-subtle opacity-80 transition-colors hover:bg-white/[0.08] hover:text-bankops-muted focus:outline-none focus:ring-2 focus:ring-bankops-accent/30"
             onClick={() => void navigator.clipboard?.writeText(row.traceId).catch(() => undefined)}
             type="button"
           >
@@ -324,7 +324,7 @@ function SeverityChip({ severity }: { severity: JsonAuditEntry["severity"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-medium lowercase leading-none tracking-wide",
+        "inline-flex items-center rounded-[2px] px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-[0.08em]",
         severityChipClass(severity),
       )}
     >
@@ -335,7 +335,7 @@ function SeverityChip({ severity }: { severity: JsonAuditEntry["severity"] }) {
 
 function RailChip({ rail }: { rail: JsonAuditEntry["rail"] }) {
   return (
-    <span className="inline-flex max-w-full items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-sm border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-wider text-[#5a6272]">
+    <span className="inline-flex max-w-full items-center overflow-hidden text-ellipsis whitespace-nowrap rounded-[2px] border border-white/[0.06] bg-bankops-surface px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase leading-none tracking-[0.06em] text-bankops-muted">
       {rail ?? "-"}
     </span>
   );
@@ -362,13 +362,13 @@ function formatTimestamp(timestamp: number) {
 function severityChipClass(severity: JsonAuditEntry["severity"]) {
   switch (severity) {
     case "critical":
-      return "border-rose-300/20 bg-rose-400/[0.12] text-rose-300";
+      return "bg-red-400/[0.10] text-red-400";
     case "info":
-      return "border-white/[0.08] bg-white/[0.04] text-bankops-muted";
+      return "bg-bankops-muted/[0.10] text-bankops-muted";
     case "notice":
-      return "border-sky-300/20 bg-sky-300/[0.12] text-sky-300";
+      return "bg-bankops-accent/[0.10] text-bankops-accent";
     case "warning":
-      return "border-amber-300/20 bg-amber-300/[0.12] text-amber-200";
+      return "bg-amber-400/[0.10] text-amber-300";
   }
 
   const exhaustive: never = severity;
