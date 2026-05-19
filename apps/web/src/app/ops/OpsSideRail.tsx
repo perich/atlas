@@ -107,7 +107,7 @@ export function OpsSideRail({
   );
 }
 
-const StreamRateControl = React.memo(function StreamRateControl({
+function StreamRateControl({
   currentStreamRate,
   setStreamRate,
 }: {
@@ -131,7 +131,7 @@ const StreamRateControl = React.memo(function StreamRateControl({
       </div>
     </div>
   );
-});
+}
 
 function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   const metrics = [

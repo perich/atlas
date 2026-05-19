@@ -50,17 +50,19 @@ function formatTraceTime(value: string) {
 }
 
 function traceSourceClass(source: AnalystTraceEvent["source"]) {
-  if (source === "tool") {
-    return "text-emerald-300";
+  switch (source) {
+    case "codemode":
+      return "text-violet-300";
+    case "model":
+      return "text-sky-300";
+    case "runtime":
+      return "text-bankops-muted";
+    case "tool":
+      return "text-emerald-300";
+    case "validation":
+      return "text-amber-300";
   }
-  if (source === "validation") {
-    return "text-amber-300";
-  }
-  if (source === "model") {
-    return "text-sky-300";
-  }
-  if (source === "codemode") {
-    return "text-violet-300";
-  }
-  return "text-bankops-muted";
+
+  const exhaustive: never = source;
+  return exhaustive;
 }
