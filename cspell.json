@@ -11,10 +11,8 @@
     "test-results"
   ],
   "words": [
-    "Aiwyn",
     "BankOps",
-    "Codemode",
-    "Codex",
+    "CodeMode",
     "Consolas",
     "Cust",
     "EURC",
@@ -35,7 +33,6 @@
     "bigint",
     "clsx",
     "depcruise",
-    "dotenv",
     "drilldown",
     "drilldowns",
     "esbuild",
@@ -49,8 +46,6 @@
     "lucide",
     "menuitemcheckbox",
     "menuitemradio",
-    "middlewares",
-    "notest",
     "nonblank",
     "nums",
     "oxfmt",
@@ -59,7 +54,6 @@
     "precommit",
     "quickjs",
     "recharts",
-    "redline",
     "rollups",
     "rollup",
     "sandboxed",
@@ -71,14 +65,12 @@
     "tsbuildinfo",
     "tsgolint",
     "tsx",
-    "unplugin",
     "unstub",
     "vite",
     "virtualizes",
     "vitest",
     "watchlist",
     "websocket",
-    "worktree",
     "zod"
   ]
 }
