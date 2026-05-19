@@ -20,8 +20,11 @@ describe("AnalystRoute", () => {
     const { host, root } = renderRoute();
 
     expect(host.textContent).toContain("Ask for an operational analysis");
-    expect(host.textContent).toContain("Create report");
+    expect(host.textContent).toContain("Question");
     expect(host.textContent).toContain("Starter prompts");
+    expect(host.textContent).toContain("Rail mix");
+    expect(host.textContent).toContain("Failures");
+    expect(host.textContent).toContain("Ops queue");
     expect(host.textContent).toContain("Idle");
 
     act(() => root.unmount());
@@ -103,7 +106,7 @@ describe("AnalystRoute", () => {
 
     expect(host.textContent).toContain("Validated report ready");
     expect(host.textContent).toContain("ACH return wave containment");
-    expect(host.textContent).toContain("Create report");
+    expect(host.textContent).toContain("Question");
     expect(host.textContent).toContain("Starter prompts");
     expect(host.textContent).toContain("Generated in");
     expect(host.querySelector("textarea")?.value).toBe("");
