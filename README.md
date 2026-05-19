@@ -173,6 +173,21 @@ pnpm test:run
 pnpm test:e2e
 ```
 
+### Quality Checks
+
+The pre-commit hook runs the fast local quality gate: Markdown link verification, environment
+contract checks, secret scanning, spelling, workspace package consistency, unused code/dependency
+hygiene, dependency-boundary rules, typecheck, lint, unit tests, and format verification.
+
+- `pnpm test:env` verifies app-owned environment variables are listed in `.env.example`,
+  documented, and kept out of browser production code when they are server-only.
+- `pnpm test:secrets` scans tracked source and docs for leaked credentials.
+- `pnpm test:spelling` checks code and docs against the project dictionary.
+- `pnpm test:sherif` checks workspace package consistency.
+- `pnpm test:knip` checks unused dependencies, files, and exports.
+- `pnpm test:deps` enforces package boundaries and dependency cycles.
+- `pnpm test:size` checks the production web bundle budget on demand.
+
 ## Production
 
 Production runs as one Render Web Service using `@bankops/server`.
