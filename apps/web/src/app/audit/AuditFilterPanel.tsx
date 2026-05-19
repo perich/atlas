@@ -214,6 +214,13 @@ function FilterSelect<T extends string>({
   value: T;
 }) {
   const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const selectOption = (nextValue: string) => {
+    const nextOption = options.find((option) => option.value === nextValue);
+
+    if (nextOption !== undefined) {
+      onChange(nextOption.value);
+    }
+  };
 
   return (
     <DropdownMenu.Root>
@@ -241,10 +248,7 @@ function FilterSelect<T extends string>({
           className="z-50 min-w-64 rounded-[4px] border border-white/[0.10] bg-bankops-sidebar p-1.5 font-mono text-[11px] text-bankops-text shadow-2xl shadow-black/45"
           sideOffset={6}
         >
-          <DropdownMenu.RadioGroup
-            onValueChange={(nextValue) => onChange(nextValue as T)}
-            value={value}
-          >
+          <DropdownMenu.RadioGroup onValueChange={selectOption} value={value}>
             {options.map((option) => (
               <DropdownMenu.RadioItem
                 className="flex cursor-default items-center gap-2 rounded-[3px] px-2 py-1.5 text-bankops-muted outline-none transition-colors data-[highlighted]:bg-white/[0.055] data-[highlighted]:text-bankops-text data-[state=checked]:text-bankops-text"
