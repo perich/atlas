@@ -43,7 +43,7 @@
     "*.{js,jsx,mjs,ts,tsx,json,jsonc,css,md,mdx}": "oxfmt --write --no-error-on-unmatched-pattern"
   },
   "engines": {
-    "node": ">=22.13"
+    "node": "24.x"
   },
   "packageManager": "pnpm@11.1.0"
 }

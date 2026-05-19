@@ -1,30 +1,57 @@
-import React from "react";
-import { Bot, Braces, ShieldCheck } from "lucide-react";
+import React, { useState } from "react";
 
-import { PageHeader, Panel, StatCard } from "../../design/components";
+import { useAnalystRun } from "../analyst/run/useAnalystRun";
+import { AnalystCanvas } from "../analyst/workspace/AnalystCanvas";
+import { AnalystControlRail } from "../analyst/workspace/AnalystControlRail";
+import { AnalystRunStatus } from "../analyst/workspace/AnalystRunStatus";
+import { AnalystWorkspaceShell } from "../analyst/workspace/AnalystWorkspaceShell";
 
 export function AnalystRoute() {
+  const [question, setQuestion] = useState("");
+  const analystRun = useAnalystRun();
+  const isEmpty = !analystRun.report && !analystRun.error && !analystRun.isRunning;
+
   return (
-    <div className="space-y-5">
-      <PageHeader eyebrow="CodeMode Analyst" title="Analyst workspace" />
+    <AnalystWorkspaceShell
+      canvas={
+        <AnalystCanvas
+          error={analystRun.error}
+          isRunning={analystRun.isRunning}
+          report={analystRun.report}
+          startedAt={analystRun.startedAt}
+          timeline={analystRun.timeline}
+        />
+      }
+      controlRail={
+        <AnalystControlRail
+          isEmpty={isEmpty}
+          isRunning={analystRun.isRunning}
+          onNewAnalysis={() => {
+            setQuestion("");
+            analystRun.reset();
+          }}
+          onQuestionChange={setQuestion}
+          onSubmit={() => {
+            const trimmedQuestion = question.trim();
 
-      <section className="grid gap-3 xl:grid-cols-3">
-        <StatCard icon={Bot} label="Model path" value="Deferred" />
-        <StatCard icon={Braces} label="UI output" value="Schema" />
-        <StatCard icon={ShieldCheck} label="Rendering" value="Typed" />
-      </section>
+            if (!trimmedQuestion) {
+              return;
+            }
 
-      <Panel className="min-h-[360px]" title="Future Analyst Surface">
-        <div className="grid h-[290px] place-items-center border border-dashed border-white/[0.1] bg-black/20">
-          <div className="max-w-lg text-center">
-            <p className="text-sm font-medium text-white">Constrained generative UI placeholder</p>
-            <p className="mt-2 text-xs leading-5 text-bankops-muted">
-              This route is reserved for a sandboxed CodeMode analyst that can query BankOps data
-              and return validated dashboard specs.
-            </p>
-          </div>
-        </div>
-      </Panel>
-    </div>
+            setQuestion("");
+            void analystRun.run(trimmedQuestion);
+          }}
+          question={question}
+        />
+      }
+      statusBar={
+        <AnalystRunStatus
+          completedDurationSeconds={analystRun.completedDurationSeconds}
+          error={analystRun.error}
+          isEmpty={isEmpty}
+          statusMessage={analystRun.timeline.statusMessage}
+        />
+      }
+    />
   );
 }
