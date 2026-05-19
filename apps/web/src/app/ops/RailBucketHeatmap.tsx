@@ -32,8 +32,8 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
   }, undefined);
 
   return (
-    <Panel className="overflow-hidden rounded-none border-0 border-t border-white/[0.06] p-0">
-      <div className="border-b border-white/[0.06] bg-bankops-panel px-5 py-4">
+    <Panel className="overflow-hidden rounded-none border-0 border-t border-white/[0.10] bg-bankops-panel p-0">
+      <div className="border-b border-white/[0.06] bg-bankops-sidebar px-5 py-3.5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -60,9 +60,9 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
         <HeatmapLegend />
       </div>
 
-      <div className="overflow-x-auto bg-bankops-bg p-4">
+      <div className="overflow-x-auto bg-bankops-panel">
         <div
-          className="grid gap-px overflow-hidden rounded-[4px] border border-white/[0.06] bg-white/[0.04]"
+          className="grid gap-px bg-white/[0.035]"
           style={{
             gridTemplateColumns: `80px repeat(${BALANCE_SHEET_BUCKETS.length}, minmax(92px, 1fr))`,
           }}
@@ -83,7 +83,7 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
           {RAILS.map((rail) => (
             <React.Fragment key={rail}>
               <div
-                className="bg-bankops-panel px-3 py-3 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-bankops-muted"
+                className="bg-bankops-panel p-3 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-bankops-muted"
                 title={titleize(rail)}
               >
                 {compactRailLabel(rail)}

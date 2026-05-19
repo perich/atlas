@@ -112,7 +112,7 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
           <ul className="space-y-2">
             {block.items.map((item) => (
               <li className="flex gap-2 text-sm leading-6 text-bankops-text" key={item}>
-                <CheckCircle2 className="mt-1 size-4 shrink-0 text-emerald-300/85" />
+                <CheckCircle2 className="mt-1 size-4 shrink-0 text-bankops-positive/85" />
                 <span>{item}</span>
               </li>
             ))}
@@ -271,7 +271,7 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
     case "error":
       return (
         <Panel
-          className={block.type === "error" ? "border-rose-300/24" : undefined}
+          className={block.type === "error" ? "border-bankops-negative/24" : undefined}
           title={block.title}
         >
           <p className="text-sm leading-6 text-bankops-muted">{block.body}</p>
@@ -337,23 +337,23 @@ function CalloutIcon({ tone }: { tone?: "info" | "warning" | "critical" | "succe
     return <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-300" />;
   }
   if (tone === "critical") {
-    return <CircleAlert className="mt-0.5 size-4 shrink-0 text-rose-300" />;
+    return <CircleAlert className="mt-0.5 size-4 shrink-0 text-bankops-negative" />;
   }
   if (tone === "success") {
-    return <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-300" />;
+    return <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-bankops-positive" />;
   }
   return <Info className="mt-0.5 size-4 shrink-0 text-sky-300" />;
 }
 
 function toneBorder(tone?: "neutral" | "good" | "warning" | "critical" | "success" | "info") {
   if (tone === "good" || tone === "success") {
-    return "border-emerald-300/20";
+    return "border-bankops-positive/20";
   }
   if (tone === "warning") {
     return "border-amber-300/24";
   }
   if (tone === "critical") {
-    return "border-rose-300/24";
+    return "border-bankops-negative/24";
   }
   if (tone === "info") {
     return "border-sky-300/20";
