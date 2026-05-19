@@ -42,10 +42,11 @@ const filtersSchema = z.object({
   kind: z.array(auditEntryKindSchema).optional(),
   customerId: z.array(z.string()).optional(),
 });
-const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).optional();
+const analystFiltersSchema = filtersSchema.default({});
+const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).default(DEFAULT_ROLLUP_LIMIT);
 const overviewInputSchema = z.object({ filters: filtersSchema.optional() });
 const timeSeriesInputSchema = z.object({
-  filters: filtersSchema.optional(),
+  filters: analystFiltersSchema,
   grain: z.enum(["hour", "day"]),
   metric: z.enum(["count", "amountMinor", "failedCount", "exceptionPressure", "pendingDepth"]),
 });
@@ -60,17 +61,17 @@ const breakdownInputSchema = z.object({
     "customer.riskProfile",
     "customer.monthlyVolumeBand",
   ]),
-  filters: filtersSchema.optional(),
+  filters: analystFiltersSchema,
   limit: limitSchema,
   metric: z.enum(["count", "amountMinor", "failedCount", "exceptionPressure"]),
 });
 const auditSampleInputSchema = z.object({
-  filters: filtersSchema.optional(),
+  filters: analystFiltersSchema,
   limit: limitSchema,
-  sort: z.enum(["newest", "oldest", "amountDesc", "severityDesc"]).optional(),
+  sort: z.enum(["newest", "oldest", "amountDesc", "severityDesc"]).default("newest"),
 });
 const filtersInputSchema = z.object({ filters: filtersSchema.optional() });
-const customerRiskInputSchema = z.object({ filters: filtersSchema.optional(), limit: limitSchema });
+const customerRiskInputSchema = z.object({ filters: analystFiltersSchema, limit: limitSchema });
 
 export function createAnalystToolCatalog(
   entries: () => readonly AuditEntry[] = getAuditLogEntries,
@@ -108,8 +109,7 @@ export function createAnalystToolCatalog(
       description:
         "Return capped audit samples for investigation tables. Rows contain primitive table-ready fields; detail and detailSummary are safe string summaries, not raw detail objects. Default limit is 20; request 40-80 when you need evidence rows for a report table.",
       inputSchema: auditSampleInputSchema,
-      inputSummary: (input) =>
-        `${input.sort ?? "newest"} sample, limit ${input.limit ?? DEFAULT_ROLLUP_LIMIT}`,
+      inputSummary: (input) => `${input.sort} sample, limit ${input.limit}`,
       run: (input) => getAuditSample(entries(), input),
       resultSummary: (result) =>
         `${result.rows.length} capped sample rows${result.truncation.truncated ? " with truncation" : ""}`,
@@ -149,8 +149,7 @@ export function createAnalystToolCatalog(
       description:
         "Return capped customer risk rollups for prioritization views. Rows include risk and riskScore numeric aliases plus failedCount, exceptionPressure, riskReviewVolume, and customer attributes. Default limit is 20; request 40-80 for broad customer evidence.",
       inputSchema: customerRiskInputSchema,
-      inputSummary: (input) =>
-        `top customer risk rows, limit ${input.limit ?? DEFAULT_ROLLUP_LIMIT}`,
+      inputSummary: (input) => `top customer risk rows, limit ${input.limit}`,
       run: (input) => getCustomerRiskRollup(entries(), input),
       resultSummary: (result) =>
         `${result.rows.length} customers${result.truncation.truncated ? " with truncation" : ""}`,
