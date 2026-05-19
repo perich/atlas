@@ -50,34 +50,42 @@ async function* parseSseEvents(stream: ReadableStream<Uint8Array>) {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let result = await reader.read();
 
-  while (true) {
-    // oxlint-disable-next-line no-await-in-loop
-    const { done, value } = await reader.read();
-    buffer += decoder.decode(value, { stream: !done });
+  // oxlint-disable-next-line no-await-in-loop
+  for (; !result.done; result = await reader.read()) {
+    buffer += decoder.decode(result.value, { stream: true });
 
-    let boundary = buffer.indexOf("\n\n");
-    while (boundary !== -1) {
-      const chunk = buffer.slice(0, boundary);
-      buffer = buffer.slice(boundary + 2);
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() ?? "";
+
+    for (const chunk of chunks) {
       const data = parseSseData(chunk);
       if (data) {
         yield analystRunEventSchema.parse(JSON.parse(data));
       }
-      boundary = buffer.indexOf("\n\n");
     }
+  }
 
-    if (done) {
-      break;
-    }
+  buffer += decoder.decode();
+  if (!buffer) {
+    return;
+  }
+
+  const data = parseSseData(buffer);
+  if (data) {
+    yield analystRunEventSchema.parse(JSON.parse(data));
   }
 }
 
 function parseSseData(chunk: string) {
-  const dataLines = chunk
-    .split("\n")
-    .filter((line) => line.startsWith("data: "))
-    .map((line) => line.slice(6));
+  const dataLines: string[] = [];
+
+  for (const line of chunk.split("\n")) {
+    if (line.startsWith("data: ")) {
+      dataLines.push(line.slice(6));
+    }
+  }
 
   return dataLines.length > 0 ? dataLines.join("\n") : undefined;
 }
