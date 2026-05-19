@@ -45,70 +45,85 @@ export function AuditFilterPanel({
   const severityOptions = auditFilterOptions(AUDIT_SEVERITIES, facets?.severity);
   const railOptions = auditFilterOptions(RAILS, facets?.rail);
   const statusOptions = auditFilterOptions(AUDIT_STATUSES, facets?.status);
+  const activeFilters = activeAuditFilters(queryState, selectedTimeRange);
 
   return (
     <Panel className="m-4 mb-0 overflow-hidden p-0">
       {renderTrace}
 
       <ActiveFilterBar
-        filters={activeAuditFilters(queryState, selectedTimeRange)}
+        filters={activeFilters}
         onReset={() => setQueryState({ filters: {}, sort: queryState.sort })}
       />
 
-      <div className="flex flex-wrap items-end gap-2.5 bg-bankops-panel px-4 py-3">
-        <FilterSelect
-          label="Time"
-          onChange={(value) => {
-            const range = TIME_RANGES.find((item) => item.value === value)!;
+      <div className="flex h-11 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <FilterSelect
+            label="Time"
+            onChange={(value) => {
+              const range = TIME_RANGES.find((item) => item.value === value)!;
 
-            setQueryState(
-              auditQueryStateWithTimeBounds(queryState, {
-                tsFrom:
-                  range.durationMs !== undefined && newestRowTs !== undefined
-                    ? newestRowTs - range.durationMs
-                    : undefined,
-              }),
-            );
-          }}
-          options={TIME_OPTIONS}
-          value={selectedTimeRange}
-        />
+              setQueryState(
+                auditQueryStateWithTimeBounds(queryState, {
+                  tsFrom:
+                    range.durationMs !== undefined && newestRowTs !== undefined
+                      ? newestRowTs - range.durationMs
+                      : undefined,
+                }),
+              );
+            }}
+            options={TIME_OPTIONS}
+            value={selectedTimeRange}
+          />
 
-        <FilterSelect
-          label="Severity"
-          onChange={(value) =>
-            setQueryState(
-              auditQueryStateWithSeverityFilter(queryState, value === "all" ? undefined : value),
-            )
-          }
-          options={severityOptions}
-          value={queryState.filters.severity?.[0] ?? "all"}
-        />
+          <FilterSelect
+            label="Severity"
+            onChange={(value) =>
+              setQueryState(
+                auditQueryStateWithSeverityFilter(queryState, value === "all" ? undefined : value),
+              )
+            }
+            options={severityOptions}
+            value={queryState.filters.severity?.[0] ?? "all"}
+          />
 
-        <FilterSelect
-          label="Rail"
-          onChange={(value) =>
-            setQueryState(
-              auditQueryStateWithRailFilter(queryState, value === "all" ? undefined : value),
-            )
-          }
-          options={railOptions}
-          value={queryState.filters.rail?.[0] ?? "all"}
-        />
+          <FilterSelect
+            label="Rail"
+            onChange={(value) =>
+              setQueryState(
+                auditQueryStateWithRailFilter(queryState, value === "all" ? undefined : value),
+              )
+            }
+            options={railOptions}
+            value={queryState.filters.rail?.[0] ?? "all"}
+          />
 
-        <FilterSelect
-          label="Status"
-          onChange={(value) =>
-            setQueryState(
-              auditQueryStateWithStatusFilter(queryState, value === "all" ? undefined : value),
-            )
-          }
-          options={statusOptions}
-          value={queryState.filters.status?.[0] ?? "all"}
-        />
+          <FilterSelect
+            label="Status"
+            onChange={(value) =>
+              setQueryState(
+                auditQueryStateWithStatusFilter(queryState, value === "all" ? undefined : value),
+              )
+            }
+            options={statusOptions}
+            value={queryState.filters.status?.[0] ?? "all"}
+          />
+        </div>
 
-        <div className="flex-1" />
-        <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="inline-flex h-7 items-center rounded-[3px] border border-white/[0.06] px-3 font-mono text-[11px] text-bankops-muted">
+            Sort: {queryState.sort.field} {queryState.sort.dir}
+          </div>
+          <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
+          <button
+            className="inline-flex h-7 items-center rounded-[3px] px-3 font-mono text-[11px] text-bankops-subtle transition-colors hover:bg-white/[0.035] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={activeFilters.length === 0}
+            onClick={() => setQueryState({ filters: {}, sort: queryState.sort })}
+            type="button"
+          >
+            Reset
+          </button>
+        </div>
       </div>
     </Panel>
   );
@@ -126,20 +141,20 @@ function ActiveFilterBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.08] bg-[#101214] px-4 py-2">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
+    <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] bg-bankops-sidebar px-4 py-2">
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
         Filtered
       </span>
       {filters.map((filter) => (
         <span
-          className="inline-flex h-6 items-center border border-sky-300/15 bg-sky-300/[0.06] px-2 font-mono text-[10px] text-sky-100/85"
+          className="inline-flex h-6 items-center rounded-[2px] border border-bankops-accent/20 bg-bankops-accent/[0.06] px-2 font-mono text-[10px] text-cyan-100/85"
           key={filter}
         >
           {filter}
         </span>
       ))}
       <button
-        className="ml-1 inline-flex h-6 items-center gap-1 border border-white/[0.08] bg-white/[0.03] px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted transition-colors hover:border-white/18 hover:text-bankops-text"
+        className="ml-1 inline-flex h-6 items-center gap-1 rounded-[3px] border border-white/[0.06] bg-white/[0.03] px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted transition-colors hover:border-white/18 hover:text-bankops-text"
         onClick={onReset}
         type="button"
       >
@@ -200,24 +215,22 @@ function FilterSelect<T extends string>({
   options: readonly FilterOption<T>[];
   value: T;
 }) {
-  const select = (
-    <select
-      className="h-8 min-w-28 appearance-none rounded-md border border-white/[0.08] bg-[#1a1c1f] px-3 font-mono text-xs normal-case tracking-normal text-bankops-text outline-none transition-colors focus:ring-1 focus:ring-white/20"
-      onChange={(event) => onChange(options[event.currentTarget.selectedIndex].value)}
-      value={value}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-
   return (
-    <label className="grid gap-1 text-[10px] font-semibold uppercase leading-none tracking-widest text-[#5a6272]">
-      {label}
-      {select}
+    <label className="inline-flex h-7 min-w-36 items-center rounded-[3px] border border-white/[0.06] bg-bankops-sidebar px-3 font-mono text-[11px]">
+      <span className="mr-2 shrink-0 text-[9px] font-semibold uppercase tracking-[0.16em] text-bankops-subtle">
+        {label}
+      </span>
+      <select
+        className="min-w-0 flex-1 appearance-none bg-transparent font-mono text-[11px] font-medium text-bankops-text outline-none"
+        onChange={(event) => onChange(options[event.currentTarget.selectedIndex].value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
