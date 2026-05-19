@@ -11,6 +11,12 @@ import {
 } from "@bankops/contracts";
 
 import { randomInt } from "./random.js";
+import {
+  enrichedEntityContextFor,
+  withAnalystContext,
+  type EnrichedEntityContext,
+  type OperationalPressure,
+} from "./enrichment.js";
 
 export { getAuditFacets, queryAuditEntries } from "./query.js";
 export type { AuditFilters } from "./query.js";
@@ -71,7 +77,8 @@ type AuditContext = {
   riskTier: RiskTier | undefined;
   customerId: string;
   accountId: string;
-};
+  pressure: OperationalPressure;
+} & EnrichedEntityContext;
 
 type DetailBuilder = (context: AuditContext) => Record<string, unknown>;
 type SubjectIdBuilder = (context: AuditContext) => string;
@@ -183,6 +190,9 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
     rail: context.rail,
     asset: context.asset,
     direction: context.index % 2 === 0 ? "inbound" : "outbound",
+    returnRiskBps: 18 + context.pressure.errorRateBpsDelta,
+    pendingDepth: context.pressure.pendingDepth,
+    exceptionPressure: context.pressure.exceptionPressure,
   }),
   journal: (context) => ({
     journalId: `jrnl_${context.index.toString(36)}`,
@@ -195,32 +205,46 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
     finality: context.rail === "stablecoin" ? "onchain_confirmed" : "rail_acknowledged",
     observedBlock:
       context.rail === "stablecoin" ? STABLECOIN_START_BLOCK + context.index : undefined,
+    finalityLagMs:
+      context.rail === "stablecoin" || context.pressure.latencyMsDelta > 0
+        ? 18_000 + context.pressure.latencyMsDelta
+        : 900,
+    pendingDepth: context.pressure.pendingDepth,
   }),
   reconciliation: (context) => ({
     reconciliationRunId: `rec_${Math.floor(context.index / RECONCILIATION_RUN_SIZE).toString(36)}`,
     matchedCount: 40 + (context.index % 600),
-    unmatchedCount: context.index % 17,
+    unmatchedCount: (context.index % 17) + context.pressure.unmatchedDelta,
+    exceptionPressure: context.pressure.exceptionPressure,
   }),
   risk: (context) => ({
     riskTier: context.riskTier,
     ruleId: `risk_rule_${context.index % RISK_RULE_COUNT}`,
     reviewReason: context.index % 2 === 0 ? "velocity_spike" : "counterparty_watch",
+    reviewQueueDepth: 4 + context.pressure.riskReviewVolume,
+    exceptionPressure: context.pressure.exceptionPressure,
   }),
   liquidity: (context) => ({
     reserveTargetMinor: RESERVE_TARGET_MINOR,
     reserveAfterMinor:
-      RESERVE_TARGET_MINOR + BigInt((context.index % CUTOFF_BATCH_SIZE) * RESERVE_STEP_MINOR),
-    stressScenario: context.index % 3 === 0 ? "startup_outflow" : "normal",
+      RESERVE_TARGET_MINOR +
+      BigInt((context.index % CUTOFF_BATCH_SIZE) * RESERVE_STEP_MINOR) +
+      context.pressure.reserveDeltaMinor,
+    reserveDeltaMinor: context.pressure.reserveDeltaMinor,
+    liquidityStress: context.index % 3 === 0 ? "startup_outflow" : "normal",
   }),
   rail_health: (context) => ({
     rail: context.rail,
-    p95LatencyMs: 250 + (context.index % 4_000),
-    errorRateBps: context.index % 250,
+    p95LatencyMs: 250 + (context.index % 4_000) + context.pressure.latencyMsDelta,
+    errorRateBps: (context.index % 250) + context.pressure.errorRateBpsDelta,
+    pendingDepth: context.pressure.pendingDepth,
   }),
   cutoff: (context) => ({
     cutoffId: `cut_${Math.floor(context.index / CUTOFF_BATCH_SIZE).toString(36)}`,
     effectiveTs: BASE_TS_MS - DAY_MS,
     quarantineMode: context.index % 2 === 0,
+    pendingDepth: context.pressure.pendingDepth,
+    exceptionPressure: context.pressure.exceptionPressure,
   }),
   configuration: (context) => {
     const config = context.index % 2 === 0 ? STABLECOIN_DAILY_LIMIT : WIRE_APPROVAL_THRESHOLD;
@@ -235,6 +259,7 @@ const DETAIL_BY_KIND: Record<AuditEntryKind, DetailBuilder> = {
     operatorId: `op_${(context.index % OPERATOR_COUNT).toString(36).padStart(3, "0")}`,
     workspaceAction: context.index % 2 === 0 ? "saved_view.created" : "incident_note.added",
     reasonCode: "operator_context",
+    reviewedExceptions: context.pressure.exceptionPressure,
   }),
 };
 const SUBJECT_ID_BY_TYPE: Record<AuditSubjectType, SubjectIdBuilder> = {
@@ -274,8 +299,26 @@ function createAuditEntry(index: number, random: Random): AuditEntry {
   const riskTier = riskTierFor(profile.kind, index, random);
   const customerId = customerIdFor(customerNumber);
   const accountId = accountIdFor(accountNumber);
+  const enrichedContext = enrichedEntityContextFor({
+    accountId,
+    accountNumber,
+    customerId,
+    customerNumber,
+    index,
+    rail,
+  });
   const traceId = traceIdFor(index, customerNumber);
-  const context = { accountId, amountMinor, asset, customerId, index, profile, rail, riskTier };
+  const context = {
+    amountMinor,
+    asset,
+    index,
+    profile,
+    rail,
+    riskTier,
+    ...enrichedContext,
+  };
+  const severity = severityFor(profile, index, enrichedContext.pressure);
+  const status = statusFor(profile, index, enrichedContext.pressure);
 
   return {
     action: profile.action,
@@ -284,14 +327,14 @@ function createAuditEntry(index: number, random: Random): AuditEntry {
     asset,
     customerId,
     accountId,
-    detail: DETAIL_BY_KIND[profile.kind](context),
+    detail: withAnalystContext(DETAIL_BY_KIND[profile.kind](context), context),
     id: `aud_${index.toString(36).padStart(8, "0")}`,
     idempotencyKey: idempotencyKeyFor(profile.kind, index, customerNumber),
     kind: profile.kind,
     rail,
     riskTier,
-    severity: severityFor(profile, index),
-    status: statusFor(profile, index),
+    severity,
+    status,
     subjectId: SUBJECT_ID_BY_TYPE[profile.subjectType](context),
     subjectType: profile.subjectType,
     summary: `${profile.action} on ${rail} for ${customerId}`,
@@ -321,8 +364,16 @@ function riskTierFor(kind: AuditEntryKind, index: number, random: Random): RiskT
   return RISK_TIERS[(index + randomInt(random, 0, 3)) % RISK_TIERS.length];
 }
 
-function severityFor(profile: AuditProfile, index: number): AuditSeverity {
+function severityFor(
+  profile: AuditProfile,
+  index: number,
+  pressure: OperationalPressure,
+): AuditSeverity {
   if (index % CRITICAL_ENTRY_INTERVAL === 0) {
+    return "critical";
+  }
+
+  if (pressure.exceptionPressure >= 28 && profile.kind !== "operator_action") {
     return "critical";
   }
 
@@ -330,11 +381,19 @@ function severityFor(profile: AuditProfile, index: number): AuditSeverity {
     return "warning";
   }
 
+  if (pressure.exceptionPressure >= 12) {
+    return "warning";
+  }
+
   return profile.severity;
 }
 
-function statusFor(profile: AuditProfile, index: number): AuditStatus {
-  if (index % FAILED_ENTRY_INTERVAL === 0) {
+function statusFor(
+  profile: AuditProfile,
+  index: number,
+  pressure: OperationalPressure,
+): AuditStatus {
+  if (index % FAILED_ENTRY_INTERVAL === 0 || pressure.forceFailure) {
     return "failed";
   }
 

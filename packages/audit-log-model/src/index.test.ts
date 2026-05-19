@@ -1,4 +1,4 @@
-import { RAILS } from "@bankops/contracts";
+import { RAILS, type AuditEntry } from "@bankops/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -51,6 +51,23 @@ describe("audit log generator", () => {
       expect(entry.traceId).toMatch(/^tr_/);
       expect(entry.summary).toContain(entry.customerId);
       expect(entry.detail).toEqual(expect.any(Object));
+      expect(entry.detail).toMatchObject({
+        account: {
+          accountType: expect.any(String),
+          id: entry.accountId,
+          ledgerRegion: expect.any(String),
+        },
+        customer: {
+          id: entry.customerId,
+          monthlyVolumeBand: expect.any(String),
+          name: expect.any(String),
+          primaryRail: expect.any(String),
+          region: expect.any(String),
+          relationshipAgeDays: expect.any(Number),
+          riskProfile: expect.any(String),
+          segment: expect.any(String),
+        },
+      });
     }
   });
 
@@ -86,6 +103,20 @@ describe("audit log generator", () => {
     expect(idempotentEntries.length).toBeGreaterThan(0);
   });
 
+  it("adds analyst-useful operational pressure without exposing scenario labels", () => {
+    const entries = createAuditEntries(60_000);
+    const serialized = JSON.stringify(entries, (_key, value: unknown) =>
+      typeof value === "bigint" ? value.toString() : value,
+    );
+
+    expect(serialized).not.toMatch(/scenario|achReturnWave|stablecoinFinalityLag|wireCutoff/i);
+    expect(maxDetailNumber(entries, "returnRiskBps")).toBeGreaterThanOrEqual(338);
+    expect(maxDetailNumber(entries, "finalityLagMs")).toBeGreaterThanOrEqual(27_000);
+    expect(maxDetailNumber(entries, "unmatchedCount")).toBeGreaterThanOrEqual(38);
+    expect(maxDetailNumber(entries, "reviewQueueDepth")).toBeGreaterThanOrEqual(22);
+    expect(minDetailBigInt(entries, "reserveDeltaMinor")).toBeLessThan(0n);
+  });
+
   it("can generate the planned 250k-row scale without changing API shape", () => {
     const entries = createAuditEntries(AUDIT_LOG_TARGET_COUNT);
     const last = entries.at(-1);
@@ -94,3 +125,19 @@ describe("audit log generator", () => {
     expect(last?.id).toBe(`aud_${(AUDIT_LOG_TARGET_COUNT - 1).toString(36).padStart(8, "0")}`);
   });
 });
+
+function maxDetailNumber(entries: readonly AuditEntry[], key: string) {
+  return Math.max(
+    ...entries.map((entry) => {
+      const value = entry.detail[key];
+      return typeof value === "number" ? value : 0;
+    }),
+  );
+}
+
+function minDetailBigInt(entries: readonly AuditEntry[], key: string) {
+  return entries.reduce<bigint>((minimum, entry) => {
+    const value = entry.detail[key];
+    return typeof value === "bigint" && value < minimum ? value : minimum;
+  }, 0n);
+}

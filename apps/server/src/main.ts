@@ -1,4 +1,5 @@
 import path from "node:path";
+import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
 
 import fastifyStatic from "@fastify/static";
@@ -7,11 +8,15 @@ import Fastify from "fastify";
 import { z } from "zod";
 
 import { registerAuditApi } from "./audit-api.js";
+import { registerAnalystApi } from "./analyst/analyst-api.js";
 import { startOpsStreamSession } from "./ops-stream.js";
 
 const DEFAULT_PORT = 8787;
 const DEFAULT_HOST = "0.0.0.0";
 const listenPortSchema = z.coerce.number().finite().catch(DEFAULT_PORT);
+
+loadOptionalEnvFile(path.resolve(process.cwd(), ".env"));
+loadOptionalEnvFile(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..", ".env"));
 
 type BuildServerOptions = {
   logger?: boolean;
@@ -34,6 +39,7 @@ export async function buildServer(options: boolean | BuildServerOptions = true) 
   }));
 
   registerAuditApi(app);
+  registerAnalystApi(app);
 
   app.get("/stream", { websocket: true }, (socket) => {
     startOpsStreamSession(socket);
@@ -79,6 +85,14 @@ function defaultWebDistDir() {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
   return path.resolve(currentDir, "../../web/dist");
+}
+
+function loadOptionalEnvFile(filePath: string) {
+  try {
+    loadEnvFile(filePath);
+  } catch {
+    // Local .env is optional in tests and production deploys.
+  }
 }
 
 // ESM version of "only start the server if this file is run directly".
