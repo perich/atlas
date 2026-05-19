@@ -1,6 +1,7 @@
 import React from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
-import { ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditFacets } from "./audit-api";
@@ -18,6 +19,7 @@ import { formatCount } from "../../design/format";
 const TIME_OPTIONS = TIME_RANGES.map((range) => ({ label: range.label, value: range.value }));
 
 type FilterOption<T extends string> = {
+  count?: number;
   label: string;
   value: T;
 };
@@ -193,7 +195,8 @@ function auditFilterOptions<const T extends string>(
   return [
     { label: "All", value: "all" },
     ...values.map((value) => ({
-      label: counts === undefined ? value : `${value} (${formatCount(counts[value] ?? 0)})`,
+      count: counts?.[value],
+      label: value,
       value,
     })),
   ];
@@ -210,26 +213,60 @@ function FilterSelect<T extends string>({
   options: readonly FilterOption<T>[];
   value: T;
 }) {
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+
   return (
-    <label className="relative grid h-10 min-w-40 grid-rows-[auto_minmax(0,1fr)] rounded-[3px] border border-white/[0.08] bg-bankops-sidebar px-3 py-1 font-mono transition-colors focus-within:border-bankops-accent/35">
-      <span className="text-center text-[8px] font-semibold uppercase leading-3 tracking-[0.16em] text-bankops-subtle">
-        {label}
-      </span>
-      <select
-        className="min-w-0 appearance-none bg-transparent px-4 text-center font-mono text-[11px] font-medium leading-5 text-bankops-text outline-none [text-align-last:center]"
-        onChange={(event) => onChange(options[event.currentTarget.selectedIndex].value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        aria-hidden="true"
-        className="pointer-events-none absolute right-2.5 top-1/2 size-3 -translate-y-1/2 text-bankops-subtle"
-      />
-    </label>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          aria-label={label}
+          className="group grid h-10 min-w-40 grid-cols-[1fr_auto] grid-rows-[auto_minmax(0,1fr)] items-center rounded-[3px] border border-white/[0.08] bg-bankops-sidebar px-3 py-1 font-mono text-left transition-colors hover:border-white/[0.14] hover:bg-white/[0.025] focus-visible:border-bankops-accent/45 focus-visible:outline-none data-[state=open]:border-bankops-accent/40 data-[state=open]:bg-bankops-accent/[0.04]"
+          type="button"
+        >
+          <span className="col-span-2 text-center text-[8px] font-semibold uppercase leading-3 tracking-[0.16em] text-bankops-subtle">
+            {label}
+          </span>
+          <span className="min-w-0 truncate text-center text-[11px] font-semibold leading-5 text-bankops-text">
+            {selectedOption.label}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className="size-3 text-bankops-subtle transition-transform group-data-[state=open]:rotate-180 group-data-[state=open]:text-bankops-accent"
+          />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          className="z-50 min-w-64 rounded-[4px] border border-white/[0.10] bg-bankops-sidebar p-1.5 font-mono text-[11px] text-bankops-text shadow-2xl shadow-black/45"
+          sideOffset={6}
+        >
+          <DropdownMenu.RadioGroup
+            onValueChange={(nextValue) => onChange(nextValue as T)}
+            value={value}
+          >
+            {options.map((option) => (
+              <DropdownMenu.RadioItem
+                className="flex cursor-default items-center gap-2 rounded-[3px] px-2 py-1.5 text-bankops-muted outline-none transition-colors data-[highlighted]:bg-white/[0.055] data-[highlighted]:text-bankops-text data-[state=checked]:text-bankops-text"
+                key={option.value}
+                value={option.value}
+              >
+                <span className="grid size-4 shrink-0 place-items-center">
+                  <DropdownMenu.ItemIndicator className="text-bankops-accent">
+                    <Check aria-hidden="true" className="size-3" />
+                  </DropdownMenu.ItemIndicator>
+                </span>
+                <span className="min-w-0 flex-1 whitespace-nowrap capitalize">{option.label}</span>
+                {option.count === undefined ? null : (
+                  <span className="ml-6 text-[10px] tabular-nums text-bankops-subtle">
+                    {formatCount(option.count)}
+                  </span>
+                )}
+              </DropdownMenu.RadioItem>
+            ))}
+          </DropdownMenu.RadioGroup>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
