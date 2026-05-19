@@ -135,24 +135,51 @@ const StreamRateControl = React.memo(function StreamRateControl({
 
 function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   const metrics = [
-    ["fps", Math.round(snapshot.renderer.fps).toString()],
-    ["frame", `${snapshot.renderer.frameCostMs.toFixed(1)}ms`],
-    ["backlog", snapshot.renderer.backlog.toString()],
-    ["lag", snapshot.renderer.sequenceLag.toString()],
-    ["decoded", `${snapshot.renderer.decodedRate}/s`],
-    ["new rows", `${snapshot.renderer.renderedRowRate}/s`],
+    {
+      label: "fps",
+      title: "Canvas frames measured during the latest warm snapshot interval.",
+      value: Math.round(snapshot.renderer.fps).toString(),
+    },
+    {
+      label: "frame",
+      title: "Average worker canvas draw cost during the latest warm snapshot interval.",
+      value: `${snapshot.renderer.frameCostMs.toFixed(1)}ms`,
+    },
+    {
+      label: "backlog",
+      title: "Decoded movement rows retained beyond the currently visible tape window.",
+      value: snapshot.renderer.backlog.toString(),
+    },
+    {
+      label: "lag",
+      title: "Sequence gap between the latest server aggregate and the latest decoded hot batch.",
+      value: snapshot.renderer.sequenceLag.toString(),
+    },
+    {
+      label: "decoded",
+      title:
+        "Worker-decoded movements during the latest warm snapshot interval. The top-band event rate uses the simulator rolling window, so brief differences are expected.",
+      value: `${snapshot.renderer.decodedRate}/s`,
+    },
+    {
+      label: "new rows",
+      title:
+        "New movement rows pushed into the canvas tape during the latest warm snapshot interval.",
+      value: `${snapshot.renderer.renderedRowRate}/s`,
+    },
   ];
 
   return (
     <div className="grid grid-cols-3 gap-px border border-white/[0.08] bg-white/[0.05] text-[11px]">
-      {metrics.map(([label, value]) => (
+      {metrics.map((metric) => (
         <div
           className="bg-[#0d0f10] p-2"
-          data-testid={`renderer-metric-${label.replaceAll(" ", "-")}`}
-          key={label}
+          data-testid={`renderer-metric-${metric.label.replaceAll(" ", "-")}`}
+          key={metric.label}
+          title={metric.title}
         >
-          <p className="uppercase text-bankops-muted">{label}</p>
-          <p className="font-semibold text-white">{value}</p>
+          <p className="uppercase text-bankops-muted">{metric.label}</p>
+          <p className="font-semibold text-white">{metric.value}</p>
         </div>
       ))}
     </div>
