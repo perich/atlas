@@ -8,7 +8,7 @@ import Fastify from "fastify";
 import { z } from "zod";
 
 import { registerAuditApi } from "./audit-api.js";
-import { registerAnalystApi } from "./analyst-api.js";
+import { registerAnalystApi } from "./analyst/analyst-api.js";
 import { startOpsStreamSession } from "./ops-stream.js";
 
 const DEFAULT_PORT = 8787;
