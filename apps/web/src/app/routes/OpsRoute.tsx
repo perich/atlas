@@ -97,7 +97,7 @@ function HeaderMetric({
         {label}
       </p>
       <p
-        className={`mt-1 font-mono text-xl font-semibold tracking-[-0.01em] ${
+        className={`mt-1 font-mono text-xl font-medium tracking-[-0.01em] ${
           tone === "green"
             ? "text-emerald-400"
             : tone === "amber"
