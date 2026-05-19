@@ -89,7 +89,7 @@ const OpsMetricCard = React.memo(function OpsMetricCard({
         </p>
         <InfoTooltip label={`Explain ${label}`}>{tooltip}</InfoTooltip>
       </div>
-      <p className={`truncate font-mono text-[22px] font-semibold leading-none ${valueClassName}`}>
+      <p className={`truncate font-mono text-[22px] font-medium leading-none ${valueClassName}`}>
         {value}
       </p>
     </article>
