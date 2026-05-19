@@ -2,7 +2,7 @@ import type { AnalystRunEvent } from "@bankops/contracts";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
-import { runAnalystCodeMode } from "./analyst/analyst-runner.js";
+import { runAnalystCodeMode } from "./analyst-runner.js";
 
 const analystRunRequestSchema = z.object({
   question: z.string().min(1).max(2_000),
