@@ -1,19 +1,18 @@
 import type { AuditEntry } from "@bankops/contracts";
 
 import { filteredEntries } from "./filters.js";
-import { capped, DEFAULT_ROLLUP_LIMIT } from "./limits.js";
-import { detailNumber, detailRecord, stringField } from "./shared.js";
+import { capped } from "./limits.js";
+import { optionalDetailNumber, optionalDetailRecord, optionalStringField } from "./shared.js";
 import type { AnalystFilters } from "./types.js";
+
+type CustomerRiskRollupOptions = {
+  filters: AnalystFilters;
+  limit: number;
+};
 
 export function getCustomerRiskRollup(
   entries: readonly AuditEntry[],
-  {
-    filters = {},
-    limit = DEFAULT_ROLLUP_LIMIT,
-  }: {
-    filters?: AnalystFilters;
-    limit?: number;
-  } = {},
+  { filters, limit }: CustomerRiskRollupOptions,
 ) {
   const grouped = new Map<
     string,
@@ -32,24 +31,24 @@ export function getCustomerRiskRollup(
 
   for (const entry of filteredEntries(entries, filters)) {
     const customerId = entry.customerId ?? "unknown";
-    const customer = detailRecord(entry, "customer");
+    const customer = optionalDetailRecord(entry, "customer");
     const current = grouped.get(customerId) ?? {
       amountMinor: 0n,
       customerId,
       entries: 0,
       exceptionPressure: 0,
       failedCount: 0,
-      name: stringField(customer, "name") ?? customerId,
-      riskProfile: stringField(customer, "riskProfile") ?? "unknown",
+      name: optionalStringField(customer, "name") ?? customerId,
+      riskProfile: optionalStringField(customer, "riskProfile") ?? "unknown",
       riskReviewVolume: 0,
-      segment: stringField(customer, "segment") ?? "unknown",
+      segment: optionalStringField(customer, "segment") ?? "unknown",
     };
 
     current.entries += 1;
     current.failedCount += entry.status === "failed" ? 1 : 0;
     current.amountMinor += entry.amountMinor ?? 0n;
-    current.exceptionPressure += detailNumber(entry, "exceptionPressure");
-    current.riskReviewVolume += detailNumber(entry, "reviewQueueDepth");
+    current.exceptionPressure += optionalDetailNumber(entry, "exceptionPressure") ?? 0;
+    current.riskReviewVolume += optionalDetailNumber(entry, "reviewQueueDepth") ?? 0;
     grouped.set(customerId, current);
   }
 

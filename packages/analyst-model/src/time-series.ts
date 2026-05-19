@@ -4,17 +4,15 @@ import { filteredEntries } from "./filters.js";
 import { addMetric, bucketTs, jsonSafeNumber, metricValue, zeroForMetric } from "./metrics.js";
 import type { AnalystFilters, TimeGrain, TimeSeriesMetric } from "./types.js";
 
+type TimeSeriesOptions = {
+  filters: AnalystFilters;
+  grain: TimeGrain;
+  metric: TimeSeriesMetric;
+};
+
 export function getTimeSeries(
   entries: readonly AuditEntry[],
-  {
-    filters = {},
-    grain,
-    metric,
-  }: {
-    metric: TimeSeriesMetric;
-    grain: TimeGrain;
-    filters?: AnalystFilters;
-  },
+  { filters, grain, metric }: TimeSeriesOptions,
 ) {
   const buckets = new Map<number, number | bigint>();
 
