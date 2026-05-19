@@ -12,10 +12,7 @@ import {
 } from "./shared.js";
 import type { AnalystFilters } from "./types.js";
 
-export function getReconciliationRollup(
-  entries: readonly AuditEntry[],
-  filters: AnalystFilters = {},
-) {
+export function getReconciliationRollup(entries: readonly AuditEntry[], filters: AnalystFilters) {
   const rows = filteredEntries(entries, { ...filters, kind: ["reconciliation"] });
   const byRail = groupedByRail(rows, (railRows) => ({
     events: railRows.length,
@@ -33,7 +30,7 @@ export function getReconciliationRollup(
   };
 }
 
-export function getLiquidityRollup(entries: readonly AuditEntry[], filters: AnalystFilters = {}) {
+export function getLiquidityRollup(entries: readonly AuditEntry[], filters: AnalystFilters) {
   const rows = filteredEntries(entries, { ...filters, kind: ["liquidity"] });
   const byRail = groupedByRail(rows, (railRows) => ({
     events: railRows.length,
@@ -54,7 +51,7 @@ export function getLiquidityRollup(entries: readonly AuditEntry[], filters: Anal
   };
 }
 
-export function getRailHealthRollup(entries: readonly AuditEntry[], filters: AnalystFilters = {}) {
+export function getRailHealthRollup(entries: readonly AuditEntry[], filters: AnalystFilters) {
   const rows = filteredEntries(entries, { ...filters, kind: ["rail_health"] });
   const byRail = groupedByRail(rows, (railRows) => ({
     events: railRows.length,

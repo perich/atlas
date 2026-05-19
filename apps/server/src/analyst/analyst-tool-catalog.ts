@@ -44,7 +44,7 @@ const filtersSchema = z.object({
 });
 const analystFiltersSchema = filtersSchema.default({});
 const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).default(DEFAULT_ROLLUP_LIMIT);
-const overviewInputSchema = z.object({ filters: filtersSchema.optional() });
+const overviewInputSchema = z.object({ filters: analystFiltersSchema });
 const timeSeriesInputSchema = z.object({
   filters: analystFiltersSchema,
   grain: z.enum(["hour", "day"]),
@@ -70,7 +70,7 @@ const auditSampleInputSchema = z.object({
   limit: limitSchema,
   sort: z.enum(["newest", "oldest", "amountDesc", "severityDesc"]).default("newest"),
 });
-const filtersInputSchema = z.object({ filters: filtersSchema.optional() });
+const filtersInputSchema = z.object({ filters: analystFiltersSchema });
 const customerRiskInputSchema = z.object({ filters: analystFiltersSchema, limit: limitSchema });
 
 export function createAnalystToolCatalog(
@@ -82,7 +82,7 @@ export function createAnalystToolCatalog(
       description: "Return compact counts, time range, customer count, and amount totals.",
       inputSchema: overviewInputSchema,
       inputSummary: ({ filters }) =>
-        filters ? "filtered audit-log overview" : "full audit-log overview",
+        hasAnalystFilters(filters) ? "filtered audit-log overview" : "full audit-log overview",
       run: ({ filters }) => getDatasetOverview(entries(), filters),
       resultSummary: (result) =>
         `${result.totalEntries.toLocaleString()} entries, ${result.distinctCustomers.toLocaleString()} customers, ${Object.keys(result.byRail).length} rails`,
@@ -119,7 +119,9 @@ export function createAnalystToolCatalog(
       description: "Return reconciliation matched/unmatched and exception rollups.",
       inputSchema: filtersInputSchema,
       inputSummary: ({ filters }) =>
-        filters ? "filtered reconciliation rollup" : "full reconciliation rollup",
+        hasAnalystFilters(filters)
+          ? "filtered reconciliation rollup"
+          : "full reconciliation rollup",
       run: ({ filters }) => getReconciliationRollup(entries(), filters),
       resultSummary: (result) =>
         `${result.runs.toLocaleString()} reconciliation events, ${result.unmatchedCount.toLocaleString()} unmatched`,
@@ -129,7 +131,7 @@ export function createAnalystToolCatalog(
       description: "Return liquidity reserve rollups with JSON-safe amount strings.",
       inputSchema: filtersInputSchema,
       inputSummary: ({ filters }) =>
-        filters ? "filtered liquidity rollup" : "full liquidity rollup",
+        hasAnalystFilters(filters) ? "filtered liquidity rollup" : "full liquidity rollup",
       run: ({ filters }) => getLiquidityRollup(entries(), filters),
       resultSummary: (result) =>
         `${result.events.toLocaleString()} liquidity events, latest reserve ${result.latestReserveAfterMinor ?? "unknown"}`,
@@ -139,7 +141,7 @@ export function createAnalystToolCatalog(
       description: "Return rail latency, error-rate, pending-depth, and rail counts.",
       inputSchema: filtersInputSchema,
       inputSummary: ({ filters }) =>
-        filters ? "filtered rail-health rollup" : "full rail-health rollup",
+        hasAnalystFilters(filters) ? "filtered rail-health rollup" : "full rail-health rollup",
       run: ({ filters }) => getRailHealthRollup(entries(), filters),
       resultSummary: (result) =>
         `${result.events.toLocaleString()} rail-health events across ${Object.keys(result.byRail).length} rails`,
@@ -155,6 +157,10 @@ export function createAnalystToolCatalog(
         `${result.rows.length} customers${result.truncation.truncated ? " with truncation" : ""}`,
     }),
   ];
+}
+
+function hasAnalystFilters(filters: object) {
+  return Object.keys(filters).length > 0;
 }
 
 function analystTool<TInput, TResult>({
