@@ -12,7 +12,7 @@ let app: Awaited<ReturnType<typeof buildServer>>;
 
 describe("/api/audit", () => {
   beforeEach(async () => {
-    app = await buildServer(false);
+    app = await buildServer({ logger: false });
     await app.ready();
   });
 
