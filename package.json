@@ -18,8 +18,9 @@
     "lint": "oxlint --type-aware .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "precommit": "pnpm lint-staged && pnpm test:docs && pnpm test:sherif && pnpm test:knip && pnpm test:deps && pnpm typecheck && pnpm lint && pnpm test:run && pnpm format:check",
+    "precommit": "pnpm lint-staged && pnpm test:docs && pnpm test:secrets && pnpm test:sherif && pnpm test:knip && pnpm test:deps && pnpm typecheck && pnpm lint && pnpm test:run && pnpm format:check",
     "test:docs": "node scripts/verify-local-links.mjs",
+    "test:secrets": "secretlint \"**/*\"",
     "test:sherif": "sherif",
     "test:knip": "knip --treat-config-hints-as-errors",
     "test:deps": "depcruise --config dependency-cruiser.config.cjs --output-type err \"apps/**/src/**/*.{ts,tsx}\" \"packages/**/src/**/*.ts\"",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.59.1",
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.2",
     "@types/node": "25.6.2",
     "concurrently": "9.2.1",
     "dependency-cruiser": "17.4.0",
@@ -42,6 +44,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "react-doctor": "0.1.6",
+    "secretlint": "13.0.2",
     "sherif": "1.11.1",
     "typescript": "6.0.3"
   },
