@@ -22,14 +22,14 @@ export function AnalystRunTracePanel({
     <div
       className={cn(
         "min-h-[520px] rounded-md border bg-bankops-panel p-5",
-        error ? "border-rose-300/20" : "border-white/[0.08]",
+        error ? "border-bankops-negative/20" : "border-white/[0.08]",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.08] pb-4">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
             {error ? (
-              <AlertTriangle className="size-3.5 text-rose-300" />
+              <AlertTriangle className="size-3.5 text-bankops-negative" />
             ) : (
               <Loader2 className="size-3.5 animate-spin text-sky-300" />
             )}
@@ -52,9 +52,9 @@ export function AnalystRunTracePanel({
       </div>
 
       {error ? (
-        <div className="mt-4 rounded-md border border-rose-300/20 bg-rose-300/[0.05] p-3">
+        <div className="mt-4 rounded-md border border-bankops-negative/20 bg-bankops-negative/[0.05] p-3">
           <p className="text-sm font-medium text-white">Run failed</p>
-          <p className="mt-1 text-xs leading-5 text-rose-100/85">{error}</p>
+          <p className="mt-1 text-xs leading-5 text-bankops-negative/85">{error}</p>
         </div>
       ) : null}
 
@@ -73,7 +73,7 @@ export function AnalystRunTracePanel({
 
       <section className="mt-4 rounded-md border border-white/[0.08] bg-black/20 p-4">
         <p className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-bankops-muted">
-          <CheckCircle2 className="size-3.5 text-emerald-300" />
+          <CheckCircle2 className="size-3.5 text-bankops-positive" />
           Observable fact history
         </p>
         <div className="grid gap-2 xl:grid-cols-2">

@@ -64,7 +64,7 @@ export function AuditTablePanel({
   return (
     <Panel className="m-4 overflow-hidden border-white/[0.10] p-0">
       {hasError ? (
-        <div className="border-b border-rose-300/20 bg-rose-950/25 px-4 py-3 text-sm text-rose-100">
+        <div className="border-b border-bankops-negative/20 bg-bankops-negative/[0.06] px-4 py-3 text-sm text-bankops-negative">
           Audit backend unavailable. Filters and layout remain usable while the data request
           recovers.
         </div>
@@ -227,7 +227,7 @@ function AuditVirtualRow({
 function severityBorderClassName(severity: JsonAuditEntry["severity"]) {
   switch (severity) {
     case "critical":
-      return "border-l-2 border-l-red-400/50";
+      return "border-l-2 border-l-bankops-negative-strong/50";
     case "warning":
       return "border-l-2 border-l-amber-400/40";
     case "notice":
