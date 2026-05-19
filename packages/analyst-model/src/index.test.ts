@@ -33,6 +33,7 @@ describe("analyst rollups", () => {
           ts: index,
         }),
       ),
+      {},
     );
 
     expect(overview.totalEntries).toBe(250_000);
@@ -68,7 +69,7 @@ describe("analyst rollups", () => {
   });
 
   it("rolls up reconciliation, liquidity, and rail health facts", () => {
-    expect(getReconciliationRollup(rows)).toMatchObject({
+    expect(getReconciliationRollup(rows, {})).toMatchObject({
       byRail: {
         wire: {
           exceptionPressure: 7,
@@ -80,7 +81,7 @@ describe("analyst rollups", () => {
       matchedCount: 90,
       unmatchedCount: 12,
     });
-    expect(getLiquidityRollup(rows)).toMatchObject({
+    expect(getLiquidityRollup(rows, {})).toMatchObject({
       byRail: {
         stablecoin: {
           latestReserveAfterMinor: "98000",
@@ -90,7 +91,7 @@ describe("analyst rollups", () => {
       reserveDeltaMinor: "-2500",
       latestReserveAfterMinor: "98000",
     });
-    expect(getRailHealthRollup(rows)).toMatchObject({
+    expect(getRailHealthRollup(rows, {})).toMatchObject({
       byRail: {
         wire: {
           errorRateBpsMax: 92,
