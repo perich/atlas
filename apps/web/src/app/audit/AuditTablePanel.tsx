@@ -71,19 +71,11 @@ export function AuditTablePanel({
           while the window request can be retried.
         </div>
       ) : null}
-      <div className="flex h-9 items-center justify-between border-b border-white/[0.06] bg-bankops-sidebar px-4">
+      <div className="flex h-9 items-center border-b border-white/[0.06] bg-bankops-sidebar px-4">
         <div className="flex items-center gap-2.5">
           <span className="h-3.5 w-0.5 rounded-full bg-bankops-accent" />
           <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-bankops-subtle">
             Audit Log
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="rounded-[2px] border border-white/[0.06] px-2 py-0.5 font-mono text-[9px] text-bankops-subtle">
-            sorted newest first
-          </span>
-          <span className="rounded-[2px] border border-bankops-accent/20 px-2 py-0.5 font-mono text-[9px] text-bankops-accent">
-            copy traceId enabled
           </span>
         </div>
       </div>
