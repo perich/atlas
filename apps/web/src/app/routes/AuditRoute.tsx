@@ -4,7 +4,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { auditSearchToQueryState, queryStateToAuditSearch } from "../audit/audit-query-state";
 import type { ColumnLayoutUpdate } from "../audit/AuditColumnLayoutMenu";
-import { AuditFilterPanel } from "../audit/AuditFilterPanel";
+import { activeAuditFilters, AuditFilterPanel } from "../audit/AuditFilterPanel";
 import { AuditRenderTracePanel, useMainThreadBlockingP95 } from "../audit/AuditRenderTracePanel";
 import { AuditTablePanel } from "../audit/AuditTablePanel";
 import { timeRangeValue } from "../audit/audit-time-range";
@@ -81,6 +81,10 @@ export function AuditRoute() {
   const lastVirtualIndex = lastVirtualRow?.index;
   const mountedRows = virtualRows.length;
   const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, cache.newestTs);
+  const activeFilters = useMemo(
+    () => activeAuditFilters(queryState, selectedTimeRange),
+    [queryState, selectedTimeRange],
+  );
   const setQueryState = useCallback(
     (nextState: AuditQueryState) => {
       resetWindowCache();
@@ -123,6 +127,7 @@ export function AuditRoute() {
       />
 
       <AuditTablePanel
+        activeFilters={activeFilters}
         backgroundError={backgroundError}
         cache={cache}
         draggedColumnId={draggedColumnId}
@@ -137,6 +142,7 @@ export function AuditRoute() {
         tableWidth={tableWidth}
         toolbar={
           <AuditFilterPanel
+            activeFilters={activeFilters}
             columnLayout={columnLayout}
             facets={facets}
             newestRowTs={cache.newestTs}
