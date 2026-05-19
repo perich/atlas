@@ -59,12 +59,12 @@ export function AuditFilterPanel({
         <FilterSelect
           label="Time"
           onChange={(value) => {
-            const range = TIME_RANGES.find((item) => item.value === value);
+            const range = TIME_RANGES.find((item) => item.value === value)!;
 
             setQueryState(
               auditQueryStateWithTimeBounds(queryState, {
                 tsFrom:
-                  range?.durationMs !== undefined && newestRowTs !== undefined
+                  range.durationMs !== undefined && newestRowTs !== undefined
                     ? newestRowTs - range.durationMs
                     : undefined,
               }),
@@ -155,10 +155,10 @@ function activeAuditFilters(
   selectedTimeRange: TimeRangeValue,
 ): string[] {
   const filters: string[] = [];
-  const timeRange = TIME_RANGES.find((range) => range.value === selectedTimeRange);
+  const timeRange = TIME_RANGES.find((range) => range.value === selectedTimeRange)!;
 
   if (queryState.filters.tsFrom !== undefined || queryState.filters.tsTo !== undefined) {
-    filters.push(timeRange?.value === "all" ? "time filtered" : `time: ${timeRange?.label}`);
+    filters.push(timeRange.value === "all" ? "time filtered" : `time: ${timeRange.label}`);
   }
 
   if (queryState.filters.severity !== undefined) {
