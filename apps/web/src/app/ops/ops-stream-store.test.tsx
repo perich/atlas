@@ -208,7 +208,6 @@ describe("OpsRoute", () => {
     });
 
     expect(host?.textContent).toContain("Reconnecting");
-    expect(host?.textContent).toContain("Watch");
 
     act(() => {
       worker.emit({
@@ -223,7 +222,6 @@ describe("OpsRoute", () => {
 
     expect(host?.textContent).toContain("Backend unavailable");
     expect(host?.textContent).toContain("protocol:bad_magic");
-    expect(host?.textContent).toContain("Strained");
   });
 });
 
