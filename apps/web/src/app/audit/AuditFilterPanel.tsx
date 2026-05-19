@@ -25,18 +25,18 @@ type FilterOption<T extends string> = {
 };
 
 export function AuditFilterPanel({
-  activeFilters,
   columnLayout,
   facets,
+  hasActiveFilters,
   newestRowTs,
   onColumnLayoutChange,
   queryState,
   selectedTimeRange,
   setQueryState,
 }: {
-  activeFilters: readonly string[];
   columnLayout: AuditColumnLayout;
   facets: JsonAuditFacets | undefined;
+  hasActiveFilters: boolean;
   newestRowTs: number | undefined;
   onColumnLayoutChange: (update: ColumnLayoutUpdate) => void;
   queryState: AuditQueryState;
@@ -48,77 +48,75 @@ export function AuditFilterPanel({
   const statusOptions = auditFilterOptions(AUDIT_STATUSES, facets?.status);
 
   return (
-    <>
-      <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4 py-2">
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-          <FilterSelect
-            label="Time"
-            onChange={(value) => {
-              const range = TIME_RANGES.find((item) => item.value === value)!;
+    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-white/[0.06] bg-bankops-panel px-4 py-2">
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+        <FilterSelect
+          label="Time"
+          onChange={(value) => {
+            const range = TIME_RANGES.find((item) => item.value === value)!;
 
-              setQueryState(
-                auditQueryStateWithTimeBounds(queryState, {
-                  tsFrom:
-                    range.durationMs !== undefined && newestRowTs !== undefined
-                      ? newestRowTs - range.durationMs
-                      : undefined,
-                }),
-              );
-            }}
-            options={TIME_OPTIONS}
-            value={selectedTimeRange}
-          />
+            setQueryState(
+              auditQueryStateWithTimeBounds(queryState, {
+                tsFrom:
+                  range.durationMs !== undefined && newestRowTs !== undefined
+                    ? newestRowTs - range.durationMs
+                    : undefined,
+              }),
+            );
+          }}
+          options={TIME_OPTIONS}
+          value={selectedTimeRange}
+        />
 
-          <FilterSelect
-            label="Severity"
-            onChange={(value) =>
-              setQueryState(
-                auditQueryStateWithSeverityFilter(queryState, value === "all" ? undefined : value),
-              )
-            }
-            options={severityOptions}
-            value={queryState.filters.severity?.[0] ?? "all"}
-          />
+        <FilterSelect
+          label="Severity"
+          onChange={(value) =>
+            setQueryState(
+              auditQueryStateWithSeverityFilter(queryState, value === "all" ? undefined : value),
+            )
+          }
+          options={severityOptions}
+          value={queryState.filters.severity?.[0] ?? "all"}
+        />
 
-          <FilterSelect
-            label="Rail"
-            onChange={(value) =>
-              setQueryState(
-                auditQueryStateWithRailFilter(queryState, value === "all" ? undefined : value),
-              )
-            }
-            options={railOptions}
-            value={queryState.filters.rail?.[0] ?? "all"}
-          />
+        <FilterSelect
+          label="Rail"
+          onChange={(value) =>
+            setQueryState(
+              auditQueryStateWithRailFilter(queryState, value === "all" ? undefined : value),
+            )
+          }
+          options={railOptions}
+          value={queryState.filters.rail?.[0] ?? "all"}
+        />
 
-          <FilterSelect
-            label="Status"
-            onChange={(value) =>
-              setQueryState(
-                auditQueryStateWithStatusFilter(queryState, value === "all" ? undefined : value),
-              )
-            }
-            options={statusOptions}
-            value={queryState.filters.status?.[0] ?? "all"}
-          />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-          <div className="inline-flex h-7 items-center rounded-[3px] border border-white/[0.06] px-3 font-mono text-[11px] text-bankops-muted">
-            Sort: {queryState.sort.field} {queryState.sort.dir}
-          </div>
-          <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
-          <button
-            className="inline-flex h-7 items-center rounded-[3px] px-3 font-mono text-[11px] text-bankops-subtle transition-colors hover:bg-white/[0.035] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={activeFilters.length === 0}
-            onClick={() => setQueryState({ filters: {}, sort: queryState.sort })}
-            type="button"
-          >
-            Reset
-          </button>
-        </div>
+        <FilterSelect
+          label="Status"
+          onChange={(value) =>
+            setQueryState(
+              auditQueryStateWithStatusFilter(queryState, value === "all" ? undefined : value),
+            )
+          }
+          options={statusOptions}
+          value={queryState.filters.status?.[0] ?? "all"}
+        />
       </div>
-    </>
+
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="inline-flex h-7 items-center rounded-[3px] border border-white/[0.06] px-3 font-mono text-[11px] text-bankops-muted">
+          Sort: {queryState.sort.field} {queryState.sort.dir}
+        </div>
+        <AuditColumnLayoutMenu layout={columnLayout} onChange={onColumnLayoutChange} />
+        <button
+          className="inline-flex h-7 items-center rounded-[3px] px-3 font-mono text-[11px] text-bankops-subtle transition-colors hover:bg-white/[0.035] hover:text-bankops-text disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={!hasActiveFilters}
+          onClick={() => setQueryState({ filters: {}, sort: queryState.sort })}
+          type="button"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -173,13 +171,9 @@ function FilterSelect<T extends string>({
   options: readonly FilterOption<T>[];
   value: T;
 }) {
-  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const selectedOption = options.find((option) => option.value === value)!;
   const selectOption = (nextValue: string) => {
-    const nextOption = options.find((option) => option.value === nextValue);
-
-    if (nextOption !== undefined) {
-      onChange(nextOption.value);
-    }
+    onChange(options.find((option) => option.value === nextValue)!.value);
   };
 
   return (
