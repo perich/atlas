@@ -66,7 +66,7 @@ async function enableReactScan() {
 
   window.bankopsReactScan = {
     summary: () =>
-      [...scanSummary.values()].sort(
+      Array.from(scanSummary.values()).sort(
         (left, right) =>
           right.unnecessaryCount - left.unnecessaryCount ||
           right.renderCount - left.renderCount ||

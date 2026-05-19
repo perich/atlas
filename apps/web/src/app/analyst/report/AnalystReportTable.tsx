@@ -127,7 +127,7 @@ function sortRows(rows: DataTableBlock["rows"], sort: SortState) {
     return rows;
   }
 
-  return [...rows].sort((left, right) =>
+  return Array.from(rows).sort((left, right) =>
     compareTableValues(left[sort.key], right[sort.key], sort.direction),
   );
 }

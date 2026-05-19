@@ -10,6 +10,11 @@ import { AnalystReportChart } from "./AnalystReportChart";
 import { AnalystReportTable } from "./AnalystReportTable";
 import { cn } from "../../../design/utils";
 
+const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "short",
+  timeStyle: "medium",
+});
+
 export function AnalystReportRenderer({ report }: { report: unknown }) {
   const parsed = analystReportSpecSchema.parse(report);
 
@@ -35,7 +40,7 @@ function AnalystReportCanvas({ report }: { report: AnalystReportSpec }) {
             ) : null}
           </div>
           <time className="shrink-0 border border-white/[0.08] bg-black/20 px-3 py-2 font-mono text-[11px] text-bankops-muted">
-            {new Date(report.generatedAt).toLocaleString()}
+            {formatDateTime(report.generatedAt)}
           </time>
         </div>
         <p className="mt-4 text-sm leading-6 text-bankops-text">{report.summary}</p>
@@ -165,7 +170,7 @@ function ReportBlock({ block }: { block: AnalystReportBlock }) {
                 key={`${event.ts}-${event.title}`}
               >
                 <time className="font-mono text-[11px] text-bankops-muted">
-                  {new Date(event.ts).toLocaleString()}
+                  {formatDateTime(event.ts)}
                 </time>
                 <p className="mt-1 text-sm font-semibold text-white">{event.title}</p>
                 {event.detail ? (
@@ -359,4 +364,8 @@ function toneBorder(tone?: "neutral" | "good" | "warning" | "critical" | "succes
 function blockKey(block: AnalystReportBlock, index: number) {
   const title = "title" in block ? block.title : undefined;
   return `${block.type}-${title ?? index}`;
+}
+
+function formatDateTime(value: string | number) {
+  return dateTimeFormat.format(typeof value === "number" ? value : Date.parse(value));
 }
