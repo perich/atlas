@@ -4,7 +4,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import { auditSearchToQueryState, queryStateToAuditSearch } from "../audit/audit-query-state";
 import type { ColumnLayoutUpdate } from "../audit/AuditColumnLayoutMenu";
-import { AuditFilterPanel } from "../audit/AuditFilterPanel";
+import { activeAuditFilters, AuditFilterPanel } from "../audit/AuditFilterPanel";
 import { AuditRenderTracePanel, useMainThreadBlockingP95 } from "../audit/AuditRenderTracePanel";
 import { AuditTablePanel } from "../audit/AuditTablePanel";
 import { timeRangeValue } from "../audit/audit-time-range";
@@ -16,7 +16,6 @@ import {
 } from "../audit/audit-columns";
 import { useAuditWindow } from "../audit/use-audit-window";
 import type { AuditQueryState } from "../audit/use-audit-window";
-import { PageHeader } from "../../design/components";
 
 const ROW_HEIGHT = 34;
 const AUDIT_SCROLL_LOAD_DEBOUNCE_MS = 24;
@@ -82,6 +81,7 @@ export function AuditRoute() {
   const lastVirtualIndex = lastVirtualRow?.index;
   const mountedRows = virtualRows.length;
   const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, cache.newestTs);
+  const activeFilters = activeAuditFilters(queryState, selectedTimeRange);
   const setQueryState = useCallback(
     (nextState: AuditQueryState) => {
       resetWindowCache();
@@ -107,32 +107,24 @@ export function AuditRoute() {
   }, [firstVirtualIndex, lastVirtualIndex, loadVisibleRange]);
 
   return (
-    <div className="min-h-[calc(100vh-5.25rem)] rounded-md border border-white/[0.08] bg-bankops-bg">
-      <div className="border-b border-white/[0.08] bg-bankops-sidebar px-6 py-5">
-        <PageHeader eyebrow="Bank Core Audit" title="Audit Entry History" />
+    <div className="min-h-[calc(100vh-5.25rem)] overflow-hidden rounded-[4px] border border-white/[0.06] bg-bankops-panel">
+      <div className="border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
+        <h1 className="text-2xl font-semibold leading-tight tracking-[-0.02em] text-bankops-text">
+          Bank Core Audit Log
+        </h1>
       </div>
 
-      <AuditFilterPanel
-        columnLayout={columnLayout}
-        facets={facets}
-        newestRowTs={cache.newestTs}
-        onColumnLayoutChange={setColumnLayout}
-        queryState={queryState}
-        renderTrace={
-          <AuditRenderTracePanel
-            cache={cache}
-            firstVirtualIndex={firstVirtualIndex}
-            lastVirtualIndex={lastVirtualIndex}
-            mainThreadBlockingP95={mainThreadBlockingP95}
-            mountedRows={mountedRows}
-            rows={rows.length}
-          />
-        }
-        selectedTimeRange={selectedTimeRange}
-        setQueryState={setQueryState}
+      <AuditRenderTracePanel
+        cache={cache}
+        firstVirtualIndex={firstVirtualIndex}
+        lastVirtualIndex={lastVirtualIndex}
+        mainThreadBlockingP95={mainThreadBlockingP95}
+        mountedRows={mountedRows}
+        rows={rows.length}
       />
 
       <AuditTablePanel
+        activeFilters={activeFilters}
         backgroundError={backgroundError}
         cache={cache}
         draggedColumnId={draggedColumnId}
@@ -145,6 +137,18 @@ export function AuditRoute() {
         setDraggedColumnId={setDraggedColumnId}
         setQueryState={setQueryState}
         tableWidth={tableWidth}
+        toolbar={
+          <AuditFilterPanel
+            columnLayout={columnLayout}
+            facets={facets}
+            hasActiveFilters={activeFilters.length > 0}
+            newestRowTs={cache.newestTs}
+            onColumnLayoutChange={setColumnLayout}
+            queryState={queryState}
+            selectedTimeRange={selectedTimeRange}
+            setQueryState={setQueryState}
+          />
+        }
         virtualRows={virtualRows}
         virtualizerTotalSize={virtualizer.getTotalSize()}
         visibleColumns={visibleColumns}

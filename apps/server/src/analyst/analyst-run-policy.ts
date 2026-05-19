@@ -1,4 +1,5 @@
 import type { OpenRouterTextModelOptions } from "@tanstack/ai-openrouter";
+import { z } from "zod";
 
 export const ANALYST_MAX_ATTEMPTS = 4;
 export const ANALYST_CODE_MODE_TIMEOUT_MS = 120_000;
@@ -99,6 +100,11 @@ Valid block types only:
 Never use these invalid block types: "table", "narrative", "chart", "text".
 Never put title/value/delta directly on a "metric" block; put them inside block.metric.`;
 
+const reasoningMessageContentEventSchema = z.object({
+  type: z.literal("REASONING_MESSAGE_CONTENT"),
+  delta: z.string(),
+});
+
 export function analystModelOptions(): OpenRouterTextModelOptions {
   return {
     reasoning: { effort: "medium" },
@@ -122,16 +128,8 @@ export function analystUserPrompt({
 }
 
 export function reasoningTraceDelta(event: unknown) {
-  if (event === null || typeof event !== "object" || !("type" in event)) {
-    return undefined;
-  }
-
-  const candidate = event as { type?: unknown; delta?: unknown };
-  if (candidate.type !== "REASONING_MESSAGE_CONTENT" || typeof candidate.delta !== "string") {
-    return undefined;
-  }
-
-  return candidate.delta;
+  const parsed = reasoningMessageContentEventSchema.safeParse(event);
+  return parsed.success ? parsed.data.delta : undefined;
 }
 
 export function reasoningTraceSnippet(value: string) {

@@ -1,6 +1,6 @@
 import type { AuditEntry } from "@bankops/contracts";
 
-import { detailNumber } from "./shared.js";
+import { optionalDetailNumber } from "./shared.js";
 import type { BreakdownMetric, TimeGrain, TimeSeriesMetric } from "./types.js";
 
 export function bucketTs(ts: number, grain: TimeGrain) {
@@ -16,10 +16,10 @@ export function metricValue(entry: AuditEntry, metric: TimeSeriesMetric | Breakd
     return entry.status === "failed" ? 1 : 0;
   }
   if (metric === "exceptionPressure") {
-    return detailNumber(entry, "exceptionPressure");
+    return optionalDetailNumber(entry, "exceptionPressure") ?? 0;
   }
   if (metric === "pendingDepth") {
-    return detailNumber(entry, "pendingDepth");
+    return optionalDetailNumber(entry, "pendingDepth") ?? 0;
   }
   return 1;
 }

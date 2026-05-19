@@ -1,7 +1,7 @@
 import type { AuditEntry } from "@bankops/contracts";
 
 import { filteredEntries } from "./filters.js";
-import { capped, DEFAULT_ROLLUP_LIMIT } from "./limits.js";
+import { capped } from "./limits.js";
 import {
   addMetric,
   compareRollupValues,
@@ -9,22 +9,19 @@ import {
   metricValue,
   zeroForMetric,
 } from "./metrics.js";
-import { detailRecord, stringField } from "./shared.js";
+import { optionalDetailRecord, optionalStringField } from "./shared.js";
 import type { AnalystFilters, BreakdownDimension, BreakdownMetric } from "./types.js";
+
+type BreakdownOptions = {
+  dimension: BreakdownDimension;
+  filters: AnalystFilters;
+  limit: number;
+  metric: BreakdownMetric;
+};
 
 export function getBreakdown(
   entries: readonly AuditEntry[],
-  {
-    dimension,
-    filters = {},
-    limit = DEFAULT_ROLLUP_LIMIT,
-    metric,
-  }: {
-    dimension: BreakdownDimension;
-    metric: BreakdownMetric;
-    filters?: AnalystFilters;
-    limit?: number;
-  },
+  { dimension, filters, limit, metric }: BreakdownOptions,
 ) {
   const totals = new Map<string, number | bigint>();
 
@@ -56,5 +53,8 @@ function dimensionValue(entry: AuditEntry, dimension: BreakdownDimension) {
     return entry.kind;
   }
 
-  return stringField(detailRecord(entry, "customer"), dimension.split(".")[1]) ?? "unknown";
+  return (
+    optionalStringField(optionalDetailRecord(entry, "customer"), dimension.split(".")[1]) ??
+    "unknown"
+  );
 }

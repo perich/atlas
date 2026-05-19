@@ -1,5 +1,5 @@
 import {
-  parseAuditQueryStateSearch,
+  parseAuditQueryStateSearchString,
   type AuditEntry,
   type AuditFilters,
   type AuditQueryState,
@@ -16,7 +16,7 @@ export {
 } from "@bankops/contracts";
 
 export function readAuditQueryState(search = window.location.search) {
-  return parseAuditQueryStateSearch(search);
+  return parseAuditQueryStateSearchString(search);
 }
 
 export function auditQueryStateWithTimeBounds(

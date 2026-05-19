@@ -1,21 +1,19 @@
 import type { AuditEntry } from "@bankops/contracts";
 
 import { filteredEntries } from "./filters.js";
-import { capped, DEFAULT_ROLLUP_LIMIT } from "./limits.js";
-import { stringField } from "./shared.js";
+import { capped } from "./limits.js";
+import { optionalStringField } from "./shared.js";
 import type { AnalystFilters, AuditSampleSort } from "./types.js";
+
+type AuditSampleOptions = {
+  filters: AnalystFilters;
+  limit: number;
+  sort: AuditSampleSort;
+};
 
 export function getAuditSample(
   entries: readonly AuditEntry[],
-  {
-    filters = {},
-    limit = DEFAULT_ROLLUP_LIMIT,
-    sort = "newest",
-  }: {
-    filters?: AnalystFilters;
-    limit?: number;
-    sort?: AuditSampleSort;
-  } = {},
+  { filters, limit, sort }: AuditSampleOptions,
 ) {
   return capped(
     [...filteredEntries(entries, filters)]
@@ -67,7 +65,7 @@ function sampleDetailSummary(detail: Record<string, unknown>) {
       if (key === "customer") {
         const name =
           value !== null && typeof value === "object" && !Array.isArray(value)
-            ? stringField(Object.fromEntries(Object.entries(value)), "name")
+            ? optionalStringField(Object.fromEntries(Object.entries(value)), "name")
             : undefined;
         return name === undefined ? [] : [`customer=${name}`];
       }

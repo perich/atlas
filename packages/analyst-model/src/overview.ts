@@ -4,7 +4,7 @@ import { filteredEntries } from "./filters.js";
 import { amountTotal, countBy } from "./shared.js";
 import type { AnalystFilters } from "./types.js";
 
-export function getDatasetOverview(entries: readonly AuditEntry[], filters: AnalystFilters = {}) {
+export function getDatasetOverview(entries: readonly AuditEntry[], filters: AnalystFilters) {
   const rows = filteredEntries(entries, filters);
   const distinctCustomers = new Set<string>();
   let tsFrom: number | undefined;
