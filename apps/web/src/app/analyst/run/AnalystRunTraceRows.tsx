@@ -58,7 +58,7 @@ function traceSourceClass(source: AnalystTraceEvent["source"]) {
     case "runtime":
       return "text-bankops-muted";
     case "tool":
-      return "text-emerald-300";
+      return "text-bankops-positive";
     case "validation":
       return "text-amber-300";
   }

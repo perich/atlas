@@ -3,8 +3,8 @@ import { titleize } from "./ops-format";
 
 export const railHealthClassNames: Record<RailHealthSnapshot["status"], string> = {
   degraded: "text-amber-300",
-  incident: "text-rose-300",
-  nominal: "text-emerald-300",
+  incident: "text-bankops-negative",
+  nominal: "text-bankops-positive",
 };
 
 export const railHealthLabels: Record<RailHealthSnapshot["status"], string> = {

@@ -21,7 +21,7 @@ const statusLabels: Record<OpsConnectionStatus, string> = {
 const statusClassNames: Record<OpsConnectionStatus, string> = {
   connecting: "font-semibold text-bankops-accent",
   degraded: "font-semibold text-amber-300",
-  open: "font-semibold text-emerald-400",
+  open: "font-semibold text-bankops-positive-strong",
   reconnecting: "font-semibold text-bankops-accent",
 };
 
@@ -50,7 +50,7 @@ export function OpsSideRail({
               data-testid="ops-connection-status"
             >
               {snapshot.connectionStatus === "open" ? (
-                <span className="size-1.5 rounded-full bg-emerald-400" />
+                <span className="size-1.5 rounded-full bg-bankops-positive-strong" />
               ) : null}
               {statusLabels[snapshot.connectionStatus]}
             </span>
@@ -212,9 +212,9 @@ function railStatusBorderClassName(status: RailHealthSnapshot["status"]) {
     case "degraded":
       return "border-l-amber-300";
     case "incident":
-      return "border-l-rose-400";
+      return "border-l-bankops-negative-strong";
     case "nominal":
-      return "border-l-emerald-400";
+      return "border-l-bankops-positive-strong";
   }
 
   const exhaustive: never = status;
