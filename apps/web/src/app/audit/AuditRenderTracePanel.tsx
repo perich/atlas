@@ -53,7 +53,7 @@ export function AuditRenderTracePanel({
   return (
     <section
       aria-label="Render trace"
-      className="grid min-h-14 grid-cols-8 overflow-x-auto border-b border-white/[0.06] bg-bankops-sidebar text-xs text-bankops-muted"
+      className="mx-4 mt-4 grid min-h-14 grid-cols-8 overflow-x-auto rounded-[4px] border border-white/[0.07] bg-bankops-sidebar/65 text-xs text-bankops-muted"
     >
       {traceMetrics.map((metric) => (
         <TraceMetric

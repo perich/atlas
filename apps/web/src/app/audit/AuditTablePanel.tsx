@@ -37,6 +37,7 @@ export function AuditTablePanel({
   setDraggedColumnId,
   setQueryState,
   tableWidth,
+  toolbar,
   virtualRows,
   virtualizerTotalSize,
   visibleColumns,
@@ -53,6 +54,7 @@ export function AuditTablePanel({
   setDraggedColumnId: (columnId: AuditColumnId | undefined) => void;
   setQueryState: (state: AuditQueryState) => void;
   tableWidth: number;
+  toolbar: React.ReactNode;
   virtualRows: AuditVirtualItem[];
   virtualizerTotalSize: number;
   visibleColumns: SizedAuditColumn[];
@@ -79,6 +81,7 @@ export function AuditTablePanel({
           </span>
         </div>
       </div>
+      {toolbar}
       <div
         className="h-[620px] overflow-auto bg-bankops-panel"
         data-testid="audit-table-scroll"
