@@ -1,5 +1,6 @@
 import React from "react";
 import { AUDIT_SEVERITIES, AUDIT_STATUSES, RAILS } from "@bankops/contracts";
+import { X } from "lucide-react";
 
 import { AuditColumnLayoutMenu, type ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import type { JsonAuditFacets } from "./audit-api";
@@ -48,6 +49,11 @@ export function AuditFilterPanel({
   return (
     <Panel className="m-4 mb-0 overflow-hidden p-0">
       {renderTrace}
+
+      <ActiveFilterBar
+        filters={activeAuditFilters(queryState, selectedTimeRange)}
+        onReset={() => setQueryState({ filters: {}, sort: queryState.sort })}
+      />
 
       <div className="flex flex-wrap items-end gap-2.5 bg-bankops-panel px-4 py-3">
         <FilterSelect
@@ -106,6 +112,68 @@ export function AuditFilterPanel({
       </div>
     </Panel>
   );
+}
+
+function ActiveFilterBar({
+  filters,
+  onReset,
+}: {
+  filters: readonly string[];
+  onReset: () => void;
+}) {
+  if (filters.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.08] bg-[#101214] px-4 py-2">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-[#5a6272]">
+        Filtered
+      </span>
+      {filters.map((filter) => (
+        <span
+          className="inline-flex h-6 items-center border border-sky-300/15 bg-sky-300/[0.06] px-2 font-mono text-[10px] text-sky-100/85"
+          key={filter}
+        >
+          {filter}
+        </span>
+      ))}
+      <button
+        className="ml-1 inline-flex h-6 items-center gap-1 border border-white/[0.08] bg-white/[0.03] px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-bankops-muted transition-colors hover:border-white/18 hover:text-bankops-text"
+        onClick={onReset}
+        type="button"
+      >
+        <X aria-hidden="true" className="size-3" />
+        Reset
+      </button>
+    </div>
+  );
+}
+
+function activeAuditFilters(
+  queryState: AuditQueryState,
+  selectedTimeRange: TimeRangeValue,
+): string[] {
+  const filters: string[] = [];
+  const timeRange = TIME_RANGES.find((range) => range.value === selectedTimeRange);
+
+  if (queryState.filters.tsFrom !== undefined || queryState.filters.tsTo !== undefined) {
+    filters.push(timeRange?.value === "all" ? "time filtered" : `time: ${timeRange?.label}`);
+  }
+
+  if (queryState.filters.severity !== undefined) {
+    filters.push(`severity: ${queryState.filters.severity.join(", ")}`);
+  }
+
+  if (queryState.filters.rail !== undefined) {
+    filters.push(`rail: ${queryState.filters.rail.join(", ")}`);
+  }
+
+  if (queryState.filters.status !== undefined) {
+    filters.push(`status: ${queryState.filters.status.join(", ")}`);
+  }
+
+  return filters;
 }
 
 function auditFilterOptions<const T extends string>(
