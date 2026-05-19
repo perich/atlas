@@ -44,7 +44,7 @@ export async function buildServer(options: BuildServerOptions = {}) {
     startOpsStreamSession(socket);
   });
 
-  if (options.serveStatic ?? process.env.NODE_ENV === "production") {
+  if (options.serveStatic ?? process.env["NODE_ENV"] === "production") {
     const webDistDir = options.staticRoot ?? defaultWebDistDir();
 
     await app.register(fastifyStatic, {
@@ -69,8 +69,8 @@ export async function buildServer(options: BuildServerOptions = {}) {
 
 export function resolveListenOptions(env: NodeJS.ProcessEnv = process.env) {
   return {
-    host: env.HOST ?? DEFAULT_HOST,
-    port: parseListenPort(env.PORT),
+    host: env["HOST"] ?? DEFAULT_HOST,
+    port: parseListenPort(env["PORT"]),
   };
 }
 

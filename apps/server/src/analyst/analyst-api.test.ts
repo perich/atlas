@@ -5,12 +5,12 @@ import { buildServer } from "../main.js";
 let app: Awaited<ReturnType<typeof buildServer>>;
 
 describe("/api/analyst/runs", () => {
-  const originalApiKey = process.env.OPENROUTER_API_KEY;
-  const originalModel = process.env.ANALYST_MODEL;
+  const originalApiKey = process.env["OPENROUTER_API_KEY"];
+  const originalModel = process.env["ANALYST_MODEL"];
 
   beforeEach(async () => {
-    delete process.env.OPENROUTER_API_KEY;
-    delete process.env.ANALYST_MODEL;
+    delete process.env["OPENROUTER_API_KEY"];
+    delete process.env["ANALYST_MODEL"];
     app = await buildServer({ logger: false });
     await app.ready();
   });
