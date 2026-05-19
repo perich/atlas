@@ -45,7 +45,7 @@ const OpsHeroHeader = React.memo(function OpsHeroHeader() {
         <div>
           <div className="mb-2 flex items-center gap-3">
             <span className="border border-white/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-bankops-muted">
-              God Mode
+              Live Core
             </span>
             <span className="inline-flex items-center gap-1.5 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
               <span className="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(74,222,128,0.7)]" />

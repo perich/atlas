@@ -71,11 +71,11 @@ Viewport support:
   desktop-sized screen.
 - Do not spend first-cut scope adapting dense `/ops` or `/audit` surfaces to mobile.
 
-### `/ops`: God Mode Operations View
+### `/ops`: High-Throughput Operations View
 
-Purpose: create a beautiful, high-performance "god mode" view of a modern bank core. This route is
-allowed to be more atmospheric and demonstrative than strictly workflow-driven, as long as it still
-looks relevant to bank operations.
+Purpose: create a beautiful, high-performance live operations view of a modern bank core. This
+route is allowed to be more atmospheric and demonstrative than strictly workflow-driven, as long as
+it still looks relevant to bank operations.
 
 Required surfaces:
 
