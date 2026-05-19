@@ -6,6 +6,7 @@ import {
   type AnalystReportSpec,
   type AnalystRunEvent,
 } from "@bankops/contracts";
+import { z } from "zod";
 
 import {
   ANALYST_CODE_MODE_SCAFFOLD,
@@ -31,6 +32,21 @@ type AttemptInput = {
   attempt: number;
   validationError?: string;
 };
+const codeModeConsoleEventSchema = z.object({
+  type: z.literal("CUSTOM"),
+  data: z.object({
+    name: z.literal("code_mode:console"),
+    message: z.string(),
+  }),
+});
+const runErrorEventSchema = z.object({
+  type: z.literal("RUN_ERROR"),
+  message: z.string(),
+});
+const textMessageContentEventSchema = z.object({
+  type: z.literal("TEXT_MESSAGE_CONTENT"),
+  delta: z.string(),
+});
 
 export async function runAnalystCodeMode({
   emit,
@@ -132,10 +148,11 @@ export async function runAnalystCodeMode({
           }
         }
 
-        if (isCodeModeConsoleEvent(event)) {
-          emitAnalystProgress(emit, "CodeMode milestone", event.data.message.slice(0, 500));
-          emitAnalystTrace(emit, "codemode", "console.log", event.data.message);
-          emit({ type: "code", code: event.data.message });
+        const consoleEvent = codeModeConsoleEvent(event);
+        if (consoleEvent !== undefined) {
+          emitAnalystProgress(emit, "CodeMode milestone", consoleEvent.data.message.slice(0, 500));
+          emitAnalystTrace(emit, "codemode", "console.log", consoleEvent.data.message);
+          emit({ type: "code", code: consoleEvent.data.message });
         }
       }
 
@@ -228,41 +245,17 @@ function createSubmitReportTool(onReport: (report: AnalystReportSpec) => void) {
   });
 }
 
-function isCodeModeConsoleEvent(event: unknown): event is { data: { message: string } } {
-  if (event === null || typeof event !== "object" || !("type" in event)) {
-    return false;
-  }
-
-  const candidate = event as { type?: unknown; data?: unknown };
-  return (
-    candidate.type === "CUSTOM" &&
-    candidate.data !== null &&
-    typeof candidate.data === "object" &&
-    "name" in candidate.data &&
-    candidate.data.name === "code_mode:console" &&
-    "message" in candidate.data &&
-    typeof candidate.data.message === "string"
-  );
+function codeModeConsoleEvent(event: unknown) {
+  const parsed = codeModeConsoleEventSchema.safeParse(event);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function runErrorMessage(event: unknown) {
-  if (event === null || typeof event !== "object" || !("type" in event)) {
-    return undefined;
-  }
-
-  const candidate = event as { type?: unknown; message?: unknown };
-  return candidate.type === "RUN_ERROR" && typeof candidate.message === "string"
-    ? candidate.message
-    : undefined;
+  const parsed = runErrorEventSchema.safeParse(event);
+  return parsed.success ? parsed.data.message : undefined;
 }
 
 function textChunk(event: unknown) {
-  if (event === null || typeof event !== "object" || !("type" in event)) {
-    return "";
-  }
-
-  const candidate = event as { type?: unknown; delta?: unknown };
-  return candidate.type === "TEXT_MESSAGE_CONTENT" && typeof candidate.delta === "string"
-    ? candidate.delta
-    : "";
+  const parsed = textMessageContentEventSchema.safeParse(event);
+  return parsed.success ? parsed.data.delta : "";
 }
