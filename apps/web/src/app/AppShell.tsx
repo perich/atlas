@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
+import { Bot, ClipboardList, Landmark, RadioTower } from "lucide-react";
 
 import { NavLink, TooltipProvider } from "../design/components";
 
@@ -9,9 +10,7 @@ export function AppShell() {
       <div className="min-h-screen bg-bankops-bg text-bankops-text">
         <div className="grid min-h-screen place-items-center px-6 text-center lg:hidden">
           <div>
-            <div className="mx-auto mb-4 grid size-9 place-items-center rounded-[3px] bg-bankops-accent font-mono text-[11px] font-semibold tracking-[0.04em] text-bankops-bg">
-              BO
-            </div>
+            <Landmark aria-hidden="true" className="mx-auto mb-4 size-8 text-bankops-muted" />
             <h1 className="text-xl font-semibold text-white">Please open on desktop :)</h1>
             <p className="mt-2 max-w-sm text-sm leading-6 text-bankops-muted">
               BankOps is tuned for dense operator workflows on desktop-sized screens.
@@ -20,22 +19,26 @@ export function AppShell() {
         </div>
 
         <div className="hidden lg:block">
-          <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-bankops-panel">
+          <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-bankops-sidebar">
             <div className="flex h-11 items-center justify-between px-5">
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="grid size-6 place-items-center rounded-[3px] bg-bankops-accent font-mono text-[9px] font-semibold tracking-[0.04em] text-bankops-bg">
-                    BO
-                  </div>
+                <div className="flex items-center gap-2.5 text-bankops-text">
+                  <Landmark aria-hidden="true" className="size-4 shrink-0" />
                   <span className="text-[13px] font-semibold tracking-[-0.01em] text-bankops-text">
                     BankOps
                   </span>
                 </div>
                 <div className="h-4 w-px bg-white/[0.08]" />
-                <nav className="flex items-center gap-0">
-                  <NavLink to="/ops">Ops</NavLink>
-                  <NavLink to="/audit">Audit</NavLink>
-                  <NavLink to="/analyst">Analyst</NavLink>
+                <nav className="flex items-center gap-1">
+                  <NavLink icon={RadioTower} to="/ops">
+                    Ops
+                  </NavLink>
+                  <NavLink icon={ClipboardList} to="/audit">
+                    Audit
+                  </NavLink>
+                  <NavLink icon={Bot} to="/analyst">
+                    Analyst
+                  </NavLink>
                 </nav>
               </div>
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-bankops-subtle">
