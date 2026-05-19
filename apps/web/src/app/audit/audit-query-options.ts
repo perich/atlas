@@ -22,11 +22,11 @@ export function auditFacetsOptions(state: AuditQueryState) {
   });
 }
 
-export function auditWindowQueryKey(state: AuditQueryState, request: AuditWindowRequest) {
+function auditWindowQueryKey(state: AuditQueryState, request: AuditWindowRequest) {
   return ["audit-window", auditQueryStateKey(state), request] as const;
 }
 
-export function auditFacetsQueryKey(state: AuditQueryState) {
+function auditFacetsQueryKey(state: AuditQueryState) {
   return ["audit-facets", auditQueryStateKey(state)] as const;
 }
 
