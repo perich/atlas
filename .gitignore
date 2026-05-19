@@ -11,3 +11,4 @@ test-results/
 !.env.example
 GOALS.md
 HELPER_GLOSSARY.md
+docs/tanstack-codebase-study.md

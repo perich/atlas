@@ -1,5 +1,9 @@
 import {
-  DEFAULT_ROLLUP_LIMIT,
+  auditSampleInputSchema,
+  breakdownInputSchema,
+  customerRiskInputSchema,
+  datasetOverviewInputSchema,
+  filtersInputSchema,
   getAuditSample,
   getBreakdown,
   getCustomerRiskRollup,
@@ -8,18 +12,11 @@ import {
   getRailHealthRollup,
   getReconciliationRollup,
   getTimeSeries,
-  MAX_ROLLUP_LIMIT,
-  type AnalystFilters,
+  timeSeriesInputSchema,
 } from "@bankops/analyst-model";
 import { getAuditLogEntries } from "@bankops/audit-log-model";
-import {
-  auditEntryKindSchema,
-  auditSeveritySchema,
-  auditStatusSchema,
-  railSchema,
-  type AuditEntry,
-} from "@bankops/contracts";
-import { z } from "zod";
+import { type AuditEntry } from "@bankops/contracts";
+import type { z } from "zod";
 
 export type AnalystToolCatalogItem = {
   description: string;
@@ -34,46 +31,6 @@ export type AnalystToolCatalogItem = {
   };
 };
 
-const filtersSchema = z.object({
-  tsFrom: z.number().finite().optional(),
-  tsTo: z.number().finite().optional(),
-  rail: z.array(railSchema).optional(),
-  severity: z.array(auditSeveritySchema).optional(),
-  status: z.array(auditStatusSchema).optional(),
-  kind: z.array(auditEntryKindSchema).optional(),
-  customerId: z.array(z.string()).optional(),
-});
-const analystFiltersSchema = filtersSchema.default({}).transform(compactAnalystFilters);
-const limitSchema = z.int().min(1).max(MAX_ROLLUP_LIMIT).default(DEFAULT_ROLLUP_LIMIT);
-const overviewInputSchema = z.object({ filters: analystFiltersSchema });
-const timeSeriesInputSchema = z.object({
-  filters: analystFiltersSchema,
-  grain: z.enum(["hour", "day"]),
-  metric: z.enum(["count", "amountMinor", "failedCount", "exceptionPressure", "pendingDepth"]),
-});
-const breakdownInputSchema = z.object({
-  dimension: z.enum([
-    "rail",
-    "severity",
-    "status",
-    "kind",
-    "customer.segment",
-    "customer.region",
-    "customer.riskProfile",
-    "customer.monthlyVolumeBand",
-  ]),
-  filters: analystFiltersSchema,
-  limit: limitSchema,
-  metric: z.enum(["count", "amountMinor", "failedCount", "exceptionPressure"]),
-});
-const auditSampleInputSchema = z.object({
-  filters: analystFiltersSchema,
-  limit: limitSchema,
-  sort: z.enum(["newest", "oldest", "amountDesc", "severityDesc"]).default("newest"),
-});
-const filtersInputSchema = z.object({ filters: analystFiltersSchema });
-const customerRiskInputSchema = z.object({ filters: analystFiltersSchema, limit: limitSchema });
-
 export function createAnalystToolCatalog(
   entries: () => readonly AuditEntry[] = getAuditLogEntries,
 ): AnalystToolCatalogItem[] {
@@ -81,7 +38,7 @@ export function createAnalystToolCatalog(
     analystTool({
       name: "get_dataset_overview",
       description: "Return compact counts, time range, customer count, and amount totals.",
-      inputSchema: overviewInputSchema,
+      inputSchema: datasetOverviewInputSchema,
       inputSummary: ({ filters }) =>
         hasAnalystFilters(filters) ? "filtered audit-log overview" : "full audit-log overview",
       run: ({ filters }) => getDatasetOverview(entries(), filters),
@@ -162,40 +119,6 @@ export function createAnalystToolCatalog(
 
 function hasAnalystFilters(filters: object) {
   return Object.keys(filters).length > 0;
-}
-
-function compactAnalystFilters(filters: z.infer<typeof filtersSchema>): AnalystFilters {
-  const compact: AnalystFilters = {};
-
-  if (filters.tsFrom !== undefined) {
-    compact.tsFrom = filters.tsFrom;
-  }
-
-  if (filters.tsTo !== undefined) {
-    compact.tsTo = filters.tsTo;
-  }
-
-  if (filters.rail !== undefined) {
-    compact.rail = filters.rail;
-  }
-
-  if (filters.severity !== undefined) {
-    compact.severity = filters.severity;
-  }
-
-  if (filters.status !== undefined) {
-    compact.status = filters.status;
-  }
-
-  if (filters.kind !== undefined) {
-    compact.kind = filters.kind;
-  }
-
-  if (filters.customerId !== undefined) {
-    compact.customerId = filters.customerId;
-  }
-
-  return compact;
 }
 
 function analystTool<TInput, TResult>({
