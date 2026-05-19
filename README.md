@@ -162,8 +162,13 @@ pnpm build
 pnpm start
 pnpm typecheck
 pnpm lint
+pnpm test:env
+pnpm test:secrets
+pnpm test:spelling
 pnpm test:sherif
 pnpm test:knip
+pnpm test:deps
+pnpm test:size
 pnpm test:run
 pnpm test:e2e
 ```

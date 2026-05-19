@@ -26,6 +26,7 @@
     "test:sherif": "sherif",
     "test:knip": "knip --treat-config-hints-as-errors",
     "test:deps": "depcruise --config dependency-cruiser.config.cjs --output-type err \"apps/**/src/**/*.{ts,tsx}\" \"packages/**/src/**/*.ts\"",
+    "test:size": "pnpm --filter @bankops/contracts build && pnpm --filter @bankops/web build && node scripts/verify-web-bundle-budget.mjs",
     "lint-staged": "lint-staged",
     "test": "pnpm -r --if-present test",
     "test:run": "pnpm -r --if-present test:run",
