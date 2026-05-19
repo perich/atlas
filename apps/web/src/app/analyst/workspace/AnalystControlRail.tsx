@@ -1,8 +1,8 @@
 import React from "react";
 import { Loader2, Play, RotateCcw, Sparkles } from "lucide-react";
 
-import { Button } from "../../design/components";
-import { cn } from "../../design/utils";
+import { Button } from "../../../design/components";
+import { cn } from "../../../design/utils";
 import { ANALYST_PROMPT_CHIPS } from "./analyst-prompts";
 
 export function AnalystControlRail({

@@ -1,9 +1,9 @@
 import React from "react";
 import { Bot, Braces, Database, ShieldCheck } from "lucide-react";
 
-import { AnalystReportRenderer } from "./AnalystReportRenderer";
-import { AnalystRunTracePanel } from "./AnalystRunTracePanel";
-import type { AnalystRunTimeline } from "./analyst-run-timeline";
+import { AnalystRunTracePanel } from "../run/AnalystRunTracePanel";
+import type { AnalystRunTimeline } from "../run/analyst-run-timeline";
+import { AnalystReportRenderer } from "../report/AnalystReportRenderer";
 
 export function AnalystCanvas({
   error,

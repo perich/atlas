@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronsLeftRight } from "lucide-react";
 import type { AnalystReportBlock } from "@bankops/contracts";
 
-import { cn } from "../../design/utils";
+import { cn } from "../../../design/utils";
 
 type DataTableBlock = Extract<AnalystReportBlock, { type: "dataTable" }>;
 type SortState = { key: string; direction: "asc" | "desc" } | null;

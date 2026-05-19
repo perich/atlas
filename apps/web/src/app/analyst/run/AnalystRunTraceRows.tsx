@@ -1,6 +1,6 @@
 import React from "react";
 
-import { cn } from "../../design/utils";
+import { cn } from "../../../design/utils";
 import type { AnalystProgressEvent, AnalystTraceEvent } from "./analyst-run-timeline";
 
 export function TraceFact({ event }: { event: AnalystProgressEvent }) {

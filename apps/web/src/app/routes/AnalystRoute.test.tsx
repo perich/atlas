@@ -2,7 +2,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { analystReportFixture } from "../analyst/report-fixture";
+import { analystReportFixture } from "../analyst/report/report-fixture";
 import { AnalystRoute } from "./AnalystRoute";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
