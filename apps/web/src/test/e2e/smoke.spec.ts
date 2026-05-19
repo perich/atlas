@@ -1,6 +1,6 @@
 /// <reference types="node" />
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { inflateSync } from "node:zlib";
 
 test("bankops app exposes the product routes", async ({ page }) => {
@@ -10,7 +10,7 @@ test("bankops app exposes the product routes", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Operations Control Plane" })).toBeVisible();
 
   await page.getByRole("link", { name: "Audit" }).click();
-  await expect(page.getByRole("heading", { name: "Audit Entry History" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bank Core Audit Log" })).toBeVisible();
 
   await page.getByRole("link", { name: "Analyst" }).click();
   await expect(page.getByRole("heading", { name: "Analyst workspace" })).toBeVisible();
@@ -59,7 +59,7 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/audit");
 
-  await expect(page.getByRole("heading", { name: "Audit Entry History" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bank Core Audit Log" })).toBeVisible();
   await expect(page.getByTestId("audit-row").first()).toBeVisible();
   await expect(page.getByTestId("audit-rows-cached")).toBeVisible();
 
@@ -80,7 +80,7 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
   expect(initialMountedRows).toBeGreaterThan(0);
   expect(initialMountedRows).toBeLessThan(80);
 
-  await page.getByRole("combobox", { name: "Status" }).selectOption("failed");
+  await selectAuditFilter(page, "Status", "failed");
   await expect(page).toHaveURL(/status=failed/);
   await expect(page.getByText("Filtered")).toBeVisible();
   await expect(page.getByText("status: failed")).toBeVisible();
@@ -88,7 +88,7 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page).not.toHaveURL(/status=failed/);
   await expect(page.getByText("status: failed")).toHaveCount(0);
-  await page.getByRole("combobox", { name: "Status" }).selectOption("failed");
+  await selectAuditFilter(page, "Status", "failed");
   await expect(page).toHaveURL(/status=failed/);
   await expect(page.getByTestId("audit-row").first()).toContainText("failed");
 
@@ -170,9 +170,9 @@ test("audit route persists column controls and shows render trace", async ({ pag
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/audit");
 
-  await expect(page.getByText("Render trace")).toBeVisible();
-  await expect(page.getByText("Visible range")).toBeVisible();
-  await expect(page.getByText("Query latency")).toBeVisible();
+  await expect(page.getByLabel("Render trace")).toBeVisible();
+  await expect(page.getByText("Visible Range")).toBeVisible();
+  await expect(page.getByText("Query Latency")).toBeVisible();
   await expect(page.getByRole("button", { name: /Copy trace ID/ }).first()).toBeVisible();
 
   const railHeader = page.getByTestId("audit-column-header-rail");
@@ -219,6 +219,11 @@ function hasVariedPngBytes(png: Buffer) {
   const inflated = inflateSync(Buffer.concat(readPngChunks(png, "IDAT")));
 
   return new Set(inflated).size > 4;
+}
+
+async function selectAuditFilter(page: Page, label: string, option: string) {
+  await page.getByRole("button", { name: label }).click();
+  await page.getByRole("menuitemradio", { name: new RegExp(`^${option}\\b`, "i") }).click();
 }
 
 function readPngChunks(png: Buffer, type: string) {
