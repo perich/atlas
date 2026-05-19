@@ -118,7 +118,9 @@ export async function runAnalystCodeMode({
         messages: [
           {
             role: "user",
-            content: analystUserPrompt({ question, validationError }),
+            content: analystUserPrompt(
+              validationError === undefined ? { question } : { question, validationError },
+            ),
           },
         ],
         modelOptions: analystModelOptions(),
@@ -191,7 +193,9 @@ export async function runAnalystReportAttempts({
 
     try {
       // oxlint-disable-next-line eslint/no-await-in-loop -- repair attempts must use the previous validation error.
-      const candidate = await runAttempt({ attempt, validationError });
+      const candidate = await runAttempt(
+        validationError === undefined ? { attempt } : { attempt, validationError },
+      );
       emit({ type: "phase", phase: "validating" });
       emitAnalystProgress(emit, "Validating AnalystReportSpec", `Attempt ${attempt}`);
       const report = analystReportSpecSchema.parse(candidate);

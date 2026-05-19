@@ -290,7 +290,8 @@ export function parseAuditQueryParams(params: AuditQueryParams): AuditQuery {
     query.offset = offset;
   }
 
-  return auditQuerySchema.parse(query);
+  auditQuerySchema.parse(query);
+  return query;
 }
 
 export function parseAuditFilterParams(params: AuditQueryParams): AuditFilters {
@@ -340,7 +341,8 @@ export function parseAuditFilterParams(params: AuditQueryParams): AuditFilters {
     filters.tsTo = tsTo;
   }
 
-  return auditFiltersSchema.parse(filters);
+  auditFiltersSchema.parse(filters);
+  return filters;
 }
 
 export function auditCursorForEntry(entry: Pick<AuditEntry, "id">, sort: AuditSort): string {
