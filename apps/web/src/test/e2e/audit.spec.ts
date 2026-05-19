@@ -1,59 +1,6 @@
-/// <reference types="node" />
+import { expect, test } from "@playwright/test";
 
-import { expect, test, type Page } from "@playwright/test";
-import { inflateSync } from "node:zlib";
-
-test("bankops app exposes the product routes", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/ops");
-
-  await expect(page.getByRole("heading", { name: "Operations Control Plane" })).toBeVisible();
-
-  await page.getByRole("link", { name: "Audit" }).click();
-  await expect(page.getByRole("heading", { name: "Bank Core Audit Log" })).toBeVisible();
-
-  await page.getByRole("link", { name: "Analyst" }).click();
-  await expect(page.getByRole("heading", { name: "Analyst workspace" })).toBeVisible();
-});
-
-test("analyst route can complete a real model report when configured", async ({ page }) => {
-  test.skip(
-    !process.env.OPENROUTER_API_KEY || !process.env.ANALYST_MODEL,
-    "Set OPENROUTER_API_KEY and ANALYST_MODEL to run the real CodeMode happy path.",
-  );
-
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/analyst");
-  await page
-    .getByRole("textbox")
-    .fill("Create a report with one bar chart, one data table, and a customer watchlist.");
-  await page.getByRole("button", { name: /Generate/ }).click();
-
-  await expect(page.getByText("Validated report ready")).toBeVisible({ timeout: 420_000 });
-  await expect(page.getByText("Validated Analyst Report")).toBeVisible();
-  await expect(page.locator(".recharts-wrapper").first()).toBeVisible();
-  await expect(page.locator("table").first()).toBeVisible();
-});
-
-test("bankops app asks small screens to use desktop", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/ops");
-
-  await expect(page.getByRole("heading", { name: "Please open on desktop :)" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Audit" })).toBeHidden();
-});
-
-test("bankops app renders a nonblank balance sheet tape canvas", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/ops");
-
-  const tape = page.getByTestId("balance-sheet-tape");
-  await expect(tape).toBeVisible();
-  await expect(page.getByTestId("ops-connection-status")).toHaveText("Open");
-  await expect(page.getByTestId("renderer-metric-new-rows")).not.toHaveText("0/s");
-
-  expect(hasVariedPngBytes(await tape.screenshot())).toBe(true);
-});
+import { selectAuditFilter } from "./helpers";
 
 test("audit route virtualizes, filters, sorts, and loads more rows", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -214,33 +161,3 @@ test("audit route degrades gracefully when the backend is unavailable", async ({
 
   await expect(page.getByText("Audit backend unavailable")).toBeVisible();
 });
-
-function hasVariedPngBytes(png: Buffer) {
-  const inflated = inflateSync(Buffer.concat(readPngChunks(png, "IDAT")));
-
-  return new Set(inflated).size > 4;
-}
-
-async function selectAuditFilter(page: Page, label: string, option: string) {
-  await page.getByRole("button", { name: label }).click();
-  await page.getByRole("menuitemradio", { name: new RegExp(`^${option}\\b`, "i") }).click();
-}
-
-function readPngChunks(png: Buffer, type: string) {
-  const chunks: Buffer[] = [];
-  let offset = 8;
-
-  while (offset < png.length) {
-    const length = png.readUInt32BE(offset);
-    const chunkType = png.toString("ascii", offset + 4, offset + 8);
-    const dataStart = offset + 8;
-
-    if (chunkType === type) {
-      chunks.push(png.subarray(dataStart, dataStart + length));
-    }
-
-    offset = dataStart + length + 4;
-  }
-
-  return chunks;
-}
