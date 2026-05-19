@@ -100,15 +100,24 @@ export function StatCard({
   );
 }
 
-export function NavLink({ children, to }: { children: React.ReactNode; to: string }) {
+export function NavLink({
+  children,
+  icon: Icon,
+  to,
+}: {
+  children: React.ReactNode;
+  icon: LucideIcon;
+  to: string;
+}) {
   return (
     <Link
       activeProps={{
-        className: "border-l-bankops-accent bg-bankops-surface font-semibold text-bankops-text",
+        className: "border-white/[0.14] bg-bankops-surface font-semibold text-bankops-text",
       }}
-      className="inline-flex h-8 items-center border-l-2 border-l-transparent px-3 text-[13px] font-medium text-bankops-muted transition-colors hover:bg-white/[0.035] hover:text-bankops-text"
+      className="inline-flex h-9 items-center gap-2 rounded-[2px] border border-transparent px-3 text-[13px] font-medium text-bankops-muted transition-colors hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-bankops-text"
       to={to}
     >
+      <Icon aria-hidden="true" className="size-4 shrink-0" />
       <span className="font-medium">{children}</span>
     </Link>
   );
