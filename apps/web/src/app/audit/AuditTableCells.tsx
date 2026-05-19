@@ -74,7 +74,7 @@ export function AuditHeaderCell({
     >
       <GripVertical
         aria-hidden="true"
-        className="size-3 shrink-0 cursor-grab text-[#5a6272]/70 transition-colors group-hover:text-bankops-muted"
+        className="size-3 shrink-0 cursor-grab text-bankops-subtle/45 transition-colors group-hover:text-bankops-muted"
       />
       <span className="min-w-0 truncate">{column.label}</span>
       {sortable ? (
@@ -144,7 +144,7 @@ function ResizeHandle({
       role="separator"
       title={`Resize ${column.label}`}
     >
-      <span className="absolute right-[3px] top-1/2 h-5 -translate-y-1/2 rounded-full border-r border-white/12 opacity-0 transition-colors group-hover:opacity-100 group-hover:border-sky-300/45" />
+      <span className="absolute right-[3px] top-1/2 h-5 -translate-y-1/2 rounded-full border-r border-white/12 opacity-0 transition-colors group-hover:border-bankops-accent/45 group-hover:opacity-100" />
     </span>
   );
 }
