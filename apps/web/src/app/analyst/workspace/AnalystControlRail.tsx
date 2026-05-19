@@ -21,13 +21,7 @@ export function AnalystControlRail({
   question: string;
 }) {
   return (
-    <form
-      className="space-y-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
+    <div className="space-y-4">
       <div>
         <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-bankops-muted">
           <Sparkles className="size-3.5 text-sky-300" />
@@ -51,7 +45,12 @@ export function AnalystControlRail({
             value={question}
           />
           <div className="grid grid-cols-[minmax(0,1fr)_2rem] gap-2 border-t border-white/[0.08] bg-black/20 p-2">
-            <Button className="w-full" disabled={!question.trim() || isRunning} type="submit">
+            <Button
+              className="w-full"
+              disabled={!question.trim() || isRunning}
+              onClick={onSubmit}
+              type="button"
+            >
               {isRunning ? (
                 <Loader2 aria-hidden="true" className="size-4 animate-spin" />
               ) : (
@@ -96,6 +95,6 @@ export function AnalystControlRail({
           ))}
         </div>
       </div>
-    </form>
+    </div>
   );
 }
