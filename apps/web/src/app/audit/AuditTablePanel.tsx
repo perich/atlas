@@ -69,14 +69,10 @@ export function AuditTablePanel({
     end: number;
   }>();
   const isInitialLoading = cache.windows.length === 0 && isFetching;
-  const hasUnloadedVirtualRows =
-    cache.totalMatched > 0 && virtualRows.some((virtualRow) => !rowByIndex.has(virtualRow.index));
-  const hasUnloadedLiveScrollRange =
-    liveScrollRange !== undefined &&
-    cache.totalMatched > 0 &&
-    !isRangeCoveredByLoadedWindows(cache, liveScrollRange.start, liveScrollRange.end);
-  const showLoadingSurface =
-    isInitialLoading || hasUnloadedVirtualRows || hasUnloadedLiveScrollRange;
+  const liveFallbackRows = React.useMemo(
+    () => getLiveFallbackRows(cache.totalMatched, liveScrollRange, virtualRows),
+    [cache.totalMatched, liveScrollRange, virtualRows],
+  );
   const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const scrollElement = event.currentTarget;
     const start = Math.max(
@@ -116,9 +112,6 @@ export function AuditTablePanel({
         className={cn(
           "min-h-0 flex-1 overflow-auto bg-bankops-panel",
           "bg-[repeating-linear-gradient(0deg,rgba(148,163,184,0.018)_0,rgba(148,163,184,0.018)_1px,transparent_1px,transparent_34px)]",
-          showLoadingSurface
-            ? "bg-[linear-gradient(90deg,rgba(6,182,212,0.045),rgba(255,255,255,0.012)_34%,transparent_72%),repeating-linear-gradient(0deg,rgba(148,163,184,0.045)_0,rgba(148,163,184,0.045)_1px,transparent_1px,transparent_34px)]"
-            : undefined,
         )}
         data-testid="audit-table-scroll"
         onScroll={handleScroll}
@@ -176,6 +169,15 @@ export function AuditTablePanel({
               width: `${tableWidth}px`,
             }}
           >
+            {liveFallbackRows.map((virtualRow) => (
+              <AuditVirtualRow
+                key={virtualRow.key}
+                row={rowByIndex.get(virtualRow.index)}
+                tableWidth={tableWidth}
+                virtualRow={virtualRow}
+                visibleColumns={visibleColumns}
+              />
+            ))}
             {virtualRows.map((virtualRow) => (
               <AuditVirtualRow
                 key={virtualRow.key}
@@ -192,26 +194,34 @@ export function AuditTablePanel({
   );
 }
 
-function isRangeCoveredByLoadedWindows(cache: AuditWindowCache, start: number, end: number) {
-  let nextIndex = start;
-
-  for (const window of cache.windows) {
-    const windowEnd = window.start + window.rows.length;
-
-    if (nextIndex < window.start) {
-      return false;
-    }
-
-    if (nextIndex >= window.start && nextIndex < windowEnd) {
-      nextIndex = Math.max(nextIndex, windowEnd);
-    }
-
-    if (nextIndex >= end) {
-      return true;
-    }
+function getLiveFallbackRows(
+  totalMatched: number,
+  liveScrollRange: { start: number; end: number } | undefined,
+  virtualRows: AuditVirtualItem[],
+) {
+  if (liveScrollRange === undefined || totalMatched === 0) {
+    return [];
   }
 
-  return nextIndex >= end;
+  const virtualIndexes = new Set(virtualRows.map((virtualRow) => virtualRow.index));
+  const start = Math.max(0, Math.min(liveScrollRange.start, totalMatched));
+  const end = Math.max(start, Math.min(liveScrollRange.end + 1, totalMatched));
+  const fallbackRows: AuditVirtualItem[] = [];
+
+  for (let index = start; index < end; index += 1) {
+    if (virtualIndexes.has(index)) {
+      continue;
+    }
+
+    fallbackRows.push({
+      index,
+      key: `live-fallback-${index}`,
+      size: AUDIT_ROW_HEIGHT,
+      start: index * AUDIT_ROW_HEIGHT,
+    });
+  }
+
+  return fallbackRows;
 }
 
 function ActiveFilterChips({ filters }: { filters: readonly string[] }) {
@@ -248,7 +258,10 @@ function AuditVirtualRow({
     return (
       <div
         aria-label="Loading audit row"
-        className="absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.05] bg-[linear-gradient(90deg,rgba(96,165,250,0.035),rgba(255,255,255,0.014)_36%,rgba(255,255,255,0))] px-4"
+        className={cn(
+          "absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.04] px-4",
+          auditRowBackgroundClassName(virtualRow.index),
+        )}
         data-testid="audit-row-placeholder"
         style={{
           height: `${virtualRow.size}px`,
@@ -267,7 +280,11 @@ function AuditVirtualRow({
 
   return (
     <div
-      className={`absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.04] px-4 font-mono text-[11px] leading-none text-bankops-muted transition-colors duration-75 hover:bg-bankops-surface ${severityBorderClassName(row.severity)} ${virtualRow.index % 2 === 0 ? "bg-bankops-panel" : "bg-white/[0.012]"}`}
+      className={cn(
+        "absolute left-0 top-0 flex min-w-full items-center border-b border-white/[0.04] px-4 font-mono text-[11px] leading-none text-bankops-muted transition-colors duration-75 hover:bg-bankops-surface",
+        severityBorderClassName(row.severity),
+        auditRowBackgroundClassName(virtualRow.index),
+      )}
       data-testid="audit-row"
       style={{
         height: `${virtualRow.size}px`,
@@ -282,6 +299,10 @@ function AuditVirtualRow({
       ))}
     </div>
   );
+}
+
+function auditRowBackgroundClassName(index: number) {
+  return index % 2 === 0 ? "bg-bankops-panel" : "bg-white/[0.012]";
 }
 
 function AuditInitialLoadingRows({
