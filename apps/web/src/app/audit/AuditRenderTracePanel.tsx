@@ -36,8 +36,7 @@ export function AuditRenderTracePanel({
     },
     { label: "Rows Cached", testId: "audit-rows-cached", value: rows.toLocaleString() },
     { label: "Windows", value: cache.windows.length.toLocaleString() },
-    { label: "Loaded", value: loadedRange || "-" },
-    { label: "Scroll", value: "virtual" },
+    { className: "col-span-2", label: "Loaded", value: loadedRange || "-" },
   ];
 
   return (
@@ -48,6 +47,7 @@ export function AuditRenderTracePanel({
       {traceMetrics.map((metric) => (
         <TraceMetric
           key={metric.label}
+          className={metric.className}
           label={metric.label}
           testId={metric.testId}
           title={metric.title}
@@ -91,23 +91,27 @@ function longTaskP95Title(snapshot: MainThreadBlockingP95Snapshot): string {
 }
 
 function TraceMetric({
+  className,
   label,
   testId,
   title,
   value,
 }: {
+  className?: string;
   label: string;
   testId?: string;
   title?: string;
   value: string;
 }) {
   return (
-    <dl className="flex flex-col justify-center gap-1 border-r border-white/[0.06] px-3 last:border-r-0">
+    <dl
+      className={`flex flex-col justify-center gap-1 border-r border-white/[0.06] px-3 last:border-r-0 ${className ?? ""}`}
+    >
       <dt className="font-mono text-[9px] font-semibold uppercase leading-none tracking-[0.16em] text-bankops-subtle">
         {label}
       </dt>
       <dd
-        className="max-w-36 truncate font-mono text-xs font-medium leading-none text-bankops-text"
+        className="max-w-full truncate font-mono text-xs font-medium leading-none text-bankops-text"
         data-testid={testId}
         title={title ?? value}
       >
