@@ -9,8 +9,8 @@ export function AuditRoute() {
   const auditTable = useAuditTableController();
 
   return (
-    <div className="min-h-[calc(100vh-5.25rem)] overflow-hidden rounded-[4px] border border-white/[0.06] bg-bankops-panel">
-      <div className="border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
+    <div className="flex h-[calc(100vh-5.25rem)] min-h-[40rem] flex-col overflow-hidden rounded-[4px] border border-white/[0.06] bg-bankops-panel">
+      <div className="shrink-0 border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
         <h1 className="text-2xl font-semibold leading-tight tracking-[-0.02em] text-bankops-text">
           Bank Core Audit Log
         </h1>

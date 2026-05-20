@@ -62,7 +62,7 @@ export function AuditTablePanel({
   visibleColumns: SizedAuditColumn[];
 }) {
   return (
-    <Panel className="m-4 overflow-hidden border-white/[0.10] p-0">
+    <Panel className="m-4 flex min-h-0 flex-1 flex-col overflow-hidden border-white/[0.10] p-0">
       {hasError ? (
         <div className="border-b border-bankops-negative/20 bg-bankops-negative/[0.06] px-4 py-3 text-sm text-bankops-negative">
           Audit backend unavailable. Filters and layout remain usable while the data request
@@ -86,7 +86,7 @@ export function AuditTablePanel({
       </div>
       {toolbar}
       <div
-        className="h-[620px] overflow-auto bg-bankops-panel"
+        className="min-h-0 flex-1 overflow-auto bg-bankops-panel"
         data-testid="audit-table-scroll"
         ref={scrollRef}
       >
