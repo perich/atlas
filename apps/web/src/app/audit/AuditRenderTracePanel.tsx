@@ -1,5 +1,6 @@
 import React from "react";
 
+import type { MainThreadBlockingP95Snapshot } from "./use-main-thread-blocking-p95";
 import type { AuditWindowCache } from "./audit-window";
 
 export function AuditRenderTracePanel({
@@ -13,7 +14,7 @@ export function AuditRenderTracePanel({
   cache: AuditWindowCache;
   firstVirtualIndex: number | undefined;
   lastVirtualIndex: number | undefined;
-  mainThreadBlockingP95: number | undefined;
+  mainThreadBlockingP95: MainThreadBlockingP95Snapshot;
   mountedRows: number;
   rows: number;
 }) {
@@ -30,9 +31,8 @@ export function AuditRenderTracePanel({
     { label: "Query Latency", value: `${cache.queryMs.toFixed(1)}ms` },
     {
       label: "Long-task p95",
-      title:
-        "Browser PerformanceObserver long-task p95. It is n/a until the browser reports supported samples.",
-      value: mainThreadBlockingP95 === undefined ? "n/a" : `${mainThreadBlockingP95.toFixed(1)}ms`,
+      title: longTaskP95Title(mainThreadBlockingP95),
+      value: longTaskP95Value(mainThreadBlockingP95),
     },
     { label: "Rows Cached", testId: "audit-rows-cached", value: rows.toLocaleString() },
     { label: "Windows", value: cache.windows.length.toLocaleString() },
@@ -56,6 +56,38 @@ export function AuditRenderTracePanel({
       ))}
     </section>
   );
+}
+
+function longTaskP95Value(snapshot: MainThreadBlockingP95Snapshot): string {
+  switch (snapshot.status) {
+    case "pending":
+      return "checking";
+    case "unsupported":
+      return "n/a";
+    case "observing":
+      return "none";
+    case "sampled":
+      return `${snapshot.p95.toFixed(1)}ms`;
+  }
+
+  const exhaustive: never = snapshot;
+  return exhaustive;
+}
+
+function longTaskP95Title(snapshot: MainThreadBlockingP95Snapshot): string {
+  switch (snapshot.status) {
+    case "pending":
+      return "Checking whether this browser exposes PerformanceObserver long-task entries.";
+    case "unsupported":
+      return "This browser does not expose PerformanceObserver long-task entries.";
+    case "observing":
+      return "Long Tasks API is available, but this route session has not reported any main-thread task over 50ms.";
+    case "sampled":
+      return "p95 duration from reported Long Tasks API entries. The browser only reports main-thread tasks over 50ms.";
+  }
+
+  const exhaustive: never = snapshot;
+  return exhaustive;
 }
 
 function TraceMetric({
