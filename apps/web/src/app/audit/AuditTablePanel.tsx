@@ -14,8 +14,11 @@ import { auditQueryStateWithToggledSort } from "./audit-query-state";
 import type { AuditWindowCache } from "./audit-window";
 import type { AuditQueryState } from "./use-audit-window";
 import { Panel } from "../../design/components";
+import { cn } from "../../design/utils";
 
 const AUDIT_HEADER_HEIGHT = 38;
+const AUDIT_ROW_HEIGHT = 34;
+const AUDIT_INITIAL_LOADING_ROWS = 40;
 
 type AuditVirtualItem = {
   index: number;
@@ -61,6 +64,30 @@ export function AuditTablePanel({
   virtualizerTotalSize: number;
   visibleColumns: SizedAuditColumn[];
 }) {
+  const [liveScrollRange, setLiveScrollRange] = React.useState<{
+    start: number;
+    end: number;
+  }>();
+  const isInitialLoading = cache.windows.length === 0 && isFetching;
+  const hasUnloadedVirtualRows =
+    cache.totalMatched > 0 && virtualRows.some((virtualRow) => !rowByIndex.has(virtualRow.index));
+  const hasUnloadedLiveScrollRange =
+    liveScrollRange !== undefined &&
+    cache.totalMatched > 0 &&
+    !isRangeCoveredByLoadedWindows(cache, liveScrollRange.start, liveScrollRange.end);
+  const showLoadingSurface =
+    isInitialLoading || hasUnloadedVirtualRows || hasUnloadedLiveScrollRange;
+  const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const scrollElement = event.currentTarget;
+    const start = Math.max(
+      0,
+      Math.floor((scrollElement.scrollTop - AUDIT_HEADER_HEIGHT) / AUDIT_ROW_HEIGHT),
+    );
+    const visibleRows = Math.ceil(scrollElement.clientHeight / AUDIT_ROW_HEIGHT);
+
+    setLiveScrollRange({ end: start + visibleRows, start });
+  }, []);
+
   return (
     <Panel className="m-4 flex min-h-0 flex-1 flex-col overflow-hidden border-white/[0.10] p-0">
       {hasError ? (
@@ -86,8 +113,15 @@ export function AuditTablePanel({
       </div>
       {toolbar}
       <div
-        className="min-h-0 flex-1 overflow-auto bg-bankops-panel"
+        className={cn(
+          "min-h-0 flex-1 overflow-auto bg-bankops-panel",
+          "bg-[repeating-linear-gradient(0deg,rgba(148,163,184,0.018)_0,rgba(148,163,184,0.018)_1px,transparent_1px,transparent_34px)]",
+          showLoadingSurface
+            ? "bg-[linear-gradient(90deg,rgba(6,182,212,0.045),rgba(255,255,255,0.012)_34%,transparent_72%),repeating-linear-gradient(0deg,rgba(148,163,184,0.045)_0,rgba(148,163,184,0.045)_1px,transparent_1px,transparent_34px)]"
+            : undefined,
+        )}
         data-testid="audit-table-scroll"
+        onScroll={handleScroll}
         ref={scrollRef}
       >
         <div
@@ -132,26 +166,52 @@ export function AuditTablePanel({
             No audit rows match these filters.
           </div>
         ) : null}
-        <div
-          className="relative w-max min-w-full"
-          style={{
-            height: `${virtualizerTotalSize}px`,
-            width: `${tableWidth}px`,
-          }}
-        >
-          {virtualRows.map((virtualRow) => (
-            <AuditVirtualRow
-              key={virtualRow.key}
-              row={rowByIndex.get(virtualRow.index)}
-              tableWidth={tableWidth}
-              virtualRow={virtualRow}
-              visibleColumns={visibleColumns}
-            />
-          ))}
-        </div>
+        {isInitialLoading ? (
+          <AuditInitialLoadingRows tableWidth={tableWidth} visibleColumns={visibleColumns} />
+        ) : (
+          <div
+            className="relative w-max min-w-full"
+            style={{
+              height: `${virtualizerTotalSize}px`,
+              width: `${tableWidth}px`,
+            }}
+          >
+            {virtualRows.map((virtualRow) => (
+              <AuditVirtualRow
+                key={virtualRow.key}
+                row={rowByIndex.get(virtualRow.index)}
+                tableWidth={tableWidth}
+                virtualRow={virtualRow}
+                visibleColumns={visibleColumns}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </Panel>
   );
+}
+
+function isRangeCoveredByLoadedWindows(cache: AuditWindowCache, start: number, end: number) {
+  let nextIndex = start;
+
+  for (const window of cache.windows) {
+    const windowEnd = window.start + window.rows.length;
+
+    if (nextIndex < window.start) {
+      return false;
+    }
+
+    if (nextIndex >= window.start && nextIndex < windowEnd) {
+      nextIndex = Math.max(nextIndex, windowEnd);
+    }
+
+    if (nextIndex >= end) {
+      return true;
+    }
+  }
+
+  return nextIndex >= end;
 }
 
 function ActiveFilterChips({ filters }: { filters: readonly string[] }) {
@@ -219,6 +279,41 @@ function AuditVirtualRow({
         <AuditRowCell column={column} key={column.id}>
           <AuditColumnCellContent column={column} row={row} />
         </AuditRowCell>
+      ))}
+    </div>
+  );
+}
+
+function AuditInitialLoadingRows({
+  tableWidth,
+  visibleColumns,
+}: {
+  tableWidth: number;
+  visibleColumns: SizedAuditColumn[];
+}) {
+  return (
+    <div
+      aria-label="Loading audit rows"
+      className="relative w-max min-w-full"
+      data-testid="audit-initial-loading"
+      style={{
+        height: `${AUDIT_INITIAL_LOADING_ROWS * AUDIT_ROW_HEIGHT}px`,
+        width: `${tableWidth}px`,
+      }}
+    >
+      {Array.from({ length: AUDIT_INITIAL_LOADING_ROWS }, (_, index) => (
+        <AuditVirtualRow
+          key={`initial-placeholder-${index}`}
+          row={undefined}
+          tableWidth={tableWidth}
+          virtualRow={{
+            index,
+            key: `initial-placeholder-${index}`,
+            size: AUDIT_ROW_HEIGHT,
+            start: index * AUDIT_ROW_HEIGHT,
+          }}
+          visibleColumns={visibleColumns}
+        />
       ))}
     </div>
   );
