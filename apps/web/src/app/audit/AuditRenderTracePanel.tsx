@@ -4,33 +4,13 @@ import {
   useMainThreadBlockingP95,
   type MainThreadBlockingP95Snapshot,
 } from "./use-main-thread-blocking-p95";
+import { useAuditVirtualTraceSnapshot } from "./audit-virtual-trace";
 import type { AuditWindowCache } from "./audit-window";
 
-export function AuditRenderTracePanel({
-  cache,
-  firstVirtualIndex,
-  lastVirtualIndex,
-  mountedRows,
-  rows,
-}: {
-  cache: AuditWindowCache;
-  firstVirtualIndex: number | undefined;
-  lastVirtualIndex: number | undefined;
-  mountedRows: number;
-  rows: number;
-}) {
+export function AuditRenderTracePanel({ cache, rows }: { cache: AuditWindowCache; rows: number }) {
   const loadedRange = cache.windows
     .map((window) => `${window.start}-${window.start + window.rows.length - 1}`)
     .join(", ");
-  const visibleRange =
-    firstVirtualIndex === undefined || lastVirtualIndex === undefined
-      ? "-"
-      : `${firstVirtualIndex}-${lastVirtualIndex}`;
-  const leadingTraceMetrics = [
-    { label: "Visible Range", value: visibleRange },
-    { label: "Mounted Rows", value: mountedRows.toLocaleString() },
-    { label: "Query Latency", value: `${cache.queryMs.toFixed(1)}ms` },
-  ];
   const trailingTraceMetrics = [
     { label: "Rows Cached", testId: "audit-rows-cached", value: rows.toLocaleString() },
     { label: "Windows", value: cache.windows.length.toLocaleString() },
@@ -42,9 +22,8 @@ export function AuditRenderTracePanel({
       aria-label="Render trace"
       className="mx-4 mt-4 grid min-h-14 shrink-0 grid-cols-8 overflow-x-auto rounded-[4px] border border-white/[0.07] bg-bankops-sidebar/65 text-xs text-bankops-muted"
     >
-      {leadingTraceMetrics.map((metric) => (
-        <TraceMetric key={metric.label} label={metric.label} value={metric.value} />
-      ))}
+      <AuditVirtualTraceMetrics />
+      <TraceMetric label="Query Latency" value={`${cache.queryMs.toFixed(1)}ms`} />
       <LongTaskP95TraceMetric />
       {trailingTraceMetrics.map((metric) => (
         <TraceMetric
@@ -56,6 +35,21 @@ export function AuditRenderTracePanel({
         />
       ))}
     </section>
+  );
+}
+
+function AuditVirtualTraceMetrics() {
+  const { firstVirtualIndex, lastVirtualIndex, mountedRows } = useAuditVirtualTraceSnapshot();
+  const visibleRange =
+    firstVirtualIndex === undefined || lastVirtualIndex === undefined
+      ? "-"
+      : `${firstVirtualIndex}-${lastVirtualIndex}`;
+
+  return (
+    <>
+      <TraceMetric label="Visible Range" value={visibleRange} />
+      <TraceMetric label="Mounted Rows" value={mountedRows.toLocaleString()} />
+    </>
   );
 }
 

@@ -16,13 +16,7 @@ export function AuditRoute() {
         </h1>
       </div>
 
-      <AuditRenderTracePanel
-        cache={auditTable.cache}
-        firstVirtualIndex={auditTable.firstVirtualIndex}
-        lastVirtualIndex={auditTable.lastVirtualIndex}
-        mountedRows={auditTable.mountedRows}
-        rows={auditTable.rows.length}
-      />
+      <AuditRenderTracePanel cache={auditTable.cache} rows={auditTable.rows.length} />
 
       <AuditTablePanel
         activeFilters={auditTable.activeFilters}
@@ -31,9 +25,9 @@ export function AuditRoute() {
         draggedColumnId={auditTable.draggedColumnId}
         hasError={auditTable.hasError}
         isFetching={auditTable.isFetching}
+        loadVisibleRange={auditTable.loadVisibleRange}
         queryState={auditTable.queryState}
         rowByIndex={auditTable.rowByIndex}
-        scrollRef={auditTable.scrollRef}
         setColumnLayout={auditTable.setColumnLayout}
         setDraggedColumnId={auditTable.setDraggedColumnId}
         setQueryState={auditTable.setQueryState}
@@ -50,8 +44,6 @@ export function AuditRoute() {
             setQueryState={auditTable.setQueryState}
           />
         }
-        virtualRows={auditTable.virtualRows}
-        virtualizerTotalSize={auditTable.virtualizerTotalSize}
         visibleColumns={auditTable.visibleColumns}
       />
     </div>
