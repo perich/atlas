@@ -91,14 +91,14 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [x] `packages/audit-log-model/src/index.ts`
 - [x] `packages/audit-log-model/src/query.ts`
 - [x] `packages/audit-log-model/src/random.ts`
-- [ ] `packages/contracts/src/analyst.ts`
-- [ ] `packages/contracts/src/audit-json.ts`
-- [ ] `packages/contracts/src/audit-query.ts`
-- [ ] `packages/contracts/src/audit.ts`
-- [ ] `packages/contracts/src/balance-sheet-movement.ts`
-- [ ] `packages/contracts/src/domain.ts`
-- [ ] `packages/contracts/src/index.ts`
-- [ ] `packages/contracts/src/ops-stream-protocol.ts`
+- [x] `packages/contracts/src/analyst.ts`
+- [x] `packages/contracts/src/audit-json.ts`
+- [x] `packages/contracts/src/audit-query.ts`
+- [x] `packages/contracts/src/audit.ts`
+- [x] `packages/contracts/src/balance-sheet-movement.ts`
+- [x] `packages/contracts/src/domain.ts`
+- [x] `packages/contracts/src/index.ts`
+- [x] `packages/contracts/src/ops-stream-protocol.ts`
 - [x] `packages/ops-tape-sim/src/customer-profiles.ts`
 - [x] `packages/ops-tape-sim/src/index.ts`
 - [x] `packages/ops-tape-sim/src/movement-profiles.ts`

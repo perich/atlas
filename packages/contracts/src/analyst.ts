@@ -159,6 +159,11 @@ export type AnalystReportBlock =
   | { type: "empty"; title: string; body: string }
   | { type: "error"; title: string; body: string };
 
+type AnalystChartBlock = Extract<
+  AnalystReportBlock,
+  { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
+>;
+
 export const analystReportBlockSchema: z.ZodType<AnalystReportBlock> = z.lazy(() =>
   z.discriminatedUnion("type", [
     z
@@ -330,9 +335,9 @@ function validateBlockDepth(
   }
 
   if ("blocks" in block) {
-    block.blocks.forEach((child: AnalystReportBlock, index: number) =>
-      validateBlockDepth(child, depth + 1, ctx, [...path, "blocks", index]),
-    );
+    for (const [index, child] of block.blocks.entries()) {
+      validateBlockDepth(child, depth + 1, ctx, [...path, "blocks", index]);
+    }
   }
 }
 
@@ -342,9 +347,9 @@ function validateBlockSemantics(
   path: (string | number)[],
 ) {
   if ("blocks" in block) {
-    block.blocks.forEach((child: AnalystReportBlock, index: number) =>
-      validateBlockSemantics(child, ctx, [...path, "blocks", index]),
-    );
+    for (const [index, child] of block.blocks.entries()) {
+      validateBlockSemantics(child, ctx, [...path, "blocks", index]);
+    }
     return;
   }
 
@@ -357,12 +362,7 @@ function validateBlockSemantics(
   }
 }
 
-function isChartBlock(
-  block: AnalystReportBlock,
-): block is Extract<
-  AnalystReportBlock,
-  { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
-> {
+function isChartBlock(block: AnalystReportBlock): block is AnalystChartBlock {
   return (
     block.type === "lineChart" ||
     block.type === "barChart" ||
@@ -373,10 +373,7 @@ function isChartBlock(
 }
 
 function validateChartBlock(
-  block: Extract<
-    AnalystReportBlock,
-    { type: "lineChart" | "barChart" | "areaChart" | "donutChart" | "sparkline" }
-  >,
+  block: AnalystChartBlock,
   ctx: z.RefinementCtx,
   path: (string | number)[],
 ) {
