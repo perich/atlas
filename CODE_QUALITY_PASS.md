@@ -20,21 +20,21 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [x] `apps/server/src/ops-stream.ts`
 - [x] `apps/web/src/app/App.tsx`
 - [x] `apps/web/src/app/AppShell.tsx`
-- [ ] `apps/web/src/app/analyst/report/AnalystReportChart.tsx`
-- [ ] `apps/web/src/app/analyst/report/AnalystReportRenderer.tsx`
-- [ ] `apps/web/src/app/analyst/report/AnalystReportTable.tsx`
-- [ ] `apps/web/src/app/analyst/report/report-fixture.ts`
-- [ ] `apps/web/src/app/analyst/run/AnalystRunTracePanel.tsx`
-- [ ] `apps/web/src/app/analyst/run/AnalystRunTraceRows.tsx`
-- [ ] `apps/web/src/app/analyst/run/analyst-run-api.ts`
-- [ ] `apps/web/src/app/analyst/run/analyst-run-timeline.ts`
-- [ ] `apps/web/src/app/analyst/run/useAnalystRun.ts`
-- [ ] `apps/web/src/app/analyst/run/useElapsedSeconds.ts`
-- [ ] `apps/web/src/app/analyst/workspace/AnalystCanvas.tsx`
-- [ ] `apps/web/src/app/analyst/workspace/AnalystControlRail.tsx`
-- [ ] `apps/web/src/app/analyst/workspace/AnalystRunStatus.tsx`
-- [ ] `apps/web/src/app/analyst/workspace/AnalystWorkspaceShell.tsx`
-- [ ] `apps/web/src/app/analyst/workspace/analyst-prompts.ts`
+- [x] `apps/web/src/app/analyst/report/AnalystReportChart.tsx`
+- [x] `apps/web/src/app/analyst/report/AnalystReportRenderer.tsx`
+- [x] `apps/web/src/app/analyst/report/AnalystReportTable.tsx`
+- [x] `apps/web/src/app/analyst/report/report-fixture.ts`
+- [x] `apps/web/src/app/analyst/run/AnalystRunTracePanel.tsx`
+- [x] `apps/web/src/app/analyst/run/AnalystRunTraceRows.tsx`
+- [x] `apps/web/src/app/analyst/run/analyst-run-api.ts`
+- [x] `apps/web/src/app/analyst/run/analyst-run-timeline.ts`
+- [x] `apps/web/src/app/analyst/run/useAnalystRun.ts`
+- [x] `apps/web/src/app/analyst/run/useElapsedSeconds.ts`
+- [x] `apps/web/src/app/analyst/workspace/AnalystCanvas.tsx`
+- [x] `apps/web/src/app/analyst/workspace/AnalystControlRail.tsx`
+- [x] `apps/web/src/app/analyst/workspace/AnalystRunStatus.tsx`
+- [x] `apps/web/src/app/analyst/workspace/AnalystWorkspaceShell.tsx`
+- [x] `apps/web/src/app/analyst/workspace/analyst-prompts.ts`
 - [ ] `apps/web/src/app/audit/AuditColumnLayoutMenu.tsx`
 - [ ] `apps/web/src/app/audit/AuditFilterPanel.tsx`
 - [ ] `apps/web/src/app/audit/AuditRenderTracePanel.tsx`
@@ -64,7 +64,7 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [ ] `apps/web/src/app/ops/ops-stream.worker.ts`
 - [ ] `apps/web/src/app/ops/ops-tape-renderer.ts`
 - [x] `apps/web/src/app/router.tsx`
-- [ ] `apps/web/src/app/routes/AnalystRoute.tsx`
+- [x] `apps/web/src/app/routes/AnalystRoute.tsx`
 - [x] `apps/web/src/app/routes/AuditRoute.tsx`
 - [ ] `apps/web/src/app/routes/OpsRoute.tsx`
 - [x] `apps/web/src/design/components.tsx`
