@@ -9,17 +9,13 @@ import {
   type AnalystRunTimeline,
 } from "./analyst-run-timeline";
 
-type AnalystRunState = {
+export type AnalystRunSnapshot = {
   completedDurationSeconds: number | null;
   error: string | null;
   phase: AnalystReportRunPhase;
   report: AnalystReportSpec | null;
   startedAt: number | null;
   timeline: AnalystRunTimeline;
-};
-
-export type AnalystRunSnapshot = AnalystRunState & {
-  isRunning: boolean;
 };
 
 type AnalystRunStore = {
@@ -32,7 +28,7 @@ type AnalystRunStore = {
 
 const AnalystRunStoreContext = React.createContext<AnalystRunStore | null>(null);
 
-function createInitialState(): AnalystRunState {
+function createInitialSnapshot(): AnalystRunSnapshot {
   return {
     completedDurationSeconds: null,
     error: null,
@@ -43,31 +39,15 @@ function createInitialState(): AnalystRunState {
   };
 }
 
-function isAnalystRunActive(phase: AnalystReportRunPhase) {
-  return (
-    phase === "generating" ||
-    phase === "querying" ||
-    phase === "validating" ||
-    phase === "repairing"
-  );
-}
-
-function createSnapshot(state: AnalystRunState): AnalystRunSnapshot {
-  return {
-    ...state,
-    isRunning: isAnalystRunActive(state.phase),
-  };
-}
-
 function createAnalystRunStore(): AnalystRunStore {
   let abortController: AbortController | null = null;
-  let state = createInitialState();
-  let snapshot = createSnapshot(state);
+  let snapshot = createInitialSnapshot();
   const listeners = new Set<() => void>();
 
-  function emit(update: AnalystRunState | ((current: AnalystRunState) => AnalystRunState)) {
-    state = typeof update === "function" ? update(state) : update;
-    snapshot = createSnapshot(state);
+  function emit(
+    update: AnalystRunSnapshot | ((current: AnalystRunSnapshot) => AnalystRunSnapshot),
+  ) {
+    snapshot = typeof update === "function" ? update(snapshot) : update;
 
     for (const listener of listeners) {
       listener();
@@ -147,7 +127,7 @@ function createAnalystRunStore(): AnalystRunStore {
   function reset() {
     abortController?.abort();
     abortController = null;
-    emit(createInitialState());
+    emit(createInitialSnapshot());
   }
 
   return {

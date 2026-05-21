@@ -3,6 +3,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 import type { ColumnLayoutUpdate } from "./AuditColumnLayoutMenu";
 import { activeAuditFilters } from "./AuditFilterPanel";
+import type { JsonAuditEntry } from "./audit-api";
 import {
   readAuditColumnLayout,
   visibleAuditColumns,
@@ -22,12 +23,12 @@ export function useAuditTableController() {
   const {
     backgroundError,
     cache,
+    cachedRowCount,
     facets,
     hasError,
     isFetching,
     loadVisibleRange,
     resetWindowCache,
-    rows,
   } = useAuditWindow(queryState);
   const [draggedColumnId, setDraggedColumnId] = useState<AuditColumnId>();
   const [columnLayout, setColumnLayoutValue] = useState(() => readAuditColumnLayout());
@@ -46,7 +47,7 @@ export function useAuditTableController() {
     [visibleColumns],
   );
   const rowByIndex = useMemo(() => {
-    const map = new Map<number, (typeof rows)[number]>();
+    const map = new Map<number, JsonAuditEntry>();
 
     for (const window of cache.windows) {
       window.rows.forEach((row, offset) => map.set(window.start + offset, row));
@@ -72,6 +73,7 @@ export function useAuditTableController() {
     activeFilters,
     backgroundError,
     cache,
+    cachedRowCount,
     columnLayout,
     draggedColumnId,
     facets,
@@ -80,7 +82,6 @@ export function useAuditTableController() {
     loadVisibleRange,
     queryState,
     rowByIndex,
-    rows,
     selectedTimeRange,
     setColumnLayout,
     setDraggedColumnId,
