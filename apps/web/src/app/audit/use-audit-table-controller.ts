@@ -55,8 +55,14 @@ export function useAuditTableController() {
 
     return map;
   }, [cache.windows]);
-  const selectedTimeRange = timeRangeValue(queryState.filters.tsFrom, cache.newestTs);
-  const activeFilters = activeAuditFilters(queryState, selectedTimeRange);
+  const selectedTimeRange = useMemo(
+    () => timeRangeValue(queryState.filters.tsFrom, cache.newestTs),
+    [cache.newestTs, queryState.filters.tsFrom],
+  );
+  const activeFilters = useMemo(
+    () => activeAuditFilters(queryState, selectedTimeRange),
+    [queryState, selectedTimeRange],
+  );
   const setQueryState = useCallback(
     (nextState: AuditQueryState) => {
       resetWindowCache();

@@ -53,7 +53,7 @@ export function AuditFilterPanel({
         <FilterSelect
           label="Time"
           onChange={(value) => {
-            const range = TIME_RANGES.find((item) => item.value === value)!;
+            const range = timeRangeForValue(value);
 
             setQueryState(
               auditQueryStateWithTimeBounds(queryState, {
@@ -125,7 +125,7 @@ export function activeAuditFilters(
   selectedTimeRange: TimeRangeValue,
 ): string[] {
   const filters: string[] = [];
-  const timeRange = TIME_RANGES.find((range) => range.value === selectedTimeRange)!;
+  const timeRange = timeRangeForValue(selectedTimeRange);
 
   if (queryState.filters.tsFrom !== undefined || queryState.filters.tsTo !== undefined) {
     filters.push(timeRange.value === "all" ? "time filtered" : `time: ${timeRange.label}`);
@@ -171,9 +171,13 @@ function FilterSelect<T extends string>({
   options: readonly FilterOption<T>[];
   value: T;
 }) {
-  const selectedOption = options.find((option) => option.value === value)!;
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
   const selectOption = (nextValue: string) => {
-    onChange(options.find((option) => option.value === nextValue)!.value);
+    const nextOption = options.find((option) => option.value === nextValue);
+
+    if (nextOption !== undefined) {
+      onChange(nextOption.value);
+    }
   };
 
   return (
@@ -227,4 +231,8 @@ function FilterSelect<T extends string>({
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
+}
+
+function timeRangeForValue(value: TimeRangeValue) {
+  return TIME_RANGES.find((range) => range.value === value) ?? TIME_RANGES[0];
 }

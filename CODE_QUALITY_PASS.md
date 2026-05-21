@@ -35,21 +35,21 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [x] `apps/web/src/app/analyst/workspace/AnalystRunStatus.tsx`
 - [x] `apps/web/src/app/analyst/workspace/AnalystWorkspaceShell.tsx`
 - [x] `apps/web/src/app/analyst/workspace/analyst-prompts.ts`
-- [ ] `apps/web/src/app/audit/AuditColumnLayoutMenu.tsx`
-- [ ] `apps/web/src/app/audit/AuditFilterPanel.tsx`
-- [ ] `apps/web/src/app/audit/AuditRenderTracePanel.tsx`
-- [ ] `apps/web/src/app/audit/AuditTableCells.tsx`
-- [ ] `apps/web/src/app/audit/AuditTablePanel.tsx`
-- [ ] `apps/web/src/app/audit/audit-api.ts`
-- [ ] `apps/web/src/app/audit/audit-columns.tsx`
-- [ ] `apps/web/src/app/audit/audit-query-options.ts`
-- [ ] `apps/web/src/app/audit/audit-query-state.ts`
-- [ ] `apps/web/src/app/audit/audit-time-range.ts`
-- [ ] `apps/web/src/app/audit/audit-virtual-trace.ts`
-- [ ] `apps/web/src/app/audit/audit-window.ts`
-- [ ] `apps/web/src/app/audit/use-audit-table-controller.ts`
-- [ ] `apps/web/src/app/audit/use-audit-window.ts`
-- [ ] `apps/web/src/app/audit/use-main-thread-blocking-p95.ts`
+- [x] `apps/web/src/app/audit/AuditColumnLayoutMenu.tsx`
+- [x] `apps/web/src/app/audit/AuditFilterPanel.tsx`
+- [x] `apps/web/src/app/audit/AuditRenderTracePanel.tsx`
+- [x] `apps/web/src/app/audit/AuditTableCells.tsx`
+- [x] `apps/web/src/app/audit/AuditTablePanel.tsx`
+- [x] `apps/web/src/app/audit/audit-api.ts`
+- [x] `apps/web/src/app/audit/audit-columns.tsx`
+- [x] `apps/web/src/app/audit/audit-query-options.ts`
+- [x] `apps/web/src/app/audit/audit-query-state.ts`
+- [x] `apps/web/src/app/audit/audit-time-range.ts`
+- [x] `apps/web/src/app/audit/audit-virtual-trace.ts`
+- [x] `apps/web/src/app/audit/audit-window.ts`
+- [x] `apps/web/src/app/audit/use-audit-table-controller.ts`
+- [x] `apps/web/src/app/audit/use-audit-window.ts`
+- [x] `apps/web/src/app/audit/use-main-thread-blocking-p95.ts`
 - [ ] `apps/web/src/app/ops/BalanceSheetTape.tsx`
 - [ ] `apps/web/src/app/ops/OpsBottomBand.tsx`
 - [ ] `apps/web/src/app/ops/OpsSideRail.tsx`
