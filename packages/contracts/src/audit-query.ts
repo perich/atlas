@@ -250,8 +250,12 @@ export function parseAuditQueryParams(params: AuditQueryParams): AuditQuery {
   const limit = parseLimit(params["limit"]);
   const after = single(params["after"], "after");
   const before = single(params["before"], "before");
-  const rawOffset = single(params["offset"], "offset");
-  const offset = rawOffset === undefined ? undefined : Number(rawOffset);
+  const offset = numberParam(
+    params["offset"],
+    "offset",
+    offsetSchema,
+    "offset must be a non-negative integer",
+  );
   const sortField = single(params["sortField"], "sortField");
   const sortDir = single(params["sortDir"], "sortDir");
 
@@ -261,10 +265,6 @@ export function parseAuditQueryParams(params: AuditQueryParams): AuditQuery {
 
   if (offset !== undefined && (after !== undefined || before !== undefined)) {
     throw new Error("Use only one paging anchor");
-  }
-
-  if (offset !== undefined && !offsetSchema.safeParse(offset).success) {
-    throw new Error("offset must be a non-negative integer");
   }
 
   const field = sortField ?? DEFAULT_AUDIT_SORT.field;
@@ -295,21 +295,16 @@ export function parseAuditQueryParams(params: AuditQueryParams): AuditQuery {
 }
 
 export function parseAuditFilterParams(params: AuditQueryParams): AuditFilters {
-  const rawTsFrom = single(params["tsFrom"], "tsFrom");
-  const rawTsTo = single(params["tsTo"], "tsTo");
-  const tsFrom = rawTsFrom === undefined ? undefined : Number(rawTsFrom);
-  const tsTo = rawTsTo === undefined ? undefined : Number(rawTsTo);
+  const tsFrom = numberParam(
+    params["tsFrom"],
+    "tsFrom",
+    safeIntegerSchema,
+    "tsFrom must be an integer",
+  );
+  const tsTo = numberParam(params["tsTo"], "tsTo", safeIntegerSchema, "tsTo must be an integer");
   const rail = list(params["rail"], "rail");
   const severity = list(params["severity"], "severity");
   const status = list(params["status"], "status");
-
-  if (tsFrom !== undefined && !safeIntegerSchema.safeParse(tsFrom).success) {
-    throw new Error("tsFrom must be an integer");
-  }
-
-  if (tsTo !== undefined && !safeIntegerSchema.safeParse(tsTo).success) {
-    throw new Error("tsTo must be an integer");
-  }
 
   if (tsFrom !== undefined && tsTo !== undefined && tsFrom > tsTo) {
     throw new Error("tsFrom must be less than or equal to tsTo");
@@ -407,11 +402,36 @@ function parseLimit(value: QueryParam): number {
     return DEFAULT_AUDIT_LIMIT;
   }
 
-  const parsed = Number(single(value, "limit"));
-  const result = limitSchema.safeParse(parsed);
+  const limit = numberParam(
+    value,
+    "limit",
+    limitSchema,
+    `limit must be between 1 and ${MAX_AUDIT_LIMIT}`,
+  );
+
+  if (limit === undefined) {
+    throw new Error(`limit must be between 1 and ${MAX_AUDIT_LIMIT}`);
+  }
+
+  return limit;
+}
+
+function numberParam(
+  value: QueryParam,
+  name: string,
+  schema: z.ZodType<number>,
+  message: string,
+): number | undefined {
+  const raw = single(value, name);
+
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const result = schema.safeParse(Number(raw));
 
   if (!result.success) {
-    throw new Error(`limit must be between 1 and ${MAX_AUDIT_LIMIT}`);
+    throw new Error(message);
   }
 
   return result.data;
