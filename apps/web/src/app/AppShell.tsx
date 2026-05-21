@@ -11,7 +11,7 @@ export function AppShell() {
         <div className="grid min-h-screen place-items-center px-6 text-center lg:hidden">
           <div>
             <Landmark aria-hidden="true" className="mx-auto mb-4 size-8 text-bankops-muted" />
-            <h1 className="text-xl font-semibold text-white">Please open on desktop :)</h1>
+            <h1 className="text-xl font-semibold text-white">Open BankOps on desktop</h1>
             <p className="mt-2 max-w-sm text-sm leading-6 text-bankops-muted">
               BankOps is tuned for dense operator workflows on desktop-sized screens.
             </p>
