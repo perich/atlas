@@ -18,8 +18,8 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [x] `apps/server/src/audit-api.ts`
 - [x] `apps/server/src/main.ts`
 - [x] `apps/server/src/ops-stream.ts`
-- [ ] `apps/web/src/app/App.tsx`
-- [ ] `apps/web/src/app/AppShell.tsx`
+- [x] `apps/web/src/app/App.tsx`
+- [x] `apps/web/src/app/AppShell.tsx`
 - [ ] `apps/web/src/app/analyst/report/AnalystReportChart.tsx`
 - [ ] `apps/web/src/app/analyst/report/AnalystReportRenderer.tsx`
 - [ ] `apps/web/src/app/analyst/report/AnalystReportTable.tsx`
@@ -63,16 +63,16 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [ ] `apps/web/src/app/ops/ops-stream-store.ts`
 - [ ] `apps/web/src/app/ops/ops-stream.worker.ts`
 - [ ] `apps/web/src/app/ops/ops-tape-renderer.ts`
-- [ ] `apps/web/src/app/router.tsx`
+- [x] `apps/web/src/app/router.tsx`
 - [ ] `apps/web/src/app/routes/AnalystRoute.tsx`
-- [ ] `apps/web/src/app/routes/AuditRoute.tsx`
+- [x] `apps/web/src/app/routes/AuditRoute.tsx`
 - [ ] `apps/web/src/app/routes/OpsRoute.tsx`
-- [ ] `apps/web/src/design/components.tsx`
-- [ ] `apps/web/src/design/format.ts`
-- [ ] `apps/web/src/design/utils.ts`
-- [ ] `apps/web/src/main.tsx`
-- [ ] `apps/web/vite.config.ts`
-- [ ] `apps/web/vitest.config.ts`
+- [x] `apps/web/src/design/components.tsx`
+- [x] `apps/web/src/design/format.ts`
+- [x] `apps/web/src/design/utils.ts`
+- [x] `apps/web/src/main.tsx`
+- [x] `apps/web/vite.config.ts`
+- [x] `apps/web/vitest.config.ts`
 - [x] `packages/analyst-model/src/breakdowns.ts`
 - [x] `packages/analyst-model/src/customer-risk.ts`
 - [x] `packages/analyst-model/src/domain-rollups.ts`
