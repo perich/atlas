@@ -20,13 +20,13 @@ const AUDIT_HEADER_HEIGHT = 38;
 const AUDIT_ROW_HEIGHT = 34;
 const AUDIT_INITIAL_LOADING_ROWS = 40;
 const AUDIT_VIEWPORT_SKELETON_ROWS = 48;
-const AUDIT_INITIAL_LOADING_ROW_INDEXES = Array.from(
+const AUDIT_INITIAL_LOADING_ROW_PLACEHOLDERS = Array.from(
   { length: AUDIT_INITIAL_LOADING_ROWS },
-  (_, index) => index,
+  (_, rowIndex) => ({ id: `initial-loading-row-${rowIndex}`, rowIndex }),
 );
-const AUDIT_VIEWPORT_SKELETON_ROW_INDEXES = Array.from(
+const AUDIT_VIEWPORT_SKELETON_ROW_PLACEHOLDERS = Array.from(
   { length: AUDIT_VIEWPORT_SKELETON_ROWS },
-  (_, index) => index,
+  (_, rowIndex) => ({ id: `viewport-skeleton-row-${rowIndex}`, rowIndex }),
 );
 
 type AuditVirtualItem = {
@@ -263,11 +263,11 @@ function AuditViewportSkeletonUnderlay({
       style={{ top: `${AUDIT_HEADER_HEIGHT}px`, width: `${tableWidth}px` }}
     >
       <div className="w-max min-w-full" style={{ width: `${tableWidth}px` }}>
-        {AUDIT_VIEWPORT_SKELETON_ROW_INDEXES.map((index) => (
+        {AUDIT_VIEWPORT_SKELETON_ROW_PLACEHOLDERS.map((row) => (
           <AuditSkeletonRow
             animated={false}
-            key={`viewport-skeleton-${index}`}
-            rowIndex={index}
+            key={row.id}
+            rowIndex={row.rowIndex}
             style={{
               height: `${AUDIT_ROW_HEIGHT}px`,
               width: `${tableWidth}px`,
@@ -334,16 +334,16 @@ function AuditInitialLoadingRows({
         width: `${tableWidth}px`,
       }}
     >
-      {AUDIT_INITIAL_LOADING_ROW_INDEXES.map((index) => (
+      {AUDIT_INITIAL_LOADING_ROW_PLACEHOLDERS.map((row) => (
         <AuditVirtualRow
-          key={`initial-placeholder-${index}`}
+          key={row.id}
           row={undefined}
           tableWidth={tableWidth}
           virtualRow={{
-            index,
-            key: `initial-placeholder-${index}`,
+            index: row.rowIndex,
+            key: row.id,
             size: AUDIT_ROW_HEIGHT,
-            start: index * AUDIT_ROW_HEIGHT,
+            start: row.rowIndex * AUDIT_ROW_HEIGHT,
           }}
           visibleColumns={visibleColumns}
         />
