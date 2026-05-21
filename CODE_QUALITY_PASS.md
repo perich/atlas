@@ -99,6 +99,6 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [ ] `packages/contracts/src/domain.ts`
 - [ ] `packages/contracts/src/index.ts`
 - [ ] `packages/contracts/src/ops-stream-protocol.ts`
-- [ ] `packages/ops-tape-sim/src/customer-profiles.ts`
-- [ ] `packages/ops-tape-sim/src/index.ts`
-- [ ] `packages/ops-tape-sim/src/movement-profiles.ts`
+- [x] `packages/ops-tape-sim/src/customer-profiles.ts`
+- [x] `packages/ops-tape-sim/src/index.ts`
+- [x] `packages/ops-tape-sim/src/movement-profiles.ts`
