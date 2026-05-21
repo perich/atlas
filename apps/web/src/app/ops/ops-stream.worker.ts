@@ -21,7 +21,6 @@ let reconnectTimer: number | undefined;
 let streamRate: StreamRate = DEFAULT_STREAM_RATE;
 let snapshot = INITIAL_OPS_STREAM_SNAPSHOT;
 let decodedCount = 0;
-let latestSeq = 0n;
 const movementWindow = new OpsMovementWindow();
 const renderer = new OpsTapeRenderer(() => movementWindow.rollingAmountScaleMinor());
 
@@ -71,7 +70,6 @@ function connect(status: OpsStreamSnapshot["connectionStatus"]) {
           return;
         case "movement_batch":
           decodedCount += frame.batch.movements.length;
-          latestSeq = frame.batch.toSeq;
           renderer.pushRows(frame.batch.movements);
           movementWindow.record(frame.batch.movements);
           return;
@@ -139,7 +137,6 @@ function publishWarmSnapshot(warmSnapshot: OpsAggregateSnapshotFrame) {
     railBucketHeatmap: movementWindow.heatmapSnapshot(),
     renderer: {
       ...rendererMetrics,
-      sequenceLag: latestSeq === 0n ? 0 : Math.max(0, Number(BigInt(warmSnapshot.seq) - latestSeq)),
       decodedRate,
     },
   });

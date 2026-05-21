@@ -82,7 +82,6 @@ function TapeHeaderStream() {
       <div className="flex items-center gap-3 font-mono text-[10px] text-bankops-subtle">
         <span>decoded {renderer.decodedRate.toLocaleString()}/s</span>
         <span>latency {renderer.frameCostMs.toFixed(1)}ms</span>
-        <span>backlog {renderer.backlog.toLocaleString()}</span>
       </div>
     </div>
   );

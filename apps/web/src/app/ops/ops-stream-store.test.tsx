@@ -316,12 +316,10 @@ function opsSnapshot(overrides: Partial<OpsStreamSnapshot>): OpsStreamSnapshot {
       },
     ],
     renderer: {
-      backlog: 0,
       decodedRate: 2_000,
       fps: 60,
       frameCostMs: 4,
       renderedRowRate: 2_000,
-      sequenceLag: 0,
       supported: true,
     },
     ...overrides,

@@ -1,6 +1,12 @@
 import { movementMagnitudeMinorNumber, type BalanceSheetMovement } from "@bankops/contracts";
 
-import type { OpsStreamSnapshot, TapeCanvasLayout } from "./ops-stream-messages";
+import {
+  OPS_TAPE_HEADER_HEIGHT,
+  OPS_TAPE_MAX_ROWS,
+  OPS_TAPE_ROW_HEIGHT,
+  type OpsStreamSnapshot,
+  type TapeCanvasLayout,
+} from "./ops-stream-messages";
 
 const COLUMNS = [
   ["time", 92],
@@ -12,13 +18,10 @@ const COLUMNS = [
   ["rail", 118],
   ["status", 92],
 ] as const;
-const HEADER_HEIGHT = 30;
-const ROW_HEIGHT = 20;
 const CELL_PADDING_X = 14;
 const MAGNITUDE_GUTTER_WIDTH = 142;
 const MAGNITUDE_BAR_INSET_X = 16;
 const MAGNITUDE_BAR_INSET_Y = 3;
-const MAX_ROWS = 128;
 const COLUMN_LEFTS = createColumnLefts();
 const tapeColor = {
   background: "#070809",
@@ -93,18 +96,14 @@ export class OpsTapeRenderer {
       this.rows.unshift(movement);
     }
 
-    this.rows.length = Math.min(this.rows.length, MAX_ROWS);
+    this.rows.length = Math.min(this.rows.length, OPS_TAPE_MAX_ROWS);
   }
 
   metrics(): RendererMetrics {
-    const visibleRows = this.visibleRowCount();
-
     return {
       supported: this.canvasContext !== null,
       fps: this.frameCount * 4,
       frameCostMs: this.frameCount === 0 ? 0 : this.frameCostTotal / this.frameCount,
-      backlog: Math.max(0, this.rows.length - visibleRows),
-      sequenceLag: 0,
       decodedRate: 0,
       renderedRowRate: this.renderedRowCount * 4,
     };
@@ -137,7 +136,13 @@ export class OpsTapeRenderer {
     const amountScaleMinor = this.amountScaleMinor();
 
     visibleMovements.forEach((movement, index) => {
-      this.drawRow(context, movement, HEADER_HEIGHT + index * ROW_HEIGHT, index, amountScaleMinor);
+      this.drawRow(
+        context,
+        movement,
+        OPS_TAPE_HEADER_HEIGHT + index * OPS_TAPE_ROW_HEIGHT,
+        index,
+        amountScaleMinor,
+      );
     });
 
     this.frameCount += 1;
@@ -169,9 +174,9 @@ export class OpsTapeRenderer {
     gradient.addColorStop(1, tapeColor.header);
 
     context.fillStyle = gradient;
-    context.fillRect(0, 0, this.layout.width, HEADER_HEIGHT);
+    context.fillRect(0, 0, this.layout.width, OPS_TAPE_HEADER_HEIGHT);
     context.fillStyle = tapeColor.divider;
-    context.fillRect(0, HEADER_HEIGHT - 1, this.layout.width, 1);
+    context.fillRect(0, OPS_TAPE_HEADER_HEIGHT - 1, this.layout.width, 1);
     context.fillStyle = tapeColor.headerText;
     context.fillText("SIZE", CELL_PADDING_X, 15, MAGNITUDE_GUTTER_WIDTH - MAGNITUDE_BAR_INSET_X);
     this.drawCells(
@@ -195,9 +200,9 @@ export class OpsTapeRenderer {
     const alpha = Math.max(0.02, 0.075 - index * 0.0015);
 
     context.fillStyle = index % 2 === 0 ? tapeColor.row : tapeColor.rowAlt;
-    context.fillRect(0, y, this.layout.width, ROW_HEIGHT);
+    context.fillRect(0, y, this.layout.width, OPS_TAPE_ROW_HEIGHT);
     context.fillStyle = `${tint}${alpha})`;
-    context.fillRect(0, y, this.layout.width, ROW_HEIGHT);
+    context.fillRect(0, y, this.layout.width, OPS_TAPE_ROW_HEIGHT);
 
     this.drawMagnitudeBar(context, movement, y, amountScaleMinor);
     this.drawMovementCells(context, movement, y + 10, color);
@@ -240,7 +245,7 @@ export class OpsTapeRenderer {
     const amountMinor = movementMagnitudeMinorNumber(movement);
     const intensity = amountScaleMinor === 0 ? 0 : amountMinor / amountScaleMinor;
     const width = Math.max(3, maxWidth * Math.min(1, intensity));
-    const height = ROW_HEIGHT - MAGNITUDE_BAR_INSET_Y * 2;
+    const height = OPS_TAPE_ROW_HEIGHT - MAGNITUDE_BAR_INSET_Y * 2;
 
     context.fillStyle = movementSideColor(movement);
     context.fillRect(x, y + MAGNITUDE_BAR_INSET_Y, width, height);
@@ -256,7 +261,10 @@ export class OpsTapeRenderer {
   }
 
   private visibleRowCount() {
-    return Math.max(0, Math.floor((this.layout.height - HEADER_HEIGHT) / ROW_HEIGHT));
+    return Math.max(
+      0,
+      Math.floor((this.layout.height - OPS_TAPE_HEADER_HEIGHT) / OPS_TAPE_ROW_HEIGHT),
+    );
   }
 }
 
