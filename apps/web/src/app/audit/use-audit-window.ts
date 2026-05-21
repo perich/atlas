@@ -48,7 +48,10 @@ export function useAuditWindow(queryState: AuditQueryState) {
   const cache = extraCache?.queryKey === queryKey ? extraCache.cache : initialCache;
   const backgroundError =
     backgroundWindowError?.queryKey === queryKey ? backgroundWindowError.error : undefined;
-  const rows = useMemo(() => cache.windows.flatMap((window) => window.rows), [cache]);
+  const cachedRowCount = useMemo(
+    () => cache.windows.reduce((count, window) => count + window.rows.length, 0),
+    [cache.windows],
+  );
 
   const loadVisibleRange = useCallback(
     (visibleRange: AuditVisibleRange) => {
@@ -98,7 +101,7 @@ export function useAuditWindow(queryState: AuditQueryState) {
     facets: facetsQuery.data,
     hasError: firstPageQuery.isError,
     isFetching: firstPageQuery.isFetching,
-    rows,
+    cachedRowCount,
     loadVisibleRange,
     resetWindowCache,
   };
