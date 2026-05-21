@@ -8,16 +8,16 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 
 ## Checklist
 
-- [ ] `apps/server/src/analyst/analyst-api.ts`
-- [ ] `apps/server/src/analyst/analyst-run-events.ts`
-- [ ] `apps/server/src/analyst/analyst-run-policy.ts`
-- [ ] `apps/server/src/analyst/analyst-runner.ts`
-- [ ] `apps/server/src/analyst/analyst-tool-catalog.ts`
-- [ ] `apps/server/src/analyst/analyst-tools.ts`
-- [ ] `apps/server/src/analyst/isolate-driver.ts`
-- [ ] `apps/server/src/audit-api.ts`
-- [ ] `apps/server/src/main.ts`
-- [ ] `apps/server/src/ops-stream.ts`
+- [x] `apps/server/src/analyst/analyst-api.ts`
+- [x] `apps/server/src/analyst/analyst-run-events.ts`
+- [x] `apps/server/src/analyst/analyst-run-policy.ts`
+- [x] `apps/server/src/analyst/analyst-runner.ts`
+- [x] `apps/server/src/analyst/analyst-tool-catalog.ts`
+- [x] `apps/server/src/analyst/analyst-tools.ts`
+- [x] `apps/server/src/analyst/isolate-driver.ts`
+- [x] `apps/server/src/audit-api.ts`
+- [x] `apps/server/src/main.ts`
+- [x] `apps/server/src/ops-stream.ts`
 - [ ] `apps/web/src/app/App.tsx`
 - [ ] `apps/web/src/app/AppShell.tsx`
 - [ ] `apps/web/src/app/analyst/report/AnalystReportChart.tsx`

@@ -1,19 +1,18 @@
 import type { IsolateDriver } from "@tanstack/ai-code-mode";
 
-let cachedDriver: IsolateDriver | undefined;
+let cachedDriver: Promise<IsolateDriver> | undefined;
 
 export async function createAnalystIsolateDriver(): Promise<IsolateDriver> {
-  if (cachedDriver !== undefined) {
-    return cachedDriver;
-  }
+  cachedDriver ??= loadAnalystIsolateDriver();
+  return cachedDriver;
+}
 
+async function loadAnalystIsolateDriver(): Promise<IsolateDriver> {
   try {
     const { createNodeIsolateDriver } = await import("@tanstack/ai-isolate-node");
-    cachedDriver = createNodeIsolateDriver();
-    return cachedDriver;
+    return createNodeIsolateDriver();
   } catch {
     const { createQuickJSIsolateDriver } = await import("@tanstack/ai-isolate-quickjs");
-    cachedDriver = createQuickJSIsolateDriver();
-    return cachedDriver;
+    return createQuickJSIsolateDriver();
   }
 }
