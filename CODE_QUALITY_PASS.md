@@ -86,11 +86,11 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [x] `packages/analyst-model/src/time-series.ts`
 - [x] `packages/analyst-model/src/tool-options.ts`
 - [x] `packages/analyst-model/src/types.ts`
-- [ ] `packages/audit-log-model/src/audit-profiles.ts`
-- [ ] `packages/audit-log-model/src/enrichment.ts`
-- [ ] `packages/audit-log-model/src/index.ts`
-- [ ] `packages/audit-log-model/src/query.ts`
-- [ ] `packages/audit-log-model/src/random.ts`
+- [x] `packages/audit-log-model/src/audit-profiles.ts`
+- [x] `packages/audit-log-model/src/enrichment.ts`
+- [x] `packages/audit-log-model/src/index.ts`
+- [x] `packages/audit-log-model/src/query.ts`
+- [x] `packages/audit-log-model/src/random.ts`
 - [ ] `packages/contracts/src/analyst.ts`
 - [ ] `packages/contracts/src/audit-json.ts`
 - [ ] `packages/contracts/src/audit-query.ts`

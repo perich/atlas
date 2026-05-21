@@ -15,6 +15,15 @@ type AccountProfile = {
   ledgerRegion: "us-east" | "us-west" | "eu-west";
 };
 
+const CUSTOMER_NAME_PREFIXES = ["Northstar", "Aster", "Civic", "Harbor", "Summit"] as const;
+const CUSTOMER_NAME_SUFFIXES = ["Payroll", "Marketplace", "Treasury", "Payments"] as const;
+const CUSTOMER_SEGMENTS = ["consumer", "marketplace", "payroll", "fintech", "treasury"] as const;
+const CUSTOMER_REGIONS = ["midwest", "northeast", "south", "west"] as const;
+const CUSTOMER_RISK_PROFILES = ["low", "standard", "elevated", "restricted"] as const;
+const CUSTOMER_VOLUME_BANDS = ["small", "mid_market", "enterprise"] as const;
+const ACCOUNT_TYPES = ["operating", "reserve", "settlement", "for_benefit_of"] as const;
+const LEDGER_REGIONS = ["us-east", "us-west", "eu-west"] as const;
+
 export type OperationalPressure = {
   latencyMsDelta: number;
   errorRateBpsDelta: number;
@@ -78,31 +87,25 @@ export function withAnalystContext(
 }
 
 function customerProfileFor(customerNumber: number): CustomerProfile {
-  const segments = ["consumer", "marketplace", "payroll", "fintech", "treasury"] as const;
-  const regions = ["midwest", "northeast", "south", "west"] as const;
-  const riskProfiles = ["low", "standard", "elevated", "restricted"] as const;
-  const volumeBands = ["small", "mid_market", "enterprise"] as const;
-
   return {
-    name: `${["Northstar", "Aster", "Civic", "Harbor", "Summit"][customerNumber % 5]} ${
-      ["Payroll", "Marketplace", "Treasury", "Payments"][customerNumber % 4]
+    name: `${CUSTOMER_NAME_PREFIXES[customerNumber % CUSTOMER_NAME_PREFIXES.length]} ${
+      CUSTOMER_NAME_SUFFIXES[customerNumber % CUSTOMER_NAME_SUFFIXES.length]
     }`,
-    segment: segments[customerNumber % segments.length],
-    region: regions[Math.floor(customerNumber / 3) % regions.length],
-    riskProfile: riskProfiles[Math.floor(customerNumber / 5) % riskProfiles.length],
-    monthlyVolumeBand: volumeBands[Math.floor(customerNumber / 7) % volumeBands.length],
+    segment: CUSTOMER_SEGMENTS[customerNumber % CUSTOMER_SEGMENTS.length],
+    region: CUSTOMER_REGIONS[Math.floor(customerNumber / 3) % CUSTOMER_REGIONS.length],
+    riskProfile:
+      CUSTOMER_RISK_PROFILES[Math.floor(customerNumber / 5) % CUSTOMER_RISK_PROFILES.length],
+    monthlyVolumeBand:
+      CUSTOMER_VOLUME_BANDS[Math.floor(customerNumber / 7) % CUSTOMER_VOLUME_BANDS.length],
     primaryRail: RAILS[Math.floor(customerNumber / 11) % RAILS.length],
     relationshipAgeDays: 45 + customerNumber * 17,
   };
 }
 
 function accountProfileFor(accountNumber: number): AccountProfile {
-  const accountTypes = ["operating", "reserve", "settlement", "for_benefit_of"] as const;
-  const ledgerRegions = ["us-east", "us-west", "eu-west"] as const;
-
   return {
-    accountType: accountTypes[accountNumber % accountTypes.length],
-    ledgerRegion: ledgerRegions[Math.floor(accountNumber / 4) % ledgerRegions.length],
+    accountType: ACCOUNT_TYPES[accountNumber % ACCOUNT_TYPES.length],
+    ledgerRegion: LEDGER_REGIONS[Math.floor(accountNumber / 4) % LEDGER_REGIONS.length],
   };
 }
 

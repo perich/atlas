@@ -7,7 +7,7 @@ import {
   type RiskTier,
 } from "@bankops/contracts";
 
-import type { EnrichedEntityContext, OperationalPressure } from "./enrichment.js";
+import type { EnrichedEntityContext } from "./enrichment.js";
 
 const SETTLEMENT_BATCH_SIZE = 48;
 const RECONCILIATION_RUN_SIZE = 96;
@@ -51,9 +51,6 @@ export type AuditContext = {
   asset: Asset;
   amountMinor: bigint | undefined;
   riskTier: RiskTier | undefined;
-  customerId: string;
-  accountId: string;
-  pressure: OperationalPressure;
 } & EnrichedEntityContext;
 
 type DetailBuilder = (context: AuditContext) => Record<string, unknown>;
