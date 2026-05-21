@@ -158,14 +158,14 @@ function AuditTableScrollSurface({
   tableWidth: number;
   visibleColumns: SizedAuditColumn[];
 }) {
-  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [scrollElement, setScrollElement] = React.useState<HTMLDivElement | null>(null);
   const isInitialLoading = cache.windows.length === 0 && isFetching;
 
   return (
     <div
       className="relative min-h-0 flex-1 overflow-auto bg-bankops-panel"
       data-testid="audit-table-scroll"
-      ref={scrollRef}
+      ref={setScrollElement}
     >
       <AuditTableHeader
         draggedColumnId={draggedColumnId}
@@ -189,7 +189,7 @@ function AuditTableScrollSurface({
         isFetching={isFetching}
         loadVisibleRange={loadVisibleRange}
         rowByIndex={rowByIndex}
-        scrollRef={scrollRef}
+        scrollElement={scrollElement}
         tableWidth={tableWidth}
         visibleColumns={visibleColumns}
       />
@@ -260,7 +260,7 @@ function AuditVirtualizedRows({
   isFetching,
   loadVisibleRange,
   rowByIndex,
-  scrollRef,
+  scrollElement,
   tableWidth,
   visibleColumns,
 }: {
@@ -268,7 +268,7 @@ function AuditVirtualizedRows({
   isFetching: boolean;
   loadVisibleRange: (visibleRange: AuditVisibleRange) => void;
   rowByIndex: Map<number, JsonAuditEntry>;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
+  scrollElement: HTMLDivElement | null;
   tableWidth: number;
   visibleColumns: SizedAuditColumn[];
 }) {
@@ -282,7 +282,7 @@ function AuditVirtualizedRows({
     count: cache.totalMatched || rowByIndex.size,
     estimateSize: () => AUDIT_ROW_HEIGHT,
     getItemKey: getAuditRowKey,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => scrollElement,
     overscan: AUDIT_ROW_OVERSCAN,
   });
   const virtualRows = virtualizer.getVirtualItems();

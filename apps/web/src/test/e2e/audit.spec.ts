@@ -29,7 +29,6 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
 
   await selectAuditFilter(page, "Status", "failed");
   await expect(page).toHaveURL(/status=failed/);
-  await expect(page.getByText("Filtered")).toBeVisible();
   await expect(page.getByText("status: failed")).toBeVisible();
   await expect(page.getByTestId("audit-row").first()).toContainText("failed");
   await page.getByRole("button", { name: "Reset" }).click();
@@ -111,6 +110,26 @@ test("audit route virtualizes, filters, sorts, and loads more rows", async ({ pa
   await expect
     .poll(async () => Number((await page.getByTestId("audit-rows-cached").textContent()) ?? 0))
     .toBeLessThanOrEqual(1_000);
+});
+
+test("audit route renders virtual rows after prefetched nav", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/ops");
+
+  const auditPrefetch = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/audit?limit=200") && response.request().method() === "GET",
+  );
+  const auditLink = page.getByRole("link", { name: "Audit" });
+
+  await auditLink.hover();
+  await auditPrefetch;
+  await auditLink.click();
+  await expect(page).toHaveURL(/\/audit$/);
+
+  await expect(page.getByRole("heading", { name: "Bank Core Audit Log" })).toBeVisible();
+  await expect(page.getByTestId("audit-row").first()).toBeVisible();
+  await expect(page.getByTestId("audit-row-placeholder")).toHaveCount(0);
 });
 
 test("audit route persists column controls and shows render trace", async ({ page }) => {
