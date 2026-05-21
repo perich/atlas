@@ -47,7 +47,7 @@ export type SyntheticCustomer = {
   name: string;
   industry: CustomerIndustry;
   riskTier: RiskTier;
-  accounts: SyntheticAccount[];
+  accounts: readonly SyntheticAccount[];
 };
 
 export type SimulatedBalanceSheetMovement = BalanceSheetMovement & {
@@ -88,7 +88,7 @@ type RecentTick = OpsTapeChartPoint & {
 };
 
 export class OpsTapeSimulator {
-  readonly customers: SyntheticCustomer[];
+  readonly customers: readonly SyntheticCustomer[];
 
   private readonly random: RandomState = { value: DEFAULT_OPS_TAPE_SEED };
   private readonly railCounters = createRailCounters();
@@ -261,7 +261,7 @@ export class OpsTapeSimulator {
     }
   }
 
-  private recordTick(serverTsMs: number, movements: SimulatedBalanceSheetMovement[]) {
+  private recordTick(serverTsMs: number, movements: readonly SimulatedBalanceSheetMovement[]) {
     const railCounts: Record<Rail, number> = {
       ach: 0,
       wire: 0,

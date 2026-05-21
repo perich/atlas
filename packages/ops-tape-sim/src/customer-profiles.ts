@@ -1,13 +1,4 @@
-export type CustomerIndustry =
-  | "ai"
-  | "defense"
-  | "robotics"
-  | "hardware"
-  | "crypto"
-  | "fintech"
-  | "venture";
-
-export const INDUSTRIES: readonly CustomerIndustry[] = [
+export const INDUSTRIES = [
   "ai",
   "defense",
   "robotics",
@@ -15,7 +6,9 @@ export const INDUSTRIES: readonly CustomerIndustry[] = [
   "crypto",
   "fintech",
   "venture",
-];
+] as const;
+
+export type CustomerIndustry = (typeof INDUSTRIES)[number];
 
 export const CUSTOMER_NAMES = [
   "Northstar AI",
