@@ -2,7 +2,7 @@ import type { AuditEntry } from "@bankops/contracts";
 
 import { filteredEntries } from "./filters.js";
 import { capped } from "./limits.js";
-import { optionalStringField } from "./shared.js";
+import { optionalRecordField, optionalStringField } from "./shared.js";
 import type { AnalystFilters, AuditSampleSort } from "./types.js";
 
 type AuditSampleOptions = {
@@ -63,10 +63,7 @@ function sampleDetailSummary(detail: Record<string, unknown>) {
   const parts = Object.entries(detail)
     .flatMap(([key, value]) => {
       if (key === "customer") {
-        const name =
-          value !== null && typeof value === "object" && !Array.isArray(value)
-            ? optionalStringField(Object.fromEntries(Object.entries(value)), "name")
-            : undefined;
+        const name = optionalStringField(optionalRecordField(detail, "customer"), "name");
         return name === undefined ? [] : [`customer=${name}`];
       }
       if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {

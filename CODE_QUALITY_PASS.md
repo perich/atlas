@@ -73,19 +73,19 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [ ] `apps/web/src/main.tsx`
 - [ ] `apps/web/vite.config.ts`
 - [ ] `apps/web/vitest.config.ts`
-- [ ] `packages/analyst-model/src/breakdowns.ts`
-- [ ] `packages/analyst-model/src/customer-risk.ts`
-- [ ] `packages/analyst-model/src/domain-rollups.ts`
-- [ ] `packages/analyst-model/src/filters.ts`
-- [ ] `packages/analyst-model/src/index.ts`
-- [ ] `packages/analyst-model/src/limits.ts`
-- [ ] `packages/analyst-model/src/metrics.ts`
-- [ ] `packages/analyst-model/src/overview.ts`
-- [ ] `packages/analyst-model/src/samples.ts`
-- [ ] `packages/analyst-model/src/shared.ts`
-- [ ] `packages/analyst-model/src/time-series.ts`
-- [ ] `packages/analyst-model/src/tool-options.ts`
-- [ ] `packages/analyst-model/src/types.ts`
+- [x] `packages/analyst-model/src/breakdowns.ts`
+- [x] `packages/analyst-model/src/customer-risk.ts`
+- [x] `packages/analyst-model/src/domain-rollups.ts`
+- [x] `packages/analyst-model/src/filters.ts`
+- [x] `packages/analyst-model/src/index.ts`
+- [x] `packages/analyst-model/src/limits.ts`
+- [x] `packages/analyst-model/src/metrics.ts`
+- [x] `packages/analyst-model/src/overview.ts`
+- [x] `packages/analyst-model/src/samples.ts`
+- [x] `packages/analyst-model/src/shared.ts`
+- [x] `packages/analyst-model/src/time-series.ts`
+- [x] `packages/analyst-model/src/tool-options.ts`
+- [x] `packages/analyst-model/src/types.ts`
 - [ ] `packages/audit-log-model/src/audit-profiles.ts`
 - [ ] `packages/audit-log-model/src/enrichment.ts`
 - [ ] `packages/audit-log-model/src/index.ts`

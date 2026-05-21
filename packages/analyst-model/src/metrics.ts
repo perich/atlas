@@ -40,7 +40,13 @@ export function jsonSafeNumber(value: number | bigint) {
 }
 
 export function compareRollupValues(left: number | bigint, right: number | bigint) {
-  const leftComparable = typeof left === "bigint" ? Number(left) : left;
-  const rightComparable = typeof right === "bigint" ? Number(right) : right;
-  return leftComparable - rightComparable;
+  if (typeof left === "bigint" && typeof right === "bigint") {
+    if (left === right) {
+      return 0;
+    }
+
+    return left > right ? 1 : -1;
+  }
+
+  return Number(left) - Number(right);
 }
