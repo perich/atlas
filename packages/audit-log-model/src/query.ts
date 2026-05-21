@@ -79,9 +79,9 @@ export function getAuditFacets(entries: readonly AuditEntry[], filters: AuditFil
 function filterEntries(
   entries: readonly AuditEntry[],
   filters: AuditFilters | undefined,
-): AuditEntry[] {
+): readonly AuditEntry[] {
   if (filters === undefined) {
-    return [...entries];
+    return entries;
   }
 
   return entries.filter((entry) => {

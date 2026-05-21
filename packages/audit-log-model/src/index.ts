@@ -67,6 +67,7 @@ function createAuditEntry(index: number, random: Random): AuditEntry {
   const riskTier = riskTierFor(profile.kind, index, random);
   const customerId = customerIdFor(customerNumber);
   const accountId = accountIdFor(accountNumber);
+  const scheduledFailure = isScheduledFailure(index);
   const enrichedContext = enrichedEntityContextFor({
     accountId,
     accountNumber,
@@ -81,14 +82,14 @@ function createAuditEntry(index: number, random: Random): AuditEntry {
     asset,
     baseTsMs: BASE_TS_MS,
     index,
-    isScheduledFailure: isScheduledFailure(index),
+    isScheduledFailure: scheduledFailure,
     profile,
     rail,
     riskTier,
     ...enrichedContext,
   } satisfies AuditContext;
   const severity = severityFor(profile, index, enrichedContext.pressure);
-  const status = statusFor(profile, index, enrichedContext.pressure);
+  const status = statusFor(profile, scheduledFailure, enrichedContext.pressure);
 
   const entry: AuditEntry = {
     action: profile.action,
@@ -172,10 +173,10 @@ function severityFor(
 
 function statusFor(
   profile: AuditProfile,
-  index: number,
+  scheduledFailure: boolean,
   pressure: OperationalPressure,
 ): AuditStatus {
-  if (isScheduledFailure(index) || pressure.forceFailure) {
+  if (scheduledFailure || pressure.forceFailure) {
     return "failed";
   }
 
