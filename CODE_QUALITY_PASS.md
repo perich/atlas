@@ -50,23 +50,23 @@ Goal: review each file for code quality, simplicity, performance, naming, owners
 - [x] `apps/web/src/app/audit/use-audit-table-controller.ts`
 - [x] `apps/web/src/app/audit/use-audit-window.ts`
 - [x] `apps/web/src/app/audit/use-main-thread-blocking-p95.ts`
-- [ ] `apps/web/src/app/ops/BalanceSheetTape.tsx`
-- [ ] `apps/web/src/app/ops/OpsBottomBand.tsx`
-- [ ] `apps/web/src/app/ops/OpsSideRail.tsx`
-- [ ] `apps/web/src/app/ops/OpsTopBand.tsx`
-- [ ] `apps/web/src/app/ops/RailBucketHeatmap.tsx`
-- [ ] `apps/web/src/app/ops/ops-format.ts`
-- [ ] `apps/web/src/app/ops/ops-movement-window.ts`
-- [ ] `apps/web/src/app/ops/ops-rail-health.ts`
-- [ ] `apps/web/src/app/ops/ops-stream-messages.ts`
-- [ ] `apps/web/src/app/ops/ops-stream-session.ts`
-- [ ] `apps/web/src/app/ops/ops-stream-store.ts`
-- [ ] `apps/web/src/app/ops/ops-stream.worker.ts`
-- [ ] `apps/web/src/app/ops/ops-tape-renderer.ts`
+- [x] `apps/web/src/app/ops/BalanceSheetTape.tsx`
+- [x] `apps/web/src/app/ops/OpsBottomBand.tsx`
+- [x] `apps/web/src/app/ops/OpsSideRail.tsx`
+- [x] `apps/web/src/app/ops/OpsTopBand.tsx`
+- [x] `apps/web/src/app/ops/RailBucketHeatmap.tsx`
+- [x] `apps/web/src/app/ops/ops-format.ts`
+- [x] `apps/web/src/app/ops/ops-movement-window.ts`
+- [x] `apps/web/src/app/ops/ops-rail-health.ts`
+- [x] `apps/web/src/app/ops/ops-stream-messages.ts`
+- [x] `apps/web/src/app/ops/ops-stream-session.ts`
+- [x] `apps/web/src/app/ops/ops-stream-store.ts`
+- [x] `apps/web/src/app/ops/ops-stream.worker.ts`
+- [x] `apps/web/src/app/ops/ops-tape-renderer.ts`
 - [x] `apps/web/src/app/router.tsx`
 - [x] `apps/web/src/app/routes/AnalystRoute.tsx`
 - [x] `apps/web/src/app/routes/AuditRoute.tsx`
-- [ ] `apps/web/src/app/routes/OpsRoute.tsx`
+- [x] `apps/web/src/app/routes/OpsRoute.tsx`
 - [x] `apps/web/src/design/components.tsx`
 - [x] `apps/web/src/design/format.ts`
 - [x] `apps/web/src/design/utils.ts`

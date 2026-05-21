@@ -2,7 +2,7 @@ import { movementMagnitudeMinorNumber, type BalanceSheetMovement } from "@bankop
 
 import type { OpsStreamSnapshot, TapeCanvasLayout } from "./ops-stream-messages";
 
-const columns = [
+const COLUMNS = [
   ["time", 92],
   ["side", 68],
   ["amount", 118],
@@ -12,13 +12,14 @@ const columns = [
   ["rail", 118],
   ["status", 92],
 ] as const;
-const headerHeight = 30;
-const rowHeight = 20;
-const cellPaddingX = 14;
-const magnitudeGutterWidth = 142;
-const magnitudeBarInsetX = 16;
-const magnitudeBarInsetY = 3;
-const maxRows = 128;
+const HEADER_HEIGHT = 30;
+const ROW_HEIGHT = 20;
+const CELL_PADDING_X = 14;
+const MAGNITUDE_GUTTER_WIDTH = 142;
+const MAGNITUDE_BAR_INSET_X = 16;
+const MAGNITUDE_BAR_INSET_Y = 3;
+const MAX_ROWS = 128;
+const COLUMN_LEFTS = createColumnLefts();
 const tapeColor = {
   background: "#070809",
   backgroundGlow: "#09100d",
@@ -92,7 +93,7 @@ export class OpsTapeRenderer {
       this.rows.unshift(movement);
     }
 
-    this.rows.length = Math.min(this.rows.length, maxRows);
+    this.rows.length = Math.min(this.rows.length, MAX_ROWS);
   }
 
   metrics(): RendererMetrics {
@@ -116,32 +117,27 @@ export class OpsTapeRenderer {
   }
 
   private draw() {
-    if (this.canvasContext === null) {
+    const context = this.canvasContext;
+
+    if (context === null) {
       return;
     }
 
     const startedAt = performance.now();
     const visibleRows = this.visibleRowCount();
 
-    this.canvasContext.setTransform(this.layout.dpr, 0, 0, this.layout.dpr, 0, 0);
-    this.drawBackdrop(this.canvasContext);
-    this.canvasContext.font =
-      "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-    this.canvasContext.textBaseline = "middle";
+    context.setTransform(this.layout.dpr, 0, 0, this.layout.dpr, 0, 0);
+    this.drawBackdrop(context);
+    context.font = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    context.textBaseline = "middle";
 
-    this.drawHeader(this.canvasContext);
+    this.drawHeader(context);
 
     const visibleMovements = this.rows.slice(0, visibleRows);
     const amountScaleMinor = this.amountScaleMinor();
 
     visibleMovements.forEach((movement, index) => {
-      this.drawRow(
-        this.canvasContext!,
-        movement,
-        headerHeight + index * rowHeight,
-        index,
-        amountScaleMinor,
-      );
+      this.drawRow(context, movement, HEADER_HEIGHT + index * ROW_HEIGHT, index, amountScaleMinor);
     });
 
     this.frameCount += 1;
@@ -173,14 +169,14 @@ export class OpsTapeRenderer {
     gradient.addColorStop(1, tapeColor.header);
 
     context.fillStyle = gradient;
-    context.fillRect(0, 0, this.layout.width, headerHeight);
+    context.fillRect(0, 0, this.layout.width, HEADER_HEIGHT);
     context.fillStyle = tapeColor.divider;
-    context.fillRect(0, headerHeight - 1, this.layout.width, 1);
+    context.fillRect(0, HEADER_HEIGHT - 1, this.layout.width, 1);
     context.fillStyle = tapeColor.headerText;
-    context.fillText("SIZE", cellPaddingX, 15, magnitudeGutterWidth - magnitudeBarInsetX);
+    context.fillText("SIZE", CELL_PADDING_X, 15, MAGNITUDE_GUTTER_WIDTH - MAGNITUDE_BAR_INSET_X);
     this.drawCells(
       context,
-      columns.map(([label]) => label.toUpperCase()),
+      COLUMNS.map(([label]) => label.toUpperCase()),
       15,
       tapeColor.headerText,
     );
@@ -199,9 +195,9 @@ export class OpsTapeRenderer {
     const alpha = Math.max(0.02, 0.075 - index * 0.0015);
 
     context.fillStyle = index % 2 === 0 ? tapeColor.row : tapeColor.rowAlt;
-    context.fillRect(0, y, this.layout.width, rowHeight);
+    context.fillRect(0, y, this.layout.width, ROW_HEIGHT);
     context.fillStyle = `${tint}${alpha})`;
-    context.fillRect(0, y, this.layout.width, rowHeight);
+    context.fillRect(0, y, this.layout.width, ROW_HEIGHT);
 
     this.drawMagnitudeBar(context, movement, y, amountScaleMinor);
     this.drawMovementCells(context, movement, y + 10, color);
@@ -213,12 +209,9 @@ export class OpsTapeRenderer {
     y: number,
     color: string = tapeColor.text,
   ) {
-    let x = cellPaddingX + magnitudeGutterWidth;
-
-    columns.forEach(([, width], index) => {
+    COLUMNS.forEach(([, width], index) => {
       context.fillStyle = color;
-      context.fillText(cells[index], x, y, width - 12);
-      x += width;
+      context.fillText(cells[index], columnX(index), y, width - 12);
     });
   }
 
@@ -230,7 +223,7 @@ export class OpsTapeRenderer {
   ) {
     const cells = movementCells(movement);
 
-    columns.forEach(([, width], index) => {
+    COLUMNS.forEach(([, width], index) => {
       context.fillStyle = movementCellColor(movement, index, sideColor);
       context.fillText(cells[index], columnX(index), y, width - 12);
     });
@@ -242,28 +235,28 @@ export class OpsTapeRenderer {
     y: number,
     amountScaleMinor: number,
   ) {
-    const x = magnitudeBarInsetX;
-    const maxWidth = magnitudeGutterWidth - magnitudeBarInsetX * 2;
+    const x = MAGNITUDE_BAR_INSET_X;
+    const maxWidth = MAGNITUDE_GUTTER_WIDTH - MAGNITUDE_BAR_INSET_X * 2;
     const amountMinor = movementMagnitudeMinorNumber(movement);
     const intensity = amountScaleMinor === 0 ? 0 : amountMinor / amountScaleMinor;
     const width = Math.max(3, maxWidth * Math.min(1, intensity));
-    const height = rowHeight - magnitudeBarInsetY * 2;
+    const height = ROW_HEIGHT - MAGNITUDE_BAR_INSET_Y * 2;
 
     context.fillStyle = movementSideColor(movement);
-    context.fillRect(x, y + magnitudeBarInsetY, width, height);
+    context.fillRect(x, y + MAGNITUDE_BAR_INSET_Y, width, height);
   }
 
   private drawColumnRules(context: OffscreenCanvasRenderingContext2D) {
     context.fillStyle = tapeColor.gutter;
-    context.fillRect(cellPaddingX + magnitudeGutterWidth - 10, 0, 1, this.layout.height);
+    context.fillRect(CELL_PADDING_X + MAGNITUDE_GUTTER_WIDTH - 10, 0, 1, this.layout.height);
 
-    columns.slice(1).forEach((_, index) => {
+    COLUMNS.slice(1).forEach((_, index) => {
       context.fillRect(columnX(index + 1) - 10, 0, 1, this.layout.height);
     });
   }
 
   private visibleRowCount() {
-    return Math.max(0, Math.floor((this.layout.height - headerHeight) / rowHeight));
+    return Math.max(0, Math.floor((this.layout.height - HEADER_HEIGHT) / ROW_HEIGHT));
   }
 }
 
@@ -288,13 +281,19 @@ function movementSideColor(movement: BalanceSheetMovement) {
 }
 
 function columnX(index: number) {
-  return (
-    cellPaddingX +
-    magnitudeGutterWidth +
-    columns.slice(0, index).reduce((total, [, width]) => {
-      return total + width;
-    }, 0)
-  );
+  return COLUMN_LEFTS[index] ?? CELL_PADDING_X + MAGNITUDE_GUTTER_WIDTH;
+}
+
+function createColumnLefts() {
+  const offsets: number[] = [];
+  let nextOffset = CELL_PADDING_X + MAGNITUDE_GUTTER_WIDTH;
+
+  for (const [, width] of COLUMNS) {
+    offsets.push(nextOffset);
+    nextOffset += width;
+  }
+
+  return offsets;
 }
 
 function movementCells(movement: BalanceSheetMovement) {
