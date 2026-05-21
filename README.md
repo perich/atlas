@@ -160,6 +160,7 @@ Useful scripts:
 ```bash
 pnpm build
 pnpm start
+pnpm verify
 pnpm typecheck
 pnpm lint
 pnpm test:env
@@ -175,7 +176,8 @@ pnpm test:e2e
 
 ### Quality Checks
 
-The pre-commit hook runs the fast local quality gate: Markdown link verification, environment
+The pre-commit hook runs the fast staged-file quality gate through `pnpm lint-staged`.
+Run `pnpm verify` for the full local quality gate: Markdown link verification, environment
 contract checks, secret scanning, spelling, workspace package consistency, unused code/dependency
 hygiene, dependency-boundary rules, typecheck, lint, unit tests, and format verification.
 
