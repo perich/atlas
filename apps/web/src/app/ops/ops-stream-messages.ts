@@ -46,11 +46,15 @@ type OpsRendererMetrics = {
   supported: boolean;
   fps: number;
   frameCostMs: number;
-  backlog: number;
-  sequenceLag: number;
   decodedRate: number;
   renderedRowRate: number;
 };
+
+export const OPS_TAPE_HEADER_HEIGHT = 30;
+export const OPS_TAPE_ROW_HEIGHT = 20;
+export const OPS_TAPE_MAX_ROWS = 128;
+export const OPS_TAPE_CANVAS_CSS_HEIGHT =
+  OPS_TAPE_HEADER_HEIGHT + OPS_TAPE_MAX_ROWS * OPS_TAPE_ROW_HEIGHT;
 
 export type TapeCanvasLayout = {
   width: number;
@@ -75,8 +79,6 @@ export const INITIAL_OPS_STREAM_SNAPSHOT: OpsStreamSnapshot = {
     supported: false,
     fps: 0,
     frameCostMs: 0,
-    backlog: 0,
-    sequenceLag: 0,
     decodedRate: 0,
     renderedRowRate: 0,
   },

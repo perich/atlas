@@ -12,6 +12,8 @@ import {
 import { optionalDetailRecord, optionalStringField } from "./shared.js";
 import type { AnalystFilters, BreakdownDimension, BreakdownMetric } from "./types.js";
 
+const CUSTOMER_DIMENSION_PREFIX = "customer.";
+
 type BreakdownOptions = {
   dimension: BreakdownDimension;
   filters: AnalystFilters;
@@ -53,8 +55,11 @@ function dimensionValue(entry: AuditEntry, dimension: BreakdownDimension) {
     return entry.kind;
   }
 
-  return (
-    optionalStringField(optionalDetailRecord(entry, "customer"), dimension.split(".")[1]) ??
-    "unknown"
-  );
+  const customerField = dimension.startsWith(CUSTOMER_DIMENSION_PREFIX)
+    ? dimension.slice(CUSTOMER_DIMENSION_PREFIX.length)
+    : undefined;
+
+  return customerField === undefined
+    ? "unknown"
+    : (optionalStringField(optionalDetailRecord(entry, "customer"), customerField) ?? "unknown");
 }

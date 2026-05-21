@@ -132,16 +132,6 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
       value: `${snapshot.renderer.frameCostMs.toFixed(1)}ms`,
     },
     {
-      label: "backlog",
-      title: "Decoded movement rows retained beyond the currently visible tape window.",
-      value: snapshot.renderer.backlog.toString(),
-    },
-    {
-      label: "lag",
-      title: "Sequence gap between the latest server aggregate and the latest decoded hot batch.",
-      value: snapshot.renderer.sequenceLag.toString(),
-    },
-    {
       label: "decoded",
       title:
         "Worker-decoded movements during the latest warm snapshot interval. The top-band event rate uses the simulator rolling window, so brief differences are expected.",
@@ -156,7 +146,7 @@ function RendererMetrics({ snapshot }: { snapshot: OpsStreamSnapshot }) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-px border border-white/[0.06] bg-white/[0.05] text-[11px]">
+    <div className="grid grid-cols-2 gap-px border border-white/[0.06] bg-white/[0.05] text-[11px]">
       {metrics.map((metric) => (
         <div
           className="bg-bankops-panel p-2"

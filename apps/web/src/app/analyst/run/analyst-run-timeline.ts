@@ -12,6 +12,12 @@ export type AnalystRunTimeline = {
 
 const DEFAULT_FACT_LIMIT = 9;
 const DEFAULT_TRACE_LIMIT = 5;
+const ACTIVE_ANALYST_RUN_PHASES = new Set<AnalystReportRunPhase>([
+  "generating",
+  "querying",
+  "validating",
+  "repairing",
+]);
 
 export function createAnalystRunTimeline(statusMessage: string | null = null): AnalystRunTimeline {
   return {
@@ -29,7 +35,7 @@ export function applyAnalystRunEvent(
   if (event.type === "phase") {
     return {
       ...timeline,
-      statusMessage: event.message ?? statusCopy(event.phase),
+      statusMessage: event.message ?? analystRunPhaseStatusCopy(event.phase),
     };
   }
 
@@ -70,7 +76,11 @@ export function projectAnalystRunTimeline(timeline: AnalystRunTimeline) {
   };
 }
 
-function statusCopy(phase: AnalystReportRunPhase) {
+export function isAnalystRunPhaseActive(phase: AnalystReportRunPhase) {
+  return ACTIVE_ANALYST_RUN_PHASES.has(phase);
+}
+
+export function analystRunPhaseStatusCopy(phase: AnalystReportRunPhase) {
   if (phase === "querying") {
     return "Querying analyst tools";
   }

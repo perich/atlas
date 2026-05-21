@@ -4,7 +4,7 @@ export function useElapsedSeconds(startedAt: number | null) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!startedAt) {
+    if (startedAt === null) {
       return undefined;
     }
 
@@ -12,5 +12,5 @@ export function useElapsedSeconds(startedAt: number | null) {
     return () => window.clearInterval(interval);
   }, [startedAt]);
 
-  return startedAt ? Math.max(Math.floor((now - startedAt) / 1_000), 0) : 0;
+  return startedAt === null ? 0 : Math.max(Math.floor((now - startedAt) / 1_000), 0);
 }

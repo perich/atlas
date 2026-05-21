@@ -91,7 +91,7 @@ export function RailBucketHeatmap({ cells }: { cells: RailBucketHeatmapCell[] })
 
                 return (
                   <HeatmapCell
-                    cell={cellsByKey.get(key) ?? emptyHeatmapCells.get(key)!}
+                    cell={cellsByKey.get(key) ?? emptyHeatmapCellFor(rail, bucket)}
                     key={bucket}
                   />
                 );
@@ -228,6 +228,10 @@ function createEmptyHeatmapCell(rail: Rail, bucket: BalanceSheetBucket): RailBuc
     rail,
     skew: 0,
   };
+}
+
+function emptyHeatmapCellFor(rail: Rail, bucket: BalanceSheetBucket) {
+  return emptyHeatmapCells.get(heatmapKey(rail, bucket)) ?? createEmptyHeatmapCell(rail, bucket);
 }
 
 function formatHeatmapRate(value: number) {

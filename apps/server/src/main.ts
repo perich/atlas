@@ -44,7 +44,9 @@ export async function buildServer(options: BuildServerOptions = {}) {
     startOpsStreamSession(socket);
   });
 
-  if (options.serveStatic ?? process.env["NODE_ENV"] === "production") {
+  const shouldServeStatic = options.serveStatic ?? process.env["NODE_ENV"] === "production";
+
+  if (shouldServeStatic) {
     const webDistDir = options.staticRoot ?? defaultWebDistDir();
 
     await app.register(fastifyStatic, {
@@ -55,7 +57,7 @@ export async function buildServer(options: BuildServerOptions = {}) {
     app.setNotFoundHandler((request, reply) => {
       const url = request.raw.url ?? "";
 
-      if (url.startsWith("/api/") || url === "/stream" || url.startsWith("/stream?")) {
+      if (isApiOrStreamRequest(url)) {
         void reply.code(404).send({ error: "not_found" });
         return;
       }
@@ -98,6 +100,10 @@ function parseListenPort(port: string | undefined) {
   }
 
   return result.data;
+}
+
+function isApiOrStreamRequest(url: string) {
+  return url.startsWith("/api/") || url === "/stream" || url.startsWith("/stream?");
 }
 
 function loadOptionalEnvFile(filePath: string) {

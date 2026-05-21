@@ -50,32 +50,45 @@ async function* parseSseEvents(stream: ReadableStream<Uint8Array>) {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let result = await reader.read();
 
-  // ReadableStream chunks must be consumed sequentially; each read depends on the prior result.
-  // oxlint-disable-next-line no-await-in-loop
-  for (; !result.done; result = await reader.read()) {
-    buffer += decoder.decode(result.value, { stream: true });
+  try {
+    while (true) {
+      // ReadableStream chunks must be consumed sequentially; each read depends on the prior result.
+      // oxlint-disable-next-line no-await-in-loop
+      const result = await reader.read();
+      if (result.done) {
+        break;
+      }
 
-    const chunks = buffer.split("\n\n");
-    buffer = chunks.pop() ?? "";
+      buffer += decoder.decode(result.value, { stream: true });
 
-    for (const chunk of chunks) {
-      const data = parseSseData(chunk);
-      if (data) {
-        yield analystRunEventSchema.parse(JSON.parse(data));
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() ?? "";
+
+      for (const event of parseSseChunks(chunks)) {
+        yield event;
       }
     }
-  }
 
-  buffer += decoder.decode();
-  if (!buffer) {
-    return;
-  }
+    buffer += decoder.decode();
+    if (!buffer) {
+      return;
+    }
 
-  const data = parseSseData(buffer);
-  if (data) {
-    yield analystRunEventSchema.parse(JSON.parse(data));
+    for (const event of parseSseChunks([buffer])) {
+      yield event;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function* parseSseChunks(chunks: string[]) {
+  for (const chunk of chunks) {
+    const data = parseSseData(chunk);
+    if (data) {
+      yield analystRunEventSchema.parse(JSON.parse(data));
+    }
   }
 }
 

@@ -74,14 +74,19 @@ export function optionalDetailString(entry: AuditEntry, key: string) {
 
 export function optionalDetailRecord(entry: AuditEntry, key: string) {
   const value = entry.detail[key];
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return Object.fromEntries(Object.entries(value));
-  }
-
-  return undefined;
+  return isUnknownRecord(value) ? value : undefined;
 }
 
 export function optionalStringField(record: Record<string, unknown> | undefined, key: string) {
   const value = record?.[key];
   return typeof value === "string" ? value : undefined;
+}
+
+export function optionalRecordField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return isUnknownRecord(value) ? value : undefined;
+}
+
+function isUnknownRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

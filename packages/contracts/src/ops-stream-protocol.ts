@@ -9,6 +9,7 @@ import {
   MOVEMENT_STATUSES,
   RAILS,
   railSchema,
+  riskTierSchema,
   streamRateSchema,
 } from "./domain.js";
 
@@ -267,15 +268,15 @@ export function encodeOpsMovementBatch(frame: OpsMovementBatchFrame): ArrayBuffe
     offset += 4;
     view.setUint16(offset, dtMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    view.setUint8(offset, MOVEMENT_KINDS.indexOf(movement.kind));
+    view.setUint8(offset, enumCode(MOVEMENT_KINDS, movement.kind, "kind"));
     offset += 1;
-    view.setUint8(offset, MOVEMENT_SIDES.indexOf(movement.side));
+    view.setUint8(offset, enumCode(MOVEMENT_SIDES, movement.side, "side"));
     offset += 1;
-    view.setUint8(offset, BALANCE_SHEET_BUCKETS.indexOf(movement.bucket));
+    view.setUint8(offset, enumCode(BALANCE_SHEET_BUCKETS, movement.bucket, "bucket"));
     offset += 1;
-    view.setUint8(offset, RAILS.indexOf(movement.rail));
+    view.setUint8(offset, enumCode(RAILS, movement.rail, "rail"));
     offset += 1;
-    view.setUint8(offset, ASSETS.indexOf(movement.asset));
+    view.setUint8(offset, enumCode(ASSETS, movement.asset, "asset"));
     offset += 1;
     view.setUint32(offset, customerId, STREAM_LITTLE_ENDIAN);
     offset += 4;
@@ -285,9 +286,12 @@ export function encodeOpsMovementBatch(frame: OpsMovementBatchFrame): ArrayBuffe
     offset += 8;
     view.setUint16(offset, latencyMs, STREAM_LITTLE_ENDIAN);
     offset += 2;
-    view.setUint8(offset, MOVEMENT_STATUSES.indexOf(movement.status));
+    view.setUint8(offset, enumCode(MOVEMENT_STATUSES, movement.status, "status"));
     offset += 1;
-    view.setUint8(offset, movement.riskTier);
+    view.setUint8(
+      offset,
+      parseRange(riskTierSchema, movement.riskTier, "riskTier must be 0, 1, 2, or 3"),
+    );
     offset += 1;
     view.setUint16(offset, flags, STREAM_LITTLE_ENDIAN);
     offset += 2;
@@ -370,12 +374,8 @@ export function decodeOpsMovementBatch(
     offset += 2;
     const status = readEnumCode(MOVEMENT_STATUSES, view.getUint8(offset), "status");
     offset += 1;
-    const riskTier = view.getUint8(offset);
+    const riskTier = readRiskTierCode(view.getUint8(offset));
     offset += 1;
-
-    if (riskTier !== 0 && riskTier !== 1 && riskTier !== 2 && riskTier !== 3) {
-      throw new OpsStreamDecodeError(`Invalid riskTier code ${riskTier}`, "invalid_enum_code");
-    }
 
     const flags = view.getUint16(offset, STREAM_LITTLE_ENDIAN);
     offset += 2;
@@ -433,6 +433,26 @@ function parseRange<T>(schema: z.ZodType<T>, value: unknown, message: string): T
 
   if (!result.success) {
     throw new RangeError(message);
+  }
+
+  return result.data;
+}
+
+function enumCode(values: readonly string[], value: string, name: string): number {
+  const code = values.indexOf(value);
+
+  if (code === -1) {
+    throw new RangeError(`${name} must be one of: ${values.join(", ")}`);
+  }
+
+  return code;
+}
+
+function readRiskTierCode(code: number): BalanceSheetMovement["riskTier"] {
+  const result = riskTierSchema.safeParse(code);
+
+  if (!result.success) {
+    throw new OpsStreamDecodeError(`Invalid riskTier code ${code}`, "invalid_enum_code");
   }
 
   return result.data;
