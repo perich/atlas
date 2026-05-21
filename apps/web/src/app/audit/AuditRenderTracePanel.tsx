@@ -7,12 +7,18 @@ import {
 import { useAuditVirtualTraceSnapshot } from "./audit-virtual-trace";
 import type { AuditWindowCache } from "./audit-window";
 
-export function AuditRenderTracePanel({ cache, rows }: { cache: AuditWindowCache; rows: number }) {
+export function AuditRenderTracePanel({
+  cache,
+  cachedRows,
+}: {
+  cache: AuditWindowCache;
+  cachedRows: number;
+}) {
   const loadedRange = cache.windows
     .map((window) => `${window.start}-${window.start + window.rows.length - 1}`)
     .join(", ");
   const trailingTraceMetrics = [
-    { label: "Rows Cached", testId: "audit-rows-cached", value: rows.toLocaleString() },
+    { label: "Rows Cached", testId: "audit-rows-cached", value: cachedRows.toLocaleString() },
     { label: "Windows", value: cache.windows.length.toLocaleString() },
     { className: "col-span-2", label: "Loaded", value: loadedRange || "-" },
   ];

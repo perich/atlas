@@ -16,7 +16,7 @@ export function AuditRoute() {
         </h1>
       </div>
 
-      <AuditRenderTracePanel cache={auditTable.cache} rows={auditTable.rows.length} />
+      <AuditRenderTracePanel cache={auditTable.cache} cachedRows={auditTable.cachedRowCount} />
 
       <AuditTablePanel
         activeFilters={auditTable.activeFilters}

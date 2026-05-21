@@ -92,6 +92,15 @@ function AnalystRunStatusStream() {
   );
 }
 
+function isAnalystRunActive(phase: AnalystReportRunPhase) {
+  return (
+    phase === "generating" ||
+    phase === "querying" ||
+    phase === "validating" ||
+    phase === "repairing"
+  );
+}
+
 type AnalystCanvasState = {
   error: string | null;
   isRunning: boolean;
@@ -114,13 +123,13 @@ type AnalystRunStatusState = {
 };
 
 function isAnalystRunEmpty(snapshot: AnalystRunSnapshot) {
-  return !snapshot.report && !snapshot.error && !snapshot.isRunning;
+  return !snapshot.report && !snapshot.error && !isAnalystRunActive(snapshot.phase);
 }
 
 function selectAnalystCanvasState(snapshot: AnalystRunSnapshot): AnalystCanvasState {
   return {
     error: snapshot.error,
-    isRunning: snapshot.isRunning,
+    isRunning: isAnalystRunActive(snapshot.phase),
     report: snapshot.report,
     startedAt: snapshot.startedAt,
     timeline: snapshot.timeline,
@@ -130,7 +139,7 @@ function selectAnalystCanvasState(snapshot: AnalystRunSnapshot): AnalystCanvasSt
 function selectAnalystControlRailState(snapshot: AnalystRunSnapshot): AnalystControlRailState {
   return {
     isEmpty: isAnalystRunEmpty(snapshot),
-    isRunning: snapshot.isRunning,
+    isRunning: isAnalystRunActive(snapshot.phase),
   };
 }
 

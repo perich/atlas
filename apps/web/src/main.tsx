@@ -25,7 +25,6 @@ declare global {
 }
 
 const scanSummary = new Map<string, ReactScanComponentSummary>();
-const REACT_SCAN_RESET_BUTTON_ID = "bankops-react-scan-reset";
 const REACT_SCAN_SUMMARY_ELEMENT_ID = "bankops-react-scan-summary";
 let scanSummaryFlushTimeout: number | undefined;
 
@@ -52,25 +51,6 @@ function ensureScanSummaryElement() {
   document.body.append(element);
 
   return element;
-}
-
-function ensureScanResetButton() {
-  const existing = document.getElementById(REACT_SCAN_RESET_BUTTON_ID);
-
-  if (existing) {
-    return existing;
-  }
-
-  const button = document.createElement("button");
-  button.ariaHidden = "true";
-  button.id = REACT_SCAN_RESET_BUTTON_ID;
-  button.style.cssText =
-    "position:fixed;left:0;top:0;z-index:2147483647;width:1px;height:1px;opacity:0";
-  button.tabIndex = -1;
-  button.type = "button";
-  document.body.append(button);
-
-  return button;
 }
 
 function flushScanSummary() {
@@ -131,7 +111,6 @@ async function enableReactScan() {
       }
     },
   });
-  ensureScanResetButton().addEventListener("click", resetScanSummary);
   flushScanSummary();
 
   window.bankopsReactScan = {
