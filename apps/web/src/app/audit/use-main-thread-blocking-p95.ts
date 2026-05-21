@@ -1,9 +1,12 @@
 import { useSyncExternalStore } from "react";
 
 const LONG_TASK_SAMPLE_LIMIT = 40;
+const LONG_TASK_NOTIFY_INTERVAL_MS = 1_000;
 const longTaskSamples: number[] = [];
 const longTaskListeners = new Set<() => void>();
 let longTaskObserverStarted = false;
+let lastLongTaskNotifyAt = 0;
+let throttledLongTaskNotifyId: ReturnType<typeof setTimeout> | undefined;
 
 export type MainThreadBlockingP95Snapshot =
   | { status: "pending"; p95: undefined }
@@ -56,12 +59,48 @@ function startLongTaskObserver() {
       longTaskSamples.splice(0, longTaskSamples.length - LONG_TASK_SAMPLE_LIMIT);
     }
 
-    updateLongTaskSnapshot({ p95: percentile(longTaskSamples, 0.95), status: "sampled" });
+    updateLongTaskSnapshot(
+      { p95: percentile(longTaskSamples, 0.95), status: "sampled" },
+      { throttled: true },
+    );
   }).observe({ entryTypes: ["longtask"] });
 }
 
-function updateLongTaskSnapshot(snapshot: MainThreadBlockingP95Snapshot) {
+function updateLongTaskSnapshot(
+  snapshot: MainThreadBlockingP95Snapshot,
+  options: { throttled?: boolean } = {},
+) {
   latestLongTaskSnapshot = snapshot;
+
+  if (options.throttled === true) {
+    scheduleThrottledLongTaskNotify();
+    return;
+  }
+
+  if (throttledLongTaskNotifyId !== undefined) {
+    clearTimeout(throttledLongTaskNotifyId);
+    throttledLongTaskNotifyId = undefined;
+  }
+
+  notifyLongTaskListeners();
+}
+
+function scheduleThrottledLongTaskNotify() {
+  if (throttledLongTaskNotifyId !== undefined) {
+    return;
+  }
+
+  const elapsedMs = Date.now() - lastLongTaskNotifyAt;
+  const delayMs = Math.max(0, LONG_TASK_NOTIFY_INTERVAL_MS - elapsedMs);
+
+  throttledLongTaskNotifyId = setTimeout(() => {
+    throttledLongTaskNotifyId = undefined;
+    notifyLongTaskListeners();
+  }, delayMs);
+}
+
+function notifyLongTaskListeners() {
+  lastLongTaskNotifyAt = Date.now();
   longTaskListeners.forEach((listener) => listener());
 }
 
