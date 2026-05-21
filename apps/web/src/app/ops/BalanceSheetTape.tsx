@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 
-import type { TapeCanvasLayout } from "./ops-stream-messages";
-
-const tapeCanvasCssHeight = 620;
+import { OPS_TAPE_CANVAS_CSS_HEIGHT, type TapeCanvasLayout } from "./ops-stream-messages";
 
 export const BalanceSheetTape = React.memo(function BalanceSheetTape({
   attachTapeCanvas,
@@ -47,13 +45,14 @@ export const BalanceSheetTape = React.memo(function BalanceSheetTape({
   }, [resizeTapeCanvas]);
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden bg-[#090a0b]">
+    <div className="relative min-h-0 flex-1 overflow-auto bg-[#090a0b]">
       <canvas
         aria-label="Live balance sheet movement tape"
-        className="block size-full"
+        className="block w-full"
         data-testid="balance-sheet-tape"
-        height={tapeCanvasCssHeight}
+        height={OPS_TAPE_CANVAS_CSS_HEIGHT}
         ref={attachCanvasRef}
+        style={{ height: `${OPS_TAPE_CANVAS_CSS_HEIGHT}px` }}
         width={1100}
       />
     </div>
@@ -65,7 +64,10 @@ function readTapeCanvasLayout(canvas: HTMLCanvasElement): TapeCanvasLayout {
 
   return {
     dpr: Math.max(1, window.devicePixelRatio || 1),
-    height: Math.max(1, Math.round(rect.height || canvas.clientHeight || tapeCanvasCssHeight)),
+    height: Math.max(
+      1,
+      Math.round(rect.height || canvas.clientHeight || OPS_TAPE_CANVAS_CSS_HEIGHT),
+    ),
     width: Math.max(1, Math.round(rect.width || canvas.clientWidth || 1_100)),
   };
 }
