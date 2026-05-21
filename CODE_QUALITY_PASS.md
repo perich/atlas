@@ -1,0 +1,104 @@
+# Core Code Quality Pass
+
+Scope: core `.ts` and `.tsx` source files under `apps/` and `packages/`.
+
+Excluded: tests, specs, e2e helpers, generated output, dependencies, and non-TypeScript config files.
+
+Goal: review each file for code quality, simplicity, performance, naming, ownership boundaries, and reviewability. Mark a file addressed after it has been read and either cleaned up or intentionally left unchanged.
+
+## Checklist
+
+- [ ] `apps/server/src/analyst/analyst-api.ts`
+- [ ] `apps/server/src/analyst/analyst-run-events.ts`
+- [ ] `apps/server/src/analyst/analyst-run-policy.ts`
+- [ ] `apps/server/src/analyst/analyst-runner.ts`
+- [ ] `apps/server/src/analyst/analyst-tool-catalog.ts`
+- [ ] `apps/server/src/analyst/analyst-tools.ts`
+- [ ] `apps/server/src/analyst/isolate-driver.ts`
+- [ ] `apps/server/src/audit-api.ts`
+- [ ] `apps/server/src/main.ts`
+- [ ] `apps/server/src/ops-stream.ts`
+- [ ] `apps/web/src/app/App.tsx`
+- [ ] `apps/web/src/app/AppShell.tsx`
+- [ ] `apps/web/src/app/analyst/report/AnalystReportChart.tsx`
+- [ ] `apps/web/src/app/analyst/report/AnalystReportRenderer.tsx`
+- [ ] `apps/web/src/app/analyst/report/AnalystReportTable.tsx`
+- [ ] `apps/web/src/app/analyst/report/report-fixture.ts`
+- [ ] `apps/web/src/app/analyst/run/AnalystRunTracePanel.tsx`
+- [ ] `apps/web/src/app/analyst/run/AnalystRunTraceRows.tsx`
+- [ ] `apps/web/src/app/analyst/run/analyst-run-api.ts`
+- [ ] `apps/web/src/app/analyst/run/analyst-run-timeline.ts`
+- [ ] `apps/web/src/app/analyst/run/useAnalystRun.ts`
+- [ ] `apps/web/src/app/analyst/run/useElapsedSeconds.ts`
+- [ ] `apps/web/src/app/analyst/workspace/AnalystCanvas.tsx`
+- [ ] `apps/web/src/app/analyst/workspace/AnalystControlRail.tsx`
+- [ ] `apps/web/src/app/analyst/workspace/AnalystRunStatus.tsx`
+- [ ] `apps/web/src/app/analyst/workspace/AnalystWorkspaceShell.tsx`
+- [ ] `apps/web/src/app/analyst/workspace/analyst-prompts.ts`
+- [ ] `apps/web/src/app/audit/AuditColumnLayoutMenu.tsx`
+- [ ] `apps/web/src/app/audit/AuditFilterPanel.tsx`
+- [ ] `apps/web/src/app/audit/AuditRenderTracePanel.tsx`
+- [ ] `apps/web/src/app/audit/AuditTableCells.tsx`
+- [ ] `apps/web/src/app/audit/AuditTablePanel.tsx`
+- [ ] `apps/web/src/app/audit/audit-api.ts`
+- [ ] `apps/web/src/app/audit/audit-columns.tsx`
+- [ ] `apps/web/src/app/audit/audit-query-options.ts`
+- [ ] `apps/web/src/app/audit/audit-query-state.ts`
+- [ ] `apps/web/src/app/audit/audit-time-range.ts`
+- [ ] `apps/web/src/app/audit/audit-virtual-trace.ts`
+- [ ] `apps/web/src/app/audit/audit-window.ts`
+- [ ] `apps/web/src/app/audit/use-audit-table-controller.ts`
+- [ ] `apps/web/src/app/audit/use-audit-window.ts`
+- [ ] `apps/web/src/app/audit/use-main-thread-blocking-p95.ts`
+- [ ] `apps/web/src/app/ops/BalanceSheetTape.tsx`
+- [ ] `apps/web/src/app/ops/OpsBottomBand.tsx`
+- [ ] `apps/web/src/app/ops/OpsSideRail.tsx`
+- [ ] `apps/web/src/app/ops/OpsTopBand.tsx`
+- [ ] `apps/web/src/app/ops/RailBucketHeatmap.tsx`
+- [ ] `apps/web/src/app/ops/ops-format.ts`
+- [ ] `apps/web/src/app/ops/ops-movement-window.ts`
+- [ ] `apps/web/src/app/ops/ops-rail-health.ts`
+- [ ] `apps/web/src/app/ops/ops-stream-messages.ts`
+- [ ] `apps/web/src/app/ops/ops-stream-session.ts`
+- [ ] `apps/web/src/app/ops/ops-stream-store.ts`
+- [ ] `apps/web/src/app/ops/ops-stream.worker.ts`
+- [ ] `apps/web/src/app/ops/ops-tape-renderer.ts`
+- [ ] `apps/web/src/app/router.tsx`
+- [ ] `apps/web/src/app/routes/AnalystRoute.tsx`
+- [ ] `apps/web/src/app/routes/AuditRoute.tsx`
+- [ ] `apps/web/src/app/routes/OpsRoute.tsx`
+- [ ] `apps/web/src/design/components.tsx`
+- [ ] `apps/web/src/design/format.ts`
+- [ ] `apps/web/src/design/utils.ts`
+- [ ] `apps/web/src/main.tsx`
+- [ ] `apps/web/vite.config.ts`
+- [ ] `apps/web/vitest.config.ts`
+- [ ] `packages/analyst-model/src/breakdowns.ts`
+- [ ] `packages/analyst-model/src/customer-risk.ts`
+- [ ] `packages/analyst-model/src/domain-rollups.ts`
+- [ ] `packages/analyst-model/src/filters.ts`
+- [ ] `packages/analyst-model/src/index.ts`
+- [ ] `packages/analyst-model/src/limits.ts`
+- [ ] `packages/analyst-model/src/metrics.ts`
+- [ ] `packages/analyst-model/src/overview.ts`
+- [ ] `packages/analyst-model/src/samples.ts`
+- [ ] `packages/analyst-model/src/shared.ts`
+- [ ] `packages/analyst-model/src/time-series.ts`
+- [ ] `packages/analyst-model/src/tool-options.ts`
+- [ ] `packages/analyst-model/src/types.ts`
+- [ ] `packages/audit-log-model/src/audit-profiles.ts`
+- [ ] `packages/audit-log-model/src/enrichment.ts`
+- [ ] `packages/audit-log-model/src/index.ts`
+- [ ] `packages/audit-log-model/src/query.ts`
+- [ ] `packages/audit-log-model/src/random.ts`
+- [ ] `packages/contracts/src/analyst.ts`
+- [ ] `packages/contracts/src/audit-json.ts`
+- [ ] `packages/contracts/src/audit-query.ts`
+- [ ] `packages/contracts/src/audit.ts`
+- [ ] `packages/contracts/src/balance-sheet-movement.ts`
+- [ ] `packages/contracts/src/domain.ts`
+- [ ] `packages/contracts/src/index.ts`
+- [ ] `packages/contracts/src/ops-stream-protocol.ts`
+- [ ] `packages/ops-tape-sim/src/customer-profiles.ts`
+- [ ] `packages/ops-tape-sim/src/index.ts`
+- [ ] `packages/ops-tape-sim/src/movement-profiles.ts`
