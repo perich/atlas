@@ -87,6 +87,7 @@ function col(
 
 export const AUDIT_COLUMNS: readonly AuditColumn[] = Object.values(AUDIT_COLUMN_BY_ID);
 const auditColumnIdSchema = z.enum(AUDIT_COLUMN_IDS);
+const auditColumnWidthSchema = z.number().finite();
 const storedAuditColumnLayoutSchema = z.object({
   order: z.array(z.unknown()).optional(),
   hidden: z.array(z.unknown()).optional(),
@@ -202,6 +203,7 @@ function normalizeAuditColumnLayout(layout: AuditColumnLayout): AuditColumnLayou
   const order = uniqueColumnIds(layout.order);
   const orderedIds = new Set(order);
   const fullOrder = [...order, ...AUDIT_COLUMN_IDS.filter((id) => !orderedIds.has(id))];
+  const hidden = uniqueColumnIds(layout.hidden);
   const widths: AuditColumnLayout["widths"] = {};
 
   for (const id of AUDIT_COLUMN_IDS) {
@@ -213,7 +215,7 @@ function normalizeAuditColumnLayout(layout: AuditColumnLayout): AuditColumnLayou
   }
 
   return {
-    hidden: uniqueColumnIds(layout.hidden),
+    hidden: hidden.length >= AUDIT_COLUMN_IDS.length ? [] : hidden,
     order: fullOrder,
     widths,
   };
@@ -238,7 +240,7 @@ function parseStoredWidths(values: Record<string, unknown>): AuditColumnLayout["
 
   for (const [key, value] of Object.entries(values)) {
     const id = auditColumnIdSchema.safeParse(key);
-    const width = z.number().finite().safeParse(value);
+    const width = auditColumnWidthSchema.safeParse(value);
 
     if (id.success && width.success) {
       widths[id.data] = width.data;
