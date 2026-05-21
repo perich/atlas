@@ -20,7 +20,6 @@ export function AuditRoute() {
         cache={auditTable.cache}
         firstVirtualIndex={auditTable.firstVirtualIndex}
         lastVirtualIndex={auditTable.lastVirtualIndex}
-        mainThreadBlockingP95={auditTable.mainThreadBlockingP95}
         mountedRows={auditTable.mountedRows}
         rows={auditTable.rows.length}
       />

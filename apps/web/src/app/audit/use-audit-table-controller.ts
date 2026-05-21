@@ -13,7 +13,6 @@ import {
 import { auditSearchToQueryState, queryStateToAuditSearch } from "./audit-query-state";
 import { timeRangeValue } from "./audit-time-range";
 import { useAuditWindow, type AuditQueryState } from "./use-audit-window";
-import { useMainThreadBlockingP95 } from "./use-main-thread-blocking-p95";
 
 const ROW_HEIGHT = 34;
 const AUDIT_SCROLL_LOAD_DEBOUNCE_MS = 24;
@@ -36,7 +35,6 @@ export function useAuditTableController() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draggedColumnId, setDraggedColumnId] = useState<AuditColumnId>();
   const [columnLayout, setColumnLayoutValue] = useState(() => readAuditColumnLayout());
-  const mainThreadBlockingP95 = useMainThreadBlockingP95();
   const setColumnLayout = useCallback((update: ColumnLayoutUpdate) => {
     setColumnLayoutValue((current) => {
       const next = typeof update === "function" ? update(current) : update;
@@ -115,7 +113,6 @@ export function useAuditTableController() {
     hasError,
     isFetching,
     lastVirtualIndex,
-    mainThreadBlockingP95,
     mountedRows,
     queryState,
     rowByIndex,
