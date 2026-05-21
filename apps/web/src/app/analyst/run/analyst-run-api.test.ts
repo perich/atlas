@@ -36,6 +36,52 @@ describe("streamAnalystRun", () => {
     expect(events).toEqual(["phase", "validation", "report", "phase"]);
   });
 
+  it("parses events split across stream chunks", async () => {
+    const payload = sse([
+      { type: "phase", phase: "generating" },
+      { type: "report", report: analystReportFixture },
+    ]);
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(chunkedStream([payload.slice(0, 24), payload.slice(24)]), {
+          headers: { "content-type": "text/event-stream" },
+        }),
+    );
+
+    const events: string[] = [];
+    const report = await streamAnalystRun({
+      onEvent: (event) => events.push(event.type),
+      question: "What is risky?",
+      signal: new AbortController().signal,
+    });
+
+    expect(report.title).toBe(analystReportFixture.title);
+    expect(events).toEqual(["phase", "report"]);
+  });
+
+  it("parses the final event without a trailing blank line", async () => {
+    const payload = `event: message\ndata: ${JSON.stringify({
+      report: analystReportFixture,
+      type: "report",
+    })}`;
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(payload, {
+          headers: { "content-type": "text/event-stream" },
+        }),
+    );
+
+    const events: string[] = [];
+    const report = await streamAnalystRun({
+      onEvent: (event) => events.push(event.type),
+      question: "What is risky?",
+      signal: new AbortController().signal,
+    });
+
+    expect(report.title).toBe(analystReportFixture.title);
+    expect(events).toEqual(["report"]);
+  });
+
   it("throws plain server errors", async () => {
     globalThis.fetch = vi.fn(
       async () =>
@@ -56,4 +102,17 @@ describe("streamAnalystRun", () => {
 
 function sse(events: unknown[]) {
   return events.map((event) => `event: message\ndata: ${JSON.stringify(event)}\n\n`).join("");
+}
+
+function chunkedStream(chunks: string[]) {
+  const encoder = new TextEncoder();
+
+  return new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(encoder.encode(chunk));
+      }
+      controller.close();
+    },
+  });
 }
