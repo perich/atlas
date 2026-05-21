@@ -8,7 +8,10 @@ import {
   useAnalystRunSelector,
   type AnalystRunSnapshot,
 } from "../analyst/run/useAnalystRun";
-import type { AnalystRunTimeline } from "../analyst/run/analyst-run-timeline";
+import {
+  isAnalystRunPhaseActive,
+  type AnalystRunTimeline,
+} from "../analyst/run/analyst-run-timeline";
 import { AnalystCanvas } from "../analyst/workspace/AnalystCanvas";
 import { AnalystControlRail } from "../analyst/workspace/AnalystControlRail";
 import { AnalystRunStatus } from "../analyst/workspace/AnalystRunStatus";
@@ -92,15 +95,6 @@ function AnalystRunStatusStream() {
   );
 }
 
-function isAnalystRunActive(phase: AnalystReportRunPhase) {
-  return (
-    phase === "generating" ||
-    phase === "querying" ||
-    phase === "validating" ||
-    phase === "repairing"
-  );
-}
-
 type AnalystCanvasState = {
   error: string | null;
   isRunning: boolean;
@@ -123,13 +117,13 @@ type AnalystRunStatusState = {
 };
 
 function isAnalystRunEmpty(snapshot: AnalystRunSnapshot) {
-  return !snapshot.report && !snapshot.error && !isAnalystRunActive(snapshot.phase);
+  return !snapshot.report && !snapshot.error && !isAnalystRunPhaseActive(snapshot.phase);
 }
 
 function selectAnalystCanvasState(snapshot: AnalystRunSnapshot): AnalystCanvasState {
   return {
     error: snapshot.error,
-    isRunning: isAnalystRunActive(snapshot.phase),
+    isRunning: isAnalystRunPhaseActive(snapshot.phase),
     report: snapshot.report,
     startedAt: snapshot.startedAt,
     timeline: snapshot.timeline,
@@ -139,7 +133,7 @@ function selectAnalystCanvasState(snapshot: AnalystRunSnapshot): AnalystCanvasSt
 function selectAnalystControlRailState(snapshot: AnalystRunSnapshot): AnalystControlRailState {
   return {
     isEmpty: isAnalystRunEmpty(snapshot),
-    isRunning: isAnalystRunActive(snapshot.phase),
+    isRunning: isAnalystRunPhaseActive(snapshot.phase),
   };
 }
 

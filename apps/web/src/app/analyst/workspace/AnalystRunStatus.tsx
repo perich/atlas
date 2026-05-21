@@ -2,6 +2,8 @@ import React from "react";
 import { Clock3 } from "lucide-react";
 import type { AnalystReportRunPhase } from "@bankops/contracts";
 
+import { analystRunPhaseStatusCopy } from "../run/analyst-run-timeline";
+
 export function AnalystRunStatus({
   completedDurationSeconds,
   error,
@@ -15,7 +17,7 @@ export function AnalystRunStatus({
   phase: AnalystReportRunPhase;
   statusMessage: string | null;
 }) {
-  const status = statusMessage ?? phaseStatusCopy(phase, isEmpty);
+  const status = statusMessage ?? (isEmpty ? "Idle" : analystRunPhaseStatusCopy(phase));
   const statusTone = error
     ? "bg-bankops-negative-strong"
     : isEmpty
@@ -59,26 +61,4 @@ export function AnalystRunStatus({
       ) : null}
     </div>
   );
-}
-
-function phaseStatusCopy(phase: AnalystReportRunPhase, isEmpty: boolean) {
-  if (isEmpty) {
-    return "Idle";
-  }
-  if (phase === "querying") {
-    return "Querying analyst tools";
-  }
-  if (phase === "validating") {
-    return "Validating report";
-  }
-  if (phase === "repairing") {
-    return "Repairing report";
-  }
-  if (phase === "done") {
-    return "Done";
-  }
-  if (phase === "error") {
-    return "Error";
-  }
-  return "Generating report";
 }

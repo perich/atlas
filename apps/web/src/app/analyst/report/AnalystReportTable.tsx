@@ -7,14 +7,15 @@ import { cn } from "../../../design/utils";
 type DataTableBlock = Extract<AnalystReportBlock, { type: "dataTable" }>;
 type SortState = { key: string; direction: "asc" | "desc" } | null;
 
-const pageSize = 10;
+const PAGE_SIZE = 10;
 
 export function AnalystReportTable({ block }: { block: DataTableBlock }) {
   const [sort, setSort] = useState<SortState>(null);
   const [page, setPage] = useState(0);
   const rows = useMemo(() => sortRows(block.rows, sort), [block.rows, sort]);
-  const pageCount = Math.max(Math.ceil(rows.length / pageSize), 1);
-  const visibleRows = rows.slice(page * pageSize, page * pageSize + pageSize);
+  const pageCount = Math.max(Math.ceil(rows.length / PAGE_SIZE), 1);
+  const currentPage = Math.min(page, pageCount - 1);
+  const visibleRows = rows.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <section className="rounded-md border border-white/[0.08] bg-bankops-panel p-4">
@@ -60,7 +61,10 @@ export function AnalystReportTable({ block }: { block: DataTableBlock }) {
           </thead>
           <tbody>
             {visibleRows.map((row, rowIndex) => (
-              <tr className="text-bankops-text" key={rowKey(row, rowIndex + page * pageSize)}>
+              <tr
+                className="text-bankops-text"
+                key={rowKey(row, rowIndex + currentPage * PAGE_SIZE)}
+              >
                 {block.columns.map((column) => (
                   <td
                     className={cn(
@@ -79,15 +83,15 @@ export function AnalystReportTable({ block }: { block: DataTableBlock }) {
         </table>
       </div>
 
-      {rows.length > pageSize ? (
+      {rows.length > PAGE_SIZE ? (
         <div className="mt-3 flex items-center justify-between gap-3 text-xs text-bankops-muted">
           <span>
-            Page {page + 1} of {pageCount}
+            Page {currentPage + 1} of {pageCount}
           </span>
           <div className="flex gap-2">
             <button
               className="border border-white/[0.08] px-2 py-1 disabled:opacity-40"
-              disabled={page === 0}
+              disabled={currentPage === 0}
               onClick={() => setPage((current) => Math.max(current - 1, 0))}
               type="button"
             >
@@ -95,7 +99,7 @@ export function AnalystReportTable({ block }: { block: DataTableBlock }) {
             </button>
             <button
               className="border border-white/[0.08] px-2 py-1 disabled:opacity-40"
-              disabled={page >= pageCount - 1}
+              disabled={currentPage >= pageCount - 1}
               onClick={() => setPage((current) => Math.min(current + 1, pageCount - 1))}
               type="button"
             >
