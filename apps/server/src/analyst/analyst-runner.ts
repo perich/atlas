@@ -32,6 +32,10 @@ type AttemptInput = {
   attempt: number;
   validationError?: string;
 };
+const ANALYST_AGENT_MAX_ITERATIONS = 24;
+const ANALYST_MAX_TOKENS = 20_000;
+const REASONING_TRACE_FLUSH_CHARS = 180;
+
 const codeModeConsoleEventSchema = z.object({
   type: z.literal("CUSTOM"),
   data: z.object({
@@ -113,8 +117,8 @@ export async function runAnalystCodeMode({
       const stream = chat({
         adapter: createAnalystAdapter(model, apiKey),
         abortController,
-        agentLoopStrategy: maxIterations(24),
-        maxTokens: 20_000,
+        agentLoopStrategy: maxIterations(ANALYST_AGENT_MAX_ITERATIONS),
+        maxTokens: ANALYST_MAX_TOKENS,
         messages: [
           {
             role: "user",
@@ -145,7 +149,7 @@ export async function runAnalystCodeMode({
         const reasoning = reasoningTraceDelta(event);
         if (reasoning !== undefined) {
           reasoningBuffer += reasoning;
-          if (reasoningBuffer.length >= 180) {
+          if (reasoningBuffer.length >= REASONING_TRACE_FLUSH_CHARS) {
             flushReasoningTrace();
           }
         }
@@ -179,7 +183,7 @@ export async function runAnalystReportAttempts({
 }: {
   emit: (event: AnalystRunEvent) => void;
   runAttempt: (input: AttemptInput) => Promise<unknown>;
-}) {
+}): Promise<AnalystReportSpec> {
   let validationError: string | undefined;
 
   for (let attempt = 1; attempt <= ANALYST_MAX_ATTEMPTS; attempt += 1) {
