@@ -9,6 +9,7 @@ type ReactScanRender = {
 
 type ReactScanComponentSummary = {
   componentName: string;
+  lastRenderAt: number;
   renderCount: number;
   totalTime: number;
   unnecessaryCount: number;
@@ -24,16 +25,63 @@ declare global {
 }
 
 const scanSummary = new Map<string, ReactScanComponentSummary>();
+const REACT_SCAN_SUMMARY_ELEMENT_ID = "bankops-react-scan-summary";
+let scanSummaryFlushTimeout: number | undefined;
+
+function readScanSummary() {
+  return Array.from(scanSummary.values()).sort(
+    (left, right) =>
+      right.unnecessaryCount - left.unnecessaryCount ||
+      right.renderCount - left.renderCount ||
+      right.totalTime - left.totalTime,
+  );
+}
+
+function ensureScanSummaryElement() {
+  const existing = document.getElementById(REACT_SCAN_SUMMARY_ELEMENT_ID);
+
+  if (existing) {
+    return existing;
+  }
+
+  const element = document.createElement("script");
+  element.hidden = true;
+  element.id = REACT_SCAN_SUMMARY_ELEMENT_ID;
+  element.type = "application/json";
+  document.body.append(element);
+
+  return element;
+}
+
+function flushScanSummary() {
+  scanSummaryFlushTimeout = undefined;
+  ensureScanSummaryElement().textContent = JSON.stringify(readScanSummary());
+}
+
+function scheduleScanSummaryFlush() {
+  if (scanSummaryFlushTimeout !== undefined) {
+    return;
+  }
+
+  scanSummaryFlushTimeout = window.setTimeout(flushScanSummary, 100);
+}
+
+function resetScanSummary() {
+  scanSummary.clear();
+  flushScanSummary();
+}
 
 function recordRender(render: ReactScanRender) {
   const componentName = render.componentName ?? "Unknown";
   const current = scanSummary.get(componentName) ?? {
     componentName,
+    lastRenderAt: 0,
     renderCount: 0,
     totalTime: 0,
     unnecessaryCount: 0,
   };
 
+  current.lastRenderAt = Date.now();
   current.renderCount += render.count;
   current.totalTime += render.time ?? 0;
 
@@ -42,6 +90,7 @@ function recordRender(render: ReactScanRender) {
   }
 
   scanSummary.set(componentName, current);
+  scheduleScanSummaryFlush();
 }
 
 async function enableReactScan() {
@@ -53,26 +102,20 @@ async function enableReactScan() {
 
   scan({
     enabled: true,
-    showToolbar: true,
-    showFPS: true,
-    log: true,
-    animationSpeed: "slow",
+    showToolbar: false,
+    log: false,
+    animationSpeed: "off",
     onRender: (_fiber, renders: ReactScanRender[]) => {
       for (const render of renders) {
         recordRender(render);
       }
     },
   });
+  flushScanSummary();
 
   window.bankopsReactScan = {
-    summary: () =>
-      Array.from(scanSummary.values()).sort(
-        (left, right) =>
-          right.unnecessaryCount - left.unnecessaryCount ||
-          right.renderCount - left.renderCount ||
-          right.totalTime - left.totalTime,
-      ),
-    reset: () => scanSummary.clear(),
+    summary: readScanSummary,
+    reset: resetScanSummary,
   };
 }
 

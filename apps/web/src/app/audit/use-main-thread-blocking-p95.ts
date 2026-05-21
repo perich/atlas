@@ -1,10 +1,23 @@
 import { useSyncExternalStore } from "react";
 
 const LONG_TASK_SAMPLE_LIMIT = 40;
+const LONG_TASK_NOTIFY_INTERVAL_MS = 1_000;
 const longTaskSamples: number[] = [];
 const longTaskListeners = new Set<() => void>();
 let longTaskObserverStarted = false;
-let latestLongTaskP95: number | undefined;
+let lastLongTaskNotifyAt = 0;
+let throttledLongTaskNotifyId: ReturnType<typeof setTimeout> | undefined;
+
+export type MainThreadBlockingP95Snapshot =
+  | { status: "pending"; p95: undefined }
+  | { status: "unsupported"; p95: undefined }
+  | { status: "observing"; p95: undefined }
+  | { status: "sampled"; p95: number };
+
+let latestLongTaskSnapshot: MainThreadBlockingP95Snapshot = {
+  p95: undefined,
+  status: "pending",
+};
 
 export function useMainThreadBlockingP95() {
   return useSyncExternalStore(subscribeToLongTasks, readLongTaskP95, readLongTaskP95);
@@ -18,19 +31,25 @@ function subscribeToLongTasks(listener: () => void) {
 }
 
 function readLongTaskP95() {
-  return latestLongTaskP95;
+  return latestLongTaskSnapshot;
 }
 
 function startLongTaskObserver() {
-  if (
-    longTaskObserverStarted ||
-    typeof PerformanceObserver === "undefined" ||
-    !PerformanceObserver.supportedEntryTypes.includes("longtask")
-  ) {
+  if (longTaskObserverStarted) {
     return;
   }
 
   longTaskObserverStarted = true;
+
+  if (
+    typeof PerformanceObserver === "undefined" ||
+    !PerformanceObserver.supportedEntryTypes.includes("longtask")
+  ) {
+    updateLongTaskSnapshot({ p95: undefined, status: "unsupported" });
+    return;
+  }
+
+  updateLongTaskSnapshot({ p95: undefined, status: "observing" });
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       longTaskSamples.push(entry.duration);
@@ -40,9 +59,49 @@ function startLongTaskObserver() {
       longTaskSamples.splice(0, longTaskSamples.length - LONG_TASK_SAMPLE_LIMIT);
     }
 
-    latestLongTaskP95 = percentile(longTaskSamples, 0.95);
-    longTaskListeners.forEach((listener) => listener());
+    updateLongTaskSnapshot(
+      { p95: percentile(longTaskSamples, 0.95), status: "sampled" },
+      { throttled: true },
+    );
   }).observe({ entryTypes: ["longtask"] });
+}
+
+function updateLongTaskSnapshot(
+  snapshot: MainThreadBlockingP95Snapshot,
+  options: { throttled?: boolean } = {},
+) {
+  latestLongTaskSnapshot = snapshot;
+
+  if (options.throttled === true) {
+    scheduleThrottledLongTaskNotify();
+    return;
+  }
+
+  if (throttledLongTaskNotifyId !== undefined) {
+    clearTimeout(throttledLongTaskNotifyId);
+    throttledLongTaskNotifyId = undefined;
+  }
+
+  notifyLongTaskListeners();
+}
+
+function scheduleThrottledLongTaskNotify() {
+  if (throttledLongTaskNotifyId !== undefined) {
+    return;
+  }
+
+  const elapsedMs = Date.now() - lastLongTaskNotifyAt;
+  const delayMs = Math.max(0, LONG_TASK_NOTIFY_INTERVAL_MS - elapsedMs);
+
+  throttledLongTaskNotifyId = setTimeout(() => {
+    throttledLongTaskNotifyId = undefined;
+    notifyLongTaskListeners();
+  }, delayMs);
+}
+
+function notifyLongTaskListeners() {
+  lastLongTaskNotifyAt = Date.now();
+  longTaskListeners.forEach((listener) => listener());
 }
 
 function percentile(values: number[], point: number) {

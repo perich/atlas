@@ -9,21 +9,14 @@ export function AuditRoute() {
   const auditTable = useAuditTableController();
 
   return (
-    <div className="min-h-[calc(100vh-5.25rem)] overflow-hidden rounded-[4px] border border-white/[0.06] bg-bankops-panel">
-      <div className="border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
+    <div className="flex h-[calc(100vh-5.25rem)] min-h-[40rem] flex-col overflow-hidden rounded-[4px] border border-white/[0.06] bg-bankops-panel">
+      <div className="shrink-0 border-b border-white/[0.06] bg-bankops-sidebar px-6 py-5">
         <h1 className="text-2xl font-semibold leading-tight tracking-[-0.02em] text-bankops-text">
           Bank Core Audit Log
         </h1>
       </div>
 
-      <AuditRenderTracePanel
-        cache={auditTable.cache}
-        firstVirtualIndex={auditTable.firstVirtualIndex}
-        lastVirtualIndex={auditTable.lastVirtualIndex}
-        mainThreadBlockingP95={auditTable.mainThreadBlockingP95}
-        mountedRows={auditTable.mountedRows}
-        rows={auditTable.rows.length}
-      />
+      <AuditRenderTracePanel cache={auditTable.cache} cachedRows={auditTable.cachedRowCount} />
 
       <AuditTablePanel
         activeFilters={auditTable.activeFilters}
@@ -32,9 +25,9 @@ export function AuditRoute() {
         draggedColumnId={auditTable.draggedColumnId}
         hasError={auditTable.hasError}
         isFetching={auditTable.isFetching}
+        loadVisibleRange={auditTable.loadVisibleRange}
         queryState={auditTable.queryState}
         rowByIndex={auditTable.rowByIndex}
-        scrollRef={auditTable.scrollRef}
         setColumnLayout={auditTable.setColumnLayout}
         setDraggedColumnId={auditTable.setDraggedColumnId}
         setQueryState={auditTable.setQueryState}
@@ -51,8 +44,6 @@ export function AuditRoute() {
             setQueryState={auditTable.setQueryState}
           />
         }
-        virtualRows={auditTable.virtualRows}
-        virtualizerTotalSize={auditTable.virtualizerTotalSize}
         visibleColumns={auditTable.visibleColumns}
       />
     </div>
